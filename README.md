@@ -1,129 +1,180 @@
-# Esqueceram AI 🔍
+# Esqueceram AI
 
-Plataforma inteligente para registro, busca e recuperação de itens perdidos e achados. Projeto desenvolvido para a disciplina de Engenharia de Software II da UFPI.
+Plataforma inteligente para registro, busca e recuperação de itens perdidos. Projeto desenvolvido para a disciplina de Engenharia de Software II
+da UFPI.
 
-Este documento, momentaneamente, estabelece o padrão de uso do Git, criação de branches, commits e Pull Requests (PRs) para o desenvolvimento do **Esqueceram AI**. É fundamental que todos sigam estes passos para manter a integridade do código e evitar conflitos.
+Este documento descreve a configuração do ambiente de desenvolvimento do
+backend do projeto.
 
----
+## Tecnologias
 
-## 🛠️ 1. Configuração Inicial e Clonagem
+- Python 3.10 ou superior;
+- Flask;
+- PostgreSQL;
+- Firebase Storage para armazenamento das imagens;
+- Git.
 
-Antes de começar a contribuir, certifique-se de que seu Git está configurado corretamente com seu nome e email institucionais/profissionais.
+O backend segue a organização:
 
-```bash
-# Configurar nome
-git config --global user.name "Seu Nome e Sobrenome"
-
-# Configurar email
-git config --global user.email "seuemail@exemplo.com"
+```text
+Controller -> Service -> Repository -> PostgreSQL
+                         |
+                         -> Firebase Storage
 ```
 
-Em seguida, clone o repositório para a sua máquina local e entre na pasta do projeto:
+O cliente não acessa diretamente o PostgreSQL. As imagens são armazenadas no
+Firebase Storage, enquanto o banco mantém apenas a referência necessária para
+acessá-las.
 
-```bash
-# Clonar o repositório
+## Pré-requisitos
+
+Instale os seguintes programas:
+
+- [Git para Windows](https://git-scm.com/install/windows);
+- [Python para Windows](https://www.python.org/downloads/windows/);
+- [PostgreSQL](https://www.postgresql.org/download/);
+- uma conta ou projeto no [Firebase](https://firebase.google.com/).
+
+Verifique a instalação no PowerShell:
+
+```powershell
+git --version
+py --version
+py -m pip --version
+psql --version
+```
+
+## Clonar o projeto
+
+```powershell
 git clone https://github.com/ES2-UFPI/EsqueceramAI.git
-
-# Entrar no diretório
-cd EsqueceramAI
+Set-Location .\EsqueceramAI
 ```
 
----
+## Criar o ambiente virtual
 
-## 🌱 2. Fluxo de Trabalho (Branching)
+O ambiente virtual mantém as dependências do projeto isoladas das bibliotecas
+instaladas globalmente no computador.
 
-**NUNCA** faça commits diretamente nas branches `main` ou `dev`. Todo o desenvolvimento deve ocorrer em branches isoladas e enviadas via Pull Request.
-
-### Passo 2.1: Atualizar o repositório e ir para a branch dev
-A branch `dev` é a nossa branch principal de integração. **SEMPRE** crie suas novas branches a partir dela, devidamente atualizada.
-
-```bash
-# Baixa as informações e histórico mais recentes do repositório remoto
-git fetch origin
-
-# Atualiza a sua branch atual puxando as últimas alterações da branch dev
-git pull origin dev
+```powershell
+py -3 -m venv .venv
+.\.venv\Scripts\Activate.ps1
+python -m pip install --upgrade pip
 ```
 
-```bash
-# Mudar para a branch de desenvolvimento
-git checkout dev
+Se o PowerShell bloquear a ativação dos scripts, execute o comando abaixo uma
+vez para o usuário atual e tente ativar o ambiente novamente:
 
-# Puxar as atualizações mais recentes do servidor
-git pull origin dev
+```powershell
+Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
 ```
 
-### Passo 2.2: Criar sua branch de funcionalidade/correção
-Crie uma nova branch para a tarefa em que você vai trabalhar. 
-O padrão de nomenclatura obrigatório é: `tipo/nomedafuncionalidade#numerodaissue`
+Quando a ativação funcionar, o terminal exibirá `(.venv)` no início da linha.
 
-**Tipos comuns:**
-- `feat/`: Para novas funcionalidades.
-- `fix/`: Para correção de bugs.
-- `docs/`: Para documentação.
+## Instalar as dependências
 
-**Exemplo prático:** Se você está trabalhando na funcionalidade de login que corresponde à Issue número 12:
+Quando o projeto possuir o arquivo `requirements.txt`, instale as dependências
+com:
 
-```bash
-git checkout -b feat/login-usuario#12
+```powershell
+python -m pip install -r requirements.txt
 ```
 
----
+Enquanto esse arquivo ainda não estiver disponível, instale as dependências
+base do backend:
 
-## 💾 3. Salvando suas Alterações (Add, Commit e Push)
-
-À medida que você for desenvolvendo sua funcionalidade, salve seu progresso realizando commits com mensagens claras e descritivas sobre o que foi feito.
-
-```bash
-# Adicionar os arquivos modificados (use o '.' para todos, ou especifique o arquivo)
-git add .
-
-# Criar o commit com uma mensagem descritiva
-git commit -m "feat: adiciona validacao de email no formulario de login"
-
-# Enviar a sua branch local para o repositório remoto no GitHub
-git push origin feat/login-usuario#12
+```powershell
+python -m pip install Flask Flask-Cors Flask-SQLAlchemy "psycopg[binary]" firebase-admin python-dotenv
 ```
 
----
+Após alterar as dependências do projeto, atualize o arquivo:
 
-## 🔄 4. Criando um Pull Request (PR)
-
-Quando sua funcionalidade estiver finalizada e "commitada" no GitHub, você deve solicitar que seu código seja mesclado na branch principal de desenvolvimento (`dev`).
-
-1. Acesse a página do repositório no GitHub: https://github.com/ES2-UFPI/EsqueceramAI
-2. Você verá um aviso amarelo sugerindo criar um Pull Request (PR) para a sua branch recém-enviada. Clique em **Compare & pull request**.
-> 3. **⚠️ ATENÇÃO MÁXIMA AQUI⚠️:** Como nosso repositório está dentro de uma organização da disciplina, o GitHub pode tentar apontar o Pull Request (PR) para o repositório original (caso seja um fork) ou para a branch `main`. 
-  > - Certifique-se de que o **base repository** seja `ES2-UFPI/EsqueceramAI`.
-  > - Certifique-se de que a **base branch** (para onde o código vai) seja a **`dev`**.
-  > - A **compare branch** (de onde o código vem) será a sua branch (`feat/...`).
-4. No título e na descrição do Pull Request (PR), referencie a issue que ele resolve (ex: `Closes #12`). Isso fará com que o GitHub feche a issue automaticamente quando o Pull Request (PR) for aprovado.
-5. Clique em **Create pull request**.
-
----
-
-## 🤖 5. Integração Contínua (CI) e Qualidade
-
-Temos um workflow de Integração Contínua (CI) configurado no repositório. O que isso significa na prática?
-
-- Toda vez que você abrir um Pull Request ou fizer um novo push para um Pull Request (PR) aberto, o GitHub Actions executará automaticamente um pipeline de verificação (build e testes).
-- A mescla (merge) no Pull Request (PR) será bloqueada automaticamente se o seu código contiver erros de compilação ou se os testes falharem.
-> - **Instrução:** Teste e compile seu código localmente antes de fazer o `git push`. Evite poluir o histórico de commits do Pull Request (PR).
-
----
-
-## 🛡️ 6. Boas Práticas e Prevenção de Erros
-
-Para evitar dor de cabeça e conflitos de código, siga estas regras:
-
-1. **Faça Commits Pequenos e Frequentes:** Não deixe para fazer um commit gigante no final da semana. Faça commits lógicos a cada avanço significativo.
-2. **Sincronize sua Branch Regularmente:** Se você estiver trabalhando na mesma branch por vários dias, outras pessoas podem ter feito merge na `dev`. Para evitar conflitos enormes no final, puxe as atualizações da dev para a sua branch periodicamente:
-
-```bash
-# Dentro da sua branch de trabalho (feat/...):
-git pull origin dev
+```powershell
+python -m pip freeze > requirements.txt
 ```
 
-Resolva os pequenos conflitos (se houver) localmente antes de continuar o trabalho.
+## Configurar o PostgreSQL
 
-3. **Não commite arquivos de configuração pessoal ou dependências:** O arquivo `.gitignore` cuidará disso, mas preste atenção para não usar `git add -f` ou comitar pastas como `node_modules`, `target`, `.vscode` ou `.idea`.
+Crie um banco de dados de desenvolvimento e um usuário para a aplicação. Por
+exemplo, no `psql`:
+
+```sql
+CREATE USER esqueceram_ai WITH PASSWORD 'defina-uma-senha-local';
+CREATE DATABASE esqueceram_ai OWNER esqueceram_ai;
+```
+
+Não use essa senha em produção e não a publique no repositório.
+
+## Configurar o Firebase Storage
+
+1. Crie ou selecione um projeto no Firebase.
+2. Ative o Firebase Storage.
+3. Gere uma credencial de serviço para o backend.
+4. Armazene o arquivo da credencial fora do controle de versão.
+
+O caminho do arquivo e as configurações do banco devem ser informados por
+variáveis de ambiente. Um arquivo `.env` local pode conter, por exemplo:
+
+```dotenv
+FLASK_ENV=development
+DATABASE_URL=postgresql+psycopg://esqueceram_ai:senha-local@localhost:5432/esqueceram_ai
+GOOGLE_APPLICATION_CREDENTIALS=C:\caminho\seguro\firebase-service-account.json
+FIREBASE_STORAGE_BUCKET=seu-projeto.firebasestorage.app
+```
+
+Nunca faça commit de `.env`, credenciais do Firebase, tokens ou senhas.
+Mantenha somente nomes de variáveis e valores fictícios em um eventual arquivo
+`.env.example`.
+
+## Executar o backend
+
+Com o ambiente virtual ativado, execute a aplicação Flask conforme o ponto de
+entrada definido pelo projeto. Exemplos:
+
+```powershell
+python app.py
+```
+
+ou:
+
+```powershell
+python -m flask --app app run --debug
+```
+
+Por padrão, a aplicação ficará disponível em
+`http://127.0.0.1:5000`.
+
+## Testar a API
+
+O endpoint de cadastro de itens deve seguir o contrato definido pela equipe.
+Para o cadastro com imagem, a requisição utilizará `multipart/form-data`.
+Exemplo:
+
+```powershell
+curl.exe -X POST http://127.0.0.1:5000/api/itens `
+  -F "tipo_registro=PERDIDO" `
+  -F "descricao=Celular preto com capa azul" `
+  -F "categoria=ELETRONICO" `
+  -F "localizacao=Biblioteca Central" `
+  -F "data_ocorrencia=2026-10-16" `
+  -F "imagem=@C:\caminho\celular.jpg"
+```
+
+Uma implementação concluída deve retornar `201 Created` para um cadastro
+válido e respostas de erro apropriadas para dados inválidos ou imagens não
+aceitas.
+
+## Branches e contribuição
+
+O fluxo de branches, commits e Pull Requests está documentado em
+[CONTRIBUTING.md](CONTRIBUTING.md).
+
+Não faça commits diretamente nas branches `main` ou `dev`. Crie uma branch
+específica para cada tarefa e abra um Pull Request direcionado para `dev`.
+
+## Documentação adicional
+
+- [Wiki do projeto](https://github.com/ES2-UFPI/EsqueceramAI/wiki);
+- [Definição tecnológica](https://github.com/ES2-UFPI/EsqueceramAI/wiki/Defini%C3%A7%C3%A3o-Tecnol%C3%B3gica);
+- [Preparação do ambiente](https://github.com/ES2-UFPI/EsqueceramAI/wiki/Preparando-o-ambiente-de-desenvolvimento);
+- [Visão arquitetural da API](https://github.com/ES2-UFPI/EsqueceramAI/wiki/API-%E2%80%94-Vis%C3%A3o-Arquitetural).
