@@ -10,10 +10,15 @@ jobs:
   lint:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      # Atualizado de @v4 para @v4.2.2+ ou tags superiores que rodam nativamente em Node 24
+      - uses: actions/checkout@v4.2.2
+
+      # Atualizado de @v5 para @v5.3.0+ para compatibilidade total com Node 24 e Ubuntu 26
+      - uses: actions/setup-python@v5.3.0
         with:
           python-version: "3.12"
+
       - run: python -m pip install pyyaml
+
       - name: Validate YAML files
         run: python -c "import pathlib, yaml; [yaml.safe_load(path.read_text()) for path in pathlib.Path('.').rglob('*.yml')]; print('YAML válido')"
