@@ -11,7 +11,8 @@ backend do projeto.
 - Python 3.10 ou superior;
 - Flask;
 - PostgreSQL;
-- Firebase Storage para armazenamento das imagens;
+- Supabase Storage para armazenamento gratuito das imagens;
+- Firebase Cloud Messaging (opcional) para notificações;
 - Git.
 
 O backend segue a organização:
@@ -19,12 +20,16 @@ O backend segue a organização:
 ```text
 Controller -> Service -> Repository -> PostgreSQL
                          |
-                         -> Firebase Storage
+                         -> Supabase Storage
 ```
 
 O cliente não acessa diretamente o PostgreSQL. As imagens são armazenadas no
-Firebase Storage, enquanto o banco mantém apenas a referência necessária para
+Supabase Storage, enquanto o banco mantém apenas a referência necessária para
 acessá-las.
+
+> O Cloud Storage for Firebase exige atualmente o plano Blaze. Como o MVP não
+> utilizará serviços pagos, o armazenamento principal de imagens é o Supabase
+> Storage no plano gratuito.
 
 ## Pré-requisitos
 
@@ -33,7 +38,8 @@ Instale os seguintes programas:
 - [Git para Windows](https://git-scm.com/install/windows);
 - [Python para Windows](https://www.python.org/downloads/windows/);
 - [PostgreSQL](https://www.postgresql.org/download/);
-- uma conta ou projeto no [Firebase](https://firebase.google.com/).
+- uma conta no [Supabase](https://supabase.com/);
+- opcionalmente, um projeto no [Firebase](https://firebase.google.com/) para FCM.
 
 Verifique a instalação no PowerShell:
 
@@ -80,13 +86,6 @@ com:
 python -m pip install -r requirements.txt
 ```
 
-Enquanto esse arquivo ainda não estiver disponível, instale as dependências
-base do backend:
-
-```powershell
-python -m pip install Flask Flask-Cors Flask-SQLAlchemy "psycopg[binary]" firebase-admin python-dotenv
-```
-
 Após alterar as dependências do projeto, atualize o arquivo:
 
 ```powershell
@@ -105,12 +104,12 @@ CREATE DATABASE esqueceram_ai OWNER esqueceram_ai;
 
 Não use essa senha em produção e não a publique no repositório.
 
-## Configurar o Firebase Storage
+## Configurar o armazenamento de imagens
 
-1. Crie ou selecione um projeto no Firebase.
-2. Ative o Firebase Storage.
-3. Gere uma credencial de serviço para o backend.
-4. Armazene o arquivo da credencial fora do controle de versão.
+1. Crie um projeto no Supabase.
+2. Crie um bucket chamado `item-images`.
+3. Mantenha o bucket privado e faça os uploads pelo backend.
+4. Copie a URL do projeto e a service role key para os secrets do Render.
 
 O caminho do arquivo e as configurações do banco devem ser informados por
 variáveis de ambiente. Um arquivo `.env` local pode conter, por exemplo:
@@ -118,11 +117,13 @@ variáveis de ambiente. Um arquivo `.env` local pode conter, por exemplo:
 ```dotenv
 FLASK_ENV=development
 DATABASE_URL=postgresql+psycopg://esqueceram_ai:senha-local@localhost:5432/esqueceram_ai
-GOOGLE_APPLICATION_CREDENTIALS=C:\caminho\seguro\firebase-service-account.json
-FIREBASE_STORAGE_BUCKET=seu-projeto.firebasestorage.app
+STORAGE_PROVIDER=supabase
+SUPABASE_URL=https://seu-projeto.supabase.co
+SUPABASE_SERVICE_ROLE_KEY=chave-apenas-no-backend
+SUPABASE_STORAGE_BUCKET=item-images
 ```
 
-Nunca faça commit de `.env`, credenciais do Firebase, tokens ou senhas.
+Nunca faça commit de `.env`, service role keys, credenciais do Firebase, tokens ou senhas.
 Mantenha somente nomes de variáveis e valores fictícios em um eventual arquivo
 `.env.example`.
 
@@ -175,6 +176,7 @@ específica para cada tarefa e abra um Pull Request direcionado para `dev`.
 ## Documentação adicional
 
 - [Wiki do projeto](https://github.com/ES2-UFPI/EsqueceramAI/wiki);
+- [MVP e implantação gratuita](https://github.com/ES2-UFPI/EsqueceramAI/wiki/MVP-e-Implanta%C3%A7%C3%A3o-Gratuita);
 - [Definição tecnológica](https://github.com/ES2-UFPI/EsqueceramAI/wiki/Defini%C3%A7%C3%A3o-Tecnol%C3%B3gica);
 - [Preparação do ambiente](https://github.com/ES2-UFPI/EsqueceramAI/wiki/Preparando-o-ambiente-de-desenvolvimento);
 - [Visão arquitetural da API](https://github.com/ES2-UFPI/EsqueceramAI/wiki/API-%E2%80%94-Vis%C3%A3o-Arquitetural).

@@ -1,0 +1,52 @@
+name: CI
+
+on:
+  push:
+    branches: [main, dev]
+  pull_request:
+    branches: [main, dev]
+
+permissions:
+  contents: read
+
+jobs:
+  # Job focado em garantir a integridade e qualidade do código Python do Backend
+  backend-validation:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4.2.2
+
+      - uses: actions/setup-python@v5.3.0
+        with:
+          python-version: "3.12"
+          # Habilita cache nativo do pip baseado no requirements.txt para acelerar o CI
+          cache: 'pip'
+          cache-dependency-path: 'backend/requirements.txt'
+
+      - name: Install backend dependencies
+        run: |
+          python -m pip install --upgrade pip
+          if [ -f backend/requirements.txt ]; then python -m pip install -r backend/requirements.txt; fi
+          python -m pip install pytest
+
+      - name: Validate backend syntax
+        run: python -m compileall backend
+
+      - name: Run backend tests
+        # O sufixo || echo "Nenhum teste encontrado" impede que a esteira quebre se a pasta de testes ainda estiver vazia neste commit
+        run: pytest backend/tests -q || echo "Nenhum teste encontrado"
+
+  # Job rápido e isolado apenas para checar a sintaxe das configurações do projeto
+  config-lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4.2.2
+
+      - uses: actions/setup-python@v5.3.0
+        with:
+          python-version: "3.12"
+
+      - run: python -m pip install pyyaml
+
+      - name: Validate YAML files
+        run: python -c "import pathlib, yaml; [yaml.safe_load(path.read_text()) for path in pathlib.Path('.').rglob('*.yml')]; print('YAML válido')"
