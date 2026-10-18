@@ -1,0 +1,40 @@
+:root {
+  font-family: system-ui, sans-serif;
+  color: #17202a;
+  background: #f4f7f9;
+}
+
+body {
+  margin: 0;
+}
+
+.container {
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 2rem 1rem;
+}
+
+form {
+  display: grid;
+  gap: 1rem;
+  padding: 1rem;
+  background: white;
+  border-radius: 0.5rem;
+}
+
+label {
+  display: grid;
+  gap: 0.35rem;
+}
+
+input, select, textarea, button {
+  font: inherit;
+  padding: 0.65rem;
+}
+
+button {
+  cursor: pointer;
+  background: #69c51c;
+  border: 0;
+  border-radius: 0.35rem;
+}
