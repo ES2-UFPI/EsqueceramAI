@@ -176,7 +176,7 @@ específica para cada tarefa e abra um Pull Request direcionado para `dev`.
 ## Documentação adicional
 
 - [Wiki do projeto](https://github.com/ES2-UFPI/EsqueceramAI/wiki);
-- [MVP e implantação gratuita](../wiki/EsqueceramAI.wiki/MVP-e-Implantacao-Gratuita.md);
+- [MVP e implantação gratuita](https://github.com/ES2-UFPI/EsqueceramAI/wiki/MVP-e-Implanta%C3%A7%C3%A3o-Gratuita);
 - [Definição tecnológica](https://github.com/ES2-UFPI/EsqueceramAI/wiki/Defini%C3%A7%C3%A3o-Tecnol%C3%B3gica);
 - [Preparação do ambiente](https://github.com/ES2-UFPI/EsqueceramAI/wiki/Preparando-o-ambiente-de-desenvolvimento);
 - [Visão arquitetural da API](https://github.com/ES2-UFPI/EsqueceramAI/wiki/API-%E2%80%94-Vis%C3%A3o-Arquitetural).
