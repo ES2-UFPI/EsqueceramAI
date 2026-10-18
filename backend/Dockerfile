@@ -18,4 +18,5 @@ COPY backend/ .
 
 EXPOSE 10000
 
+# Garante que o gunicorn encontre o app.py que agora está na raiz do WORKDIR (/app)
 CMD ["sh", "-c", "gunicorn --bind 0.0.0.0:${PORT} app:app"]
