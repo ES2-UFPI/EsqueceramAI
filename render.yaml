@@ -2,7 +2,7 @@ services:
   - type: web
     name: esqueceram-ai-api
     runtime: docker
-    dockerContext: .
+    dockerContext: ./backend
     dockerfilePath: ./backend/Dockerfile
     envVars:
       - key: PORT

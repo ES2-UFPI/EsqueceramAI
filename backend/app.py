@@ -28,8 +28,26 @@ def initialize_database():
     finally:
         connection.close()
         get_connection.cache_clear()
-# Recebe os dados enviados pelo HTML e salva no banco
-@app.route("/posto", methods=["POST"])
+
+@app.get("/")
+def raiz():
+    return jsonify({"status": "API Esqueceram AI no ar"})
+
+@app.get("/api/itens")
+def listar():
+    return jsonify(itens)
+
+@app.post("/api/itens")
+def criar():
+    dados = request.get_json(silent=True)
+    if not dados or not dados.get("nome") or not dados.get("local"):
+        return jsonify({"erro": "nome e local são obrigatórios"}), 400
+    item = {"id": len(itens) + 1, "nome": dados["nome"], "local": dados["local"]}
+    itens.append(item)
+    return jsonify(item), 201
+
+@app.post("/api/posto")
+@app.post("/posto")
 def criar_posto():
     dados = request.get_json(silent=True)
     required_fields = ("nome", "endereco", "latitude", "longitude")
@@ -61,7 +79,7 @@ def criar_posto():
 
 @app.get("/api/health")
 def health():
-    return jsonify({"status": "healthy"})
+    return jsonify({"status": "UP"})
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=int(os.getenv("PORT", "5000")), debug=True)
