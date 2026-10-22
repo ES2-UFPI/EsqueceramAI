@@ -2,8 +2,8 @@ import json
 import os
 import uuid
 from datetime import date
-from functools import lru_cache
 import psycopg2
+from psycopg2.extras import RealDictCursor
 from flask import Flask, jsonify, request
 from flask_cors import CORS
 
@@ -16,7 +16,6 @@ def database_url():
         raise RuntimeError("DATABASE_URL não configurada")
     return value
 
-@lru_cache(maxsize=1)
 def get_connection():
     return psycopg2.connect(database_url())
 
@@ -32,9 +31,12 @@ def initialize_database():
 # Recebe os dados enviados pelo HTML e salva no banco
 @app.route("/posto", methods=["POST"])
 def criar_posto():
-    dados = request.get_json()
+    dados = request.get_json(silent=True)
+    required_fields = ("nome", "endereco", "latitude", "longitude")
+    if not dados or any(dados.get(field) is None for field in required_fields):
+        return jsonify({"erro": "nome, endereco, latitude e longitude são obrigatórios"}), 400
 
-    conn = get_conn()
+    conn = get_connection()
     try:
         with conn, conn.cursor(cursor_factory=RealDictCursor) as cur:
             cur.execute(
