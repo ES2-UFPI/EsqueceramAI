@@ -29,6 +29,33 @@ def initialize_database():
     finally:
         connection.close()
         get_connection.cache_clear()
+# Recebe os dados enviados pelo HTML e salva no banco
+@app.route("/posto", methods=["POST"])
+def criar_posto():
+    dados = request.get_json()
+
+    conn = get_conn()
+    try:
+        with conn, conn.cursor(cursor_factory=RealDictCursor) as cur:
+            cur.execute(
+                """
+                INSERT INTO posto_coleta (nome, endereco, latitude, longitude, ativo)
+                VALUES (%s, %s, %s, %s, %s)
+                RETURNING *
+                """,
+                (
+                    dados["nome"],
+                    dados["endereco"],
+                    dados["latitude"],
+                    dados["longitude"],
+                    dados.get("ativo", True),
+                ),
+            )
+            posto = cur.fetchone()
+    finally:
+        conn.close()
+
+    return jsonify(posto), 201
 
 @app.get("/api/health")
 def health():
