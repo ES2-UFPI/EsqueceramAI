@@ -13,4 +13,4 @@ def test_health():
     response = app.test_client().get("/api/health")
 
     assert response.status_code == 200
-    assert response.json == {"status": "healthy"}
+    assert response.json == {"status": "healthy", "scope": "global_api"}
