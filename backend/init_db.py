@@ -14,17 +14,8 @@ from dotenv import load_dotenv
 from psycopg2 import sql
 from sqlalchemy.engine import make_url
 
-# As migrations do Supabase são a única fonte do schema: o mesmo arquivo aplicado
-# por `supabase db push` é aplicado aqui, no PostgreSQL local.
-MIGRATIONS_DIR = Path(__file__).resolve().parents[1] / "supabase" / "migrations"
+SCHEMA_FILE = Path(__file__).parent / "sql" / "schema.sql"
 HOSTS_LOCAIS = {None, "", "localhost", "127.0.0.1", "::1"}
-
-
-def migrations() -> list[Path]:
-    arquivos = sorted(MIGRATIONS_DIR.glob("*.sql"))
-    if not arquivos:
-        raise RuntimeError(f"nenhuma migration encontrada em {MIGRATIONS_DIR}")
-    return arquivos
 
 def banco_local(raw_url: str) -> bool:
     return make_url(raw_url).host in HOSTS_LOCAIS
@@ -48,7 +39,7 @@ def preparar_banco(raw_url: str, reset: bool = False) -> None:
             cur.execute(sql.SQL("CREATE DATABASE {}").format(sql.Identifier(url.database)))
             print(f"Banco '{url.database}' criado.")
 
-    # 2) aplica as migrations
+    # 2) aplica o schema
     with closing(_conectar(url, url.database)) as conn, conn.cursor() as cur:
         if reset:
             cur.execute("DROP SCHEMA public CASCADE; CREATE SCHEMA public;")
@@ -57,9 +48,7 @@ def preparar_banco(raw_url: str, reset: bool = False) -> None:
         if cur.fetchone()[0]:
             print("O schema já existe. Nada a fazer (use --reset para recriar).")
         else:
-            for arquivo in migrations():
-                cur.execute(arquivo.read_text(encoding="utf-8"))
-                print(f"Migration aplicada: {arquivo.name}")
+            cur.execute(SCHEMA_FILE.read_text(encoding="utf-8"))
             print("Schema aplicado com sucesso.")
 
 def main() -> int:
@@ -68,7 +57,7 @@ def main() -> int:
     parser.add_argument("--seed", action="store_true", help="insere dados de exemplo")
     args = parser.parse_args()
 
-    load_dotenv(Path(__file__).parent / ".env")
+    load_dotenv()
     raw_url = os.environ.get("DATABASE_URL")
     if not raw_url:
         print("ERRO: defina DATABASE_URL no arquivo .env (veja .env.example)")
@@ -85,7 +74,7 @@ def main() -> int:
     except psycopg2.errors.DuplicateTable as erro:
         print("ERRO: já existem tabelas deste projeto criadas à mão neste banco.\n"
               f"      Detalhe: {str(erro).strip()}\n"
-              "      Nada foi alterado.\n"
+              "      Nada foi alterado (o schema roda em uma transação).\n"
               "      - Banco só seu, dados descartáveis:  python init_db.py --reset\n"
               "      - Banco compartilhado: combine com a equipe antes de mexer nas tabelas.")
         return 1
