@@ -31,7 +31,7 @@ def preparar_banco(raw_url: str, reset: bool = False) -> None:
     url = make_url(raw_url)
     if reset and not banco_local(raw_url):
         raise RuntimeError(
-            f"--reset recusado: '{url.host}' não é um banco local. "
+            f"--reset recusado: '{url.host}' não é um banco local. ")
     # 1) cria o banco, se ainda não existir
     with closing(_conectar(url, "postgres")) as admin, admin.cursor() as cur:
         cur.execute("SELECT 1 FROM pg_database WHERE datname = %s", (url.database,))
