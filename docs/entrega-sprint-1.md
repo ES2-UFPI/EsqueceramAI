@@ -10,7 +10,7 @@ disciplina de Engenharia de Software II da UFPI.
 | Líder / Scrum Master | Arthur Rabelo |
 | Product Owner | Cauã Martins |
 | Equipe | Arthur Rabelo, Cauã Martins, Kauan Saraiva, Samara Feitosa |
-| Versão entregue | 1.0.0 |
+| Versão entregue | 0.1.0 |
 
 ---
 
