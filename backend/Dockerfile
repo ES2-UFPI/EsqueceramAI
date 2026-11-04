@@ -2,17 +2,22 @@ FROM python:3.12-slim
 
 WORKDIR /app
 
-ENV PYTHONDONTWRITEBYTECODE=1
-ENV PYTHONUNBUFFERED=1
-ENV PORT=10000
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    PORT=10000 \
+    UPLOAD_DIR=/app/storage
 
 COPY requirements.txt .
-COPY app.py .
-
 RUN python -m pip install --no-cache-dir --upgrade pip && \
     python -m pip install --no-cache-dir -r requirements.txt
 
+COPY app.py .
+COPY sql ./sql
+COPY init_db.py .
+COPY extensions.py models.py seed.py ./
+
+RUN mkdir -p /app/storage
+
 EXPOSE 10000
 
-# Garante que o gunicorn encontre o app.py que agora está na raiz do WORKDIR (/app)
-CMD ["sh", "-c", "gunicorn --bind 0.0.0.0:${PORT} app:app"]
+CMD ["sh", "-c", "gunicorn --bind 0.0.0.0:${PORT} --workers 2 --threads 4 --timeout 120 app:app"]

@@ -8,6 +8,8 @@ firebase-service-account.json
 service-account.json
 .pytest_cache/
 .coverage
+backend/storage/
+.smoke/
 /.idea
 /.idea/.gitignore
 /.idea/go.imports.xml

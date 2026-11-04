@@ -33,8 +33,7 @@ jobs:
         run: python -m compileall backend
 
       - name: Run backend tests
-        # O sufixo || echo "Nenhum teste encontrado" impede que a esteira quebre se a pasta de testes ainda estiver vazia neste commit
-        run: pytest backend/tests -q || echo "Nenhum teste encontrado"
+        run: pytest backend/tests/test_app.py -q
 
   # Job rápido e isolado apenas para checar a sintaxe das configurações do projeto
   config-lint:
