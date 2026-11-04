@@ -1,0 +1,184 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Esqueceram AI</title>
+    <link rel="stylesheet" href="styles.css">
+  </head>
+  <body>
+    <header class="topo">
+      <div class="container">
+        <h1>Esqueceram AI</h1>
+        <p>Registre, busque e recupere itens perdidos e encontrados.</p>
+        <nav class="abas" aria-label="Navegação principal">
+          <button type="button" class="aba ativa" data-aba="busca">Buscar item</button>
+          <button type="button" class="aba" data-aba="encontrado">Encontrei um item</button>
+          <button type="button" class="aba" data-aba="posto">Ponto de coleta</button>
+        </nav>
+      </div>
+    </header>
+
+    <main class="container">
+      <p id="message" class="mensagem" role="status" aria-live="polite"></p>
+
+      <section id="aba-busca" class="painel">
+        <h2>Perdi um item</h2>
+        <p class="ajuda">Busque por descrição, marca, modelo, cor ou categoria.</p>
+
+        <form id="form-busca" class="formulario">
+          <label>
+            Palavra-chave
+            <input type="search" id="busca-q" placeholder="ex.: celular azul">
+          </label>
+          <label>
+            Tipo
+            <select id="busca-tipo">
+              <option value="">Todos</option>
+              <option value="PERDIDO">Perdido</option>
+              <option value="ENCONTRADO">Encontrado</option>
+            </select>
+          </label>
+          <label>
+            Categoria
+            <select id="busca-categoria">
+              <option value="">Todas</option>
+              <option value="ELETRONICO">Eletrônico</option>
+              <option value="DOCUMENTO">Documento</option>
+              <option value="ACESSORIO">Acessório</option>
+            </select>
+          </label>
+          <label>
+            Status
+            <select id="busca-status">
+              <option value="">Todos</option>
+              <option value="ABERTO">Aberto</option>
+              <option value="RESERVADO">Reservado</option>
+              <option value="DEVOLVIDO">Devolvido</option>
+              <option value="ARQUIVADO">Arquivado</option>
+            </select>
+          </label>
+          <div class="acoes">
+            <button type="submit">Buscar</button>
+            <button type="button" id="busca-limpar" class="secundario">Limpar filtros</button>
+          </div>
+        </form>
+
+        <h3>Itens cadastrados</h3>
+        <ul id="lista-itens" class="lista-itens"></ul>
+      </section>
+
+      <section id="aba-encontrado" class="painel" hidden>
+        <h2>Encontrei um item</h2>
+        <p class="ajuda">
+          Descreva o objeto, informe onde o encontrou, anexe uma foto e diga em qual ponto
+          de coleta você o deixou.
+        </p>
+
+        <form id="form-encontrado" class="formulario" enctype="multipart/form-data">
+          <label>
+            Tipo de registro
+            <select id="item-tipo">
+              <option value="ENCONTRADO" selected>Encontrado</option>
+              <option value="PERDIDO">Perdido</option>
+            </select>
+          </label>
+          <label>
+            Categoria
+            <select id="item-categoria" required>
+              <option value="ELETRONICO">Eletrônico</option>
+              <option value="DOCUMENTO">Documento</option>
+              <option value="ACESSORIO">Acessório</option>
+            </select>
+          </label>
+          <label id="campo-tipo-documento" hidden>
+            Tipo de documento
+            <input type="text" id="item-tipo-documento" placeholder="ex.: RG, CPF, carteira de estudante">
+          </label>
+          <label>
+            Descrição
+            <textarea id="item-descricao" rows="3" required
+              placeholder="ex.: celular com capinha azul e tela trincada no canto"></textarea>
+          </label>
+          <label>
+            Cor
+            <input type="text" id="item-cor" placeholder="ex.: azul">
+          </label>
+          <label>
+            Marca
+            <input type="text" id="item-marca" placeholder="ex.: Samsung">
+          </label>
+          <label>
+            Modelo
+            <input type="text" id="item-modelo" placeholder="ex.: Galaxy A54">
+          </label>
+          <label>
+            Onde foi encontrado
+            <input type="text" id="item-localizacao" placeholder="ex.: Corredor do Bloco 5">
+          </label>
+          <div class="linha">
+            <label>
+              Latitude
+              <input type="number" step="any" min="-90" max="90" id="item-latitude">
+            </label>
+            <label>
+              Longitude
+              <input type="number" step="any" min="-180" max="180" id="item-longitude">
+            </label>
+          </div>
+          <label>
+            Data da ocorrência
+            <input type="date" id="item-data">
+          </label>
+          <label>
+            Ponto de coleta
+            <select id="item-posto">
+              <option value="">Nenhum</option>
+            </select>
+          </label>
+          <label>
+            Fotografia
+            <input type="file" id="item-imagem" accept="image/png,image/jpeg,image/gif,image/webp">
+          </label>
+          <button type="submit">Cadastrar item</button>
+        </form>
+      </section>
+
+      <section id="aba-posto" class="painel" hidden>
+        <h2>Cadastrar ponto de coleta</h2>
+        <p class="ajuda">Locais onde os itens encontrados ficam guardados para retirada.</p>
+
+        <form id="form-posto" class="formulario">
+          <label>
+            Nome
+            <input type="text" id="posto-nome" required placeholder="ex.: Posto de Coleta CCN">
+          </label>
+          <label>
+            Endereço
+            <input type="text" id="posto-endereco" required placeholder="ex.: Bloco 5, CCN - UFPI">
+          </label>
+          <div class="linha">
+            <label>
+              Latitude
+              <input type="number" step="any" min="-90" max="90" id="posto-latitude" required>
+            </label>
+            <label>
+              Longitude
+              <input type="number" step="any" min="-180" max="180" id="posto-longitude" required>
+            </label>
+          </div>
+          <label>
+            Horário de funcionamento
+            <input type="text" id="posto-horario" placeholder="ex.: Seg a Sex, 8h às 18h">
+          </label>
+          <button type="submit">Cadastrar ponto de coleta</button>
+        </form>
+
+        <h3>Pontos cadastrados</h3>
+        <ul id="lista-postos" class="lista-itens"></ul>
+      </section>
+    </main>
+
+    <script src="app.js"></script>
+  </body>
+</html>

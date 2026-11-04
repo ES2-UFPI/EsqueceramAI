@@ -1,0 +1,59 @@
+services:
+  api:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    environment:
+      PORT: "10000"
+      DATABASE_URL: postgresql://esqueceram_ai:esqueceram_ai@db:5432/esqueceram_ai
+      FRONTEND_ORIGIN: http://localhost:8080
+      UPLOAD_DIR: /app/storage
+    ports:
+      - "5000:10000"
+    volumes:
+      - uploads:/app/storage
+    depends_on:
+      db:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "python -c \"import os,urllib.request;urllib.request.urlopen('http://localhost:'+os.environ['PORT']+'/api/health')\""]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
+    restart: unless-stopped
+
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: esqueceram_ai
+      POSTGRES_USER: esqueceram_ai
+      POSTGRES_PASSWORD: esqueceram_ai
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./backend/sql/schema.sql:/docker-entrypoint-initdb.d/01-schema.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U esqueceram_ai -d esqueceram_ai"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    ports:
+      - "8080:80"
+    depends_on:
+      api:
+        condition: service_started
+    restart: unless-stopped
+
+networks:
+  default:
+    name: esqueceram-network
+
+volumes:
+  postgres_data:
+  uploads:
