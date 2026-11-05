@@ -1,7 +1,10 @@
 // Sob Nginx (Docker Compose) a API é servida no mesmo host via proxy /api.
 // Fora do container usa a porta 5000 do backend local.
+const API = "https://esqueceramai.onrender.com/api";
+/*
 const API = window.ESQUECERAM_API
   || (location.port === "8080" ? "/api" : `http://${location.hostname}:5000/api`);
+  */
 
 const ROTULO_CATEGORIA = {
   ELETRONICO: "Eletrônico",
