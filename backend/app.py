@@ -9,8 +9,9 @@ from flask import Flask, jsonify, request, send_from_directory
 from flask_cors import CORS
 
 app = Flask(__name__)
-frontend_origin = os.getenv("FRONTEND_ORIGIN", "http://localhost:8080")
-CORS(app, resources={r"/api/*": {"origins": frontend_origin}})
+
+# Adaptação para Produção: Libera o CORS especificamente para o GitHub Pages
+CORS(app, resources={r"/api/*": {"origins": "https://es2-ufpi.github.io"}})
 
 TIPO_REGISTRO = {"PERDIDO", "ENCONTRADO"}
 CATEGORIA = {"ELETRONICO", "DOCUMENTO", "ACESSORIO"}
