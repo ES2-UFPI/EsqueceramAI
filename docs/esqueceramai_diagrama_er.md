@@ -23,6 +23,7 @@ erDiagram
     USUARIO {
         bigint id PK
         varchar nome
+        varchar cpf UK
         varchar email UK
         varchar senha_hash
         papel_usuario papel
