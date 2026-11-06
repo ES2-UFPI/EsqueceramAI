@@ -119,9 +119,14 @@ FLASK_ENV=development
 DATABASE_URL=postgresql+psycopg://esqueceram_ai:senha-local@localhost:5432/esqueceram_ai
 STORAGE_PROVIDER=supabase
 SUPABASE_URL=https://seu-projeto.supabase.co
-SUPABASE_SERVICE_ROLE_KEY=chave-apenas-no-backend
+SUPABASE_PUBLISHABLE_KEY=sb_publishable_sua_chave_publica
+SUPABASE_SECRET_KEY=sb_secret_sua_chave_secreta
+SUPABASE_JWKS_URL=https://seu-projeto.supabase.co/auth/v1/.well-known/jwks.json
 SUPABASE_STORAGE_BUCKET=item-images
 ```
+
+Os detalhes das variáveis e a aplicação do schema por migrations estão em
+[docs/supabase-config.md](docs/supabase-config.md).
 
 Nunca faça commit de `.env`, service role keys, credenciais do Firebase, tokens ou senhas.
 Mantenha somente nomes de variáveis e valores fictícios em um eventual arquivo

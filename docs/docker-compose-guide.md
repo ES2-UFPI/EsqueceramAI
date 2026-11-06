@@ -52,9 +52,10 @@ docker compose logs -f api
 ## Ordem de inicialização
 
 O `db` possui um healthcheck com `pg_isready`, e a `api` só inicia quando ele passa
-(`depends_on: condition: service_healthy`). O schema em `backend/sql/schema.sql` é montado
-em `/docker-entrypoint-initdb.d`, sendo aplicado automaticamente na primeira subida com o
-volume vazio.
+(`depends_on: condition: service_healthy`). A migration inicial em
+`supabase/migrations/20261106000000_initial_schema.sql` — a mesma aplicada no Supabase — é
+montada em `/docker-entrypoint-initdb.d`, sendo aplicada automaticamente na primeira subida
+com o volume vazio.
 
 ## Persistência
 
