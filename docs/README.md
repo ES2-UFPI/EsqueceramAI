@@ -13,4 +13,5 @@ Adicione aqui materiais que expliquem o funcionamento, a configuração ou a evo
 | [entrega-sprint-1.md](entrega-sprint-1.md) | Encerramento da Sprint 1: escopo entregue, arquitetura, endpoints, validações e dívida técnica |
 | [esqueceramai_diagrama_er.md](esqueceramai_diagrama_er.md) | Diagrama entidade-relacionamento do banco |
 | [docker-compose-guide.md](docker-compose-guide.md) | Guia do ambiente local containerizado |
+| [supabase-config.md](supabase-config.md) | Variáveis do Supabase e aplicação do schema via migrations |
 | [release-notes-v0.1.0.md](release-notes-v0.1.0.md) | Notas da versão 0.1.0, entregue ao final da Sprint 1 |

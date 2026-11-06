@@ -1,14 +1,18 @@
 -- =====================================================================
+-- Esqueceram AI — schema inicial.
+--
+-- Aplicado no Supabase com:   supabase db push
+-- Aplicado localmente com:    docker compose up   /   python init_db.py
+--
 -- Decisões principais:
 --  * Item em TABELA ÚNICA (categoria + atributos específicos em JSONB),
 --    para que busca, filtros e match não precisem de JOINs.
---  * Fotos ficam no Firebase Storage; o banco guarda só a URL.
+--  * Fotos ficam no Supabase Storage; o banco guarda só a URL.
 --  * Match só liga item PERDIDO a item ENCONTRADO (garantido por FK composta).
 --  * Um item encontrado não pode ter duas recuperações ativas ao mesmo
 --    tempo (índice único parcial + função reservar_item com lock).
 -- =====================================================================
 
-BEGIN;
 -- ---------------------------------------------------------------------
 -- Tipos enumerados
 -- ---------------------------------------------------------------------
@@ -22,6 +26,7 @@ CREATE TYPE origem_recompensa    AS ENUM ('REGRA_PONTOS', 'OFERTA_PROPRIETARIO')
 CREATE TYPE status_recompensa    AS ENUM ('PENDENTE', 'RECEBIDA', 'CANCELADA');
 CREATE TYPE tipo_notificacao     AS ENUM ('MATCH_IDENTIFICADO', 'RECUPERACAO_ATUALIZADA', 'ITEM_ATUALIZADO', 'RECOMPENSA');
 CREATE TYPE plataforma_dispositivo AS ENUM ('WEB', 'ANDROID', 'IOS');
+
 -- ---------------------------------------------------------------------
 -- Utilitário: atualiza coluna atualizado_em
 -- ---------------------------------------------------------------------
@@ -31,6 +36,7 @@ BEGIN
     RETURN NEW;
 END;
 $$ LANGUAGE plpgsql;
+
 -- ---------------------------------------------------------------------
 -- Módulo: Acesso e Perfil
 -- ---------------------------------------------------------------------
@@ -56,6 +62,7 @@ CREATE TABLE perfil (
 );
 CREATE TRIGGER trg_perfil_atualizado BEFORE UPDATE ON perfil
     FOR EACH ROW EXECUTE FUNCTION set_atualizado_em();
+
 -- Tokens do Firebase Cloud Messaging (um usuário pode ter vários dispositivos)
 CREATE TABLE dispositivo_fcm (
     id             BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
@@ -66,6 +73,7 @@ CREATE TABLE dispositivo_fcm (
     ultimo_uso_em  TIMESTAMPTZ
 );
 CREATE INDEX ix_dispositivo_usuario ON dispositivo_fcm (usuario_id);
+
 -- ---------------------------------------------------------------------
 -- Módulo: Postos de Coleta
 -- ---------------------------------------------------------------------
@@ -79,12 +87,14 @@ CREATE TABLE posto_coleta (
     ativo          BOOLEAN      NOT NULL DEFAULT TRUE,
     criado_em      TIMESTAMPTZ  NOT NULL DEFAULT now()
 );
+
 -- Quem opera cada posto (registrar recebimento / retirada)
 CREATE TABLE posto_operador (
     posto_id       BIGINT NOT NULL REFERENCES posto_coleta(id) ON DELETE CASCADE,
     usuario_id     BIGINT NOT NULL REFERENCES usuario(id)      ON DELETE CASCADE,
     PRIMARY KEY (posto_id, usuario_id)
 );
+
 -- ---------------------------------------------------------------------
 -- Módulo: Gestão de Itens
 -- Atributos específicos por categoria (JSONB), conforme as subclasses:
@@ -106,7 +116,7 @@ CREATE TABLE item (
     latitude         NUMERIC(9,6) CHECK (latitude  BETWEEN -90  AND 90),
     longitude        NUMERIC(9,6) CHECK (longitude BETWEEN -180 AND 180),
     data_ocorrencia  DATE           NOT NULL DEFAULT CURRENT_DATE,  -- quando perdeu / achou
-    imagem_url       TEXT,                              -- Firebase Storage
+    imagem_url       TEXT,                              -- Supabase Storage
     status           status_item    NOT NULL DEFAULT 'ABERTO',
     posto_id         BIGINT REFERENCES posto_coleta(id),
     criado_em        TIMESTAMPTZ    NOT NULL DEFAULT now(),
@@ -138,6 +148,7 @@ CREATE INDEX ix_item_usuario      ON item (usuario_id);
 CREATE INDEX ix_item_posto        ON item (posto_id) WHERE posto_id IS NOT NULL;
 CREATE INDEX ix_item_cor          ON item (lower(cor));
 CREATE INDEX ix_item_marca        ON item (lower(marca));
+
 -- ---------------------------------------------------------------------
 -- Módulo: Match
 -- FKs compostas garantem: item_perdido_id aponta p/ item PERDIDO e
@@ -165,6 +176,7 @@ CREATE TABLE match (
 CREATE INDEX ix_match_perdido    ON match (item_perdido_id);
 CREATE INDEX ix_match_encontrado ON match (item_encontrado_id);
 CREATE INDEX ix_match_pendentes  ON match (score DESC) WHERE status = 'PENDENTE';
+
 -- ---------------------------------------------------------------------
 -- Módulo: Recuperação
 -- ---------------------------------------------------------------------
@@ -188,6 +200,7 @@ CREATE TABLE recuperacao (
 CREATE UNIQUE INDEX ux_recuperacao_item_ativa
     ON recuperacao (item_encontrado_id)
     WHERE status IN ('CONFIRMADA', 'RESERVADA', 'RETIRADA');
+
 -- ---------------------------------------------------------------------
 -- Módulo: Recompensas (a pontuação é a soma dos pontos — ver view)
 -- ---------------------------------------------------------------------
@@ -213,6 +226,7 @@ SELECT u.id AS usuario_id,
 FROM usuario u
 LEFT JOIN recompensa r ON r.beneficiario_id = u.id
 GROUP BY u.id, u.nome;
+
 -- ---------------------------------------------------------------------
 -- Módulo: Notificações
 -- ---------------------------------------------------------------------
@@ -229,6 +243,7 @@ CREATE TABLE notificacao (
     enviada_fcm_em TIMESTAMPTZ
 );
 CREATE INDEX ix_notificacao_usuario ON notificacao (usuario_id, lida, criada_em DESC);
+
 -- ---------------------------------------------------------------------
 -- Histórico de eventos (alimentado pelo HistoryObserver)
 -- ---------------------------------------------------------------------
@@ -242,6 +257,7 @@ CREATE TABLE historico_evento (
     criado_em      TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 CREATE INDEX ix_historico_entidade ON historico_evento (entidade, entidade_id, criado_em DESC);
+
 -- ---------------------------------------------------------------------
 -- Operação atômica: confirmar propriedade e reservar o item
 -- (POST /api/matches/{id}/confirmar). O lock evita reservas concorrentes.
@@ -279,5 +295,3 @@ BEGIN
     RETURN v_rec_id;
 END;
 $$ LANGUAGE plpgsql;
-
-COMMIT;

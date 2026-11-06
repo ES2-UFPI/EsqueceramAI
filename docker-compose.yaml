@@ -31,7 +31,7 @@ services:
       POSTGRES_PASSWORD: esqueceram_ai
     volumes:
       - postgres_data:/var/lib/postgresql/data
-      - ./backend/sql/schema.sql:/docker-entrypoint-initdb.d/01-schema.sql:ro
+      - ./supabase/migrations/20261106000000_initial_schema.sql:/docker-entrypoint-initdb.d/01-initial-schema.sql:ro
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U esqueceram_ai -d esqueceram_ai"]
       interval: 5s
