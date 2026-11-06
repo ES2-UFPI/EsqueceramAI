@@ -12,7 +12,6 @@ RUN python -m pip install --no-cache-dir --upgrade pip && \
     python -m pip install --no-cache-dir -r requirements.txt
 
 COPY app.py .
-COPY sql ./sql
 COPY init_db.py .
 COPY extensions.py models.py seed.py ./
 
