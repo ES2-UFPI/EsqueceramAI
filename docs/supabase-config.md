@@ -28,6 +28,27 @@ SUPABASE_JWKS_URL=https://gmgxcsztfpoxdbstrvwx.supabase.co/auth/v1/.well-known/j
 > Em produção (Render), cadastre as mesmas chaves em **Environment → Environment Variables**
 > do serviço. Não versione o `.env`.
 
+### Conexão com o banco em produção
+
+O `DATABASE_URL` aponta para o banco do projeto Supabase e usa a **senha do banco**
+(Project Settings → Database), não as chaves de API `sb_*`. Se a senha tiver caracteres
+especiais, percent-encode-os.
+
+Use o **pooler** como host, na porta padrão `5432` (session pooler). O endereço direto
+`db.<ref>.supabase.co` só publica registro IPv6, portanto não funciona em serviços que não
+roteiam IPv6 — o caso do Render:
+
+```dotenv
+# direto (somente IPv6 — não funciona no Render)
+DATABASE_URL=postgresql://postgres:SENHA@db.gmgxcsztfpoxdbstrvwx.supabase.co:5432/postgres
+
+# pooler (IPv4 — use este em produção, porta padrão 5432)
+DATABASE_URL=postgresql://postgres.gmgxcsztfpoxdbstrvwx:SENHA@aws-0-us-west-1.pooler.supabase.com:5432/postgres
+```
+
+Note que no pooler o usuário recebe o sufixo `.<project-ref>`. A porta `6543` é a do
+transaction pooler, que não é a padrão e não é necessária aqui.
+
 ## 2. Migrations
 
 O schema agora vive em `supabase/migrations/` e é a **única fonte de verdade**:
