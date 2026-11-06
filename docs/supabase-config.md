@@ -88,7 +88,21 @@ alfabética, o que coincide com a ordem cronológica usada pelo Supabase.
 
 Para recriar o banco do Compose do zero: `docker compose down -v` e suba novamente.
 
-## 4. Resumo das alterações
+## 4. URL da API no frontend
+
+O `frontend/app.js` escolhe o destino das requisições pelo host que serve a página:
+
+| Ambiente | URL usada |
+|:---|:---|
+| GitHub Pages (`*.github.io`) | `https://esqueceramai.onrender.com/api` |
+| Local via Nginx do Compose (`localhost:8080`) | `/api` — o Nginx encaminha para o serviço `api` |
+| Arquivo aberto direto (`file://`) | `http://localhost:5000/api` |
+
+Assim o ambiente local grava e lê no PostgreSQL do Compose, sem depender da API publicada.
+A URL pública do Render fica restrita ao GitHub Pages. Para apontar para outro backend,
+defina `window.ESQUECERAM_API` antes de carregar o `app.js`.
+
+## 5. Resumo das alterações
 
 | Arquivo | Alteração |
 |:---|:---|
@@ -98,4 +112,6 @@ Para recriar o banco do Compose do zero: `docker compose down -v` e suba novamen
 | `supabase/migrations/20261106000000_initial_schema.sql` | Schema inicial consolidado |
 | `backend/init_db.py` | Passa a aplicar as migrations de `supabase/migrations/` |
 | `docker-compose.yaml` | Monta a migration no `docker-entrypoint-initdb.d` |
+| `backend/Dockerfile` | Deixa de copiar a pasta `sql`, removida |
+| `frontend/app.js` | Usa a API local fora do GitHub Pages; Render só em produção |
 | `backend/sql/schema.sql` | Removido (substituído pela migration) |
