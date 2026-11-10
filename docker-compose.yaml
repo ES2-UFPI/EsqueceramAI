@@ -7,11 +7,8 @@ services:
       PORT: "10000"
       DATABASE_URL: postgresql://esqueceram_ai:esqueceram_ai@db:5432/esqueceram_ai
       FRONTEND_ORIGIN: http://localhost:8080
-      UPLOAD_DIR: /app/storage
     ports:
-      - "5000:10000"
-    volumes:
-      - uploads:/app/storage
+      - "10000:10000"
     depends_on:
       db:
         condition: service_healthy
@@ -56,4 +53,3 @@ networks:
 
 volumes:
   postgres_data:
-  uploads:
