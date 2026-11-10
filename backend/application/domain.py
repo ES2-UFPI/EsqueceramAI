@@ -1,4 +1,3 @@
-"""Vocabulário de domínio compartilhado por UI, serviços e controllers (src/lib/domain.ts)."""
 import math
 import re
 from datetime import datetime, timezone
@@ -56,16 +55,17 @@ CAMPUS_LOCATIONS = [
 ]
 
 CAMPUS_CENTER = {"lat": -5.0563, "lng": -42.7894}
+RADIUS_OPTIONS = (0.2, 0.5, 1, 2, 5)
+MIN_RADIUS_KM, MAX_RADIUS_KM = 0.05, 50
+EARTH_RADIUS_KM = 6371
 SORT_OPTIONS = [("relevance", "Relevância"), ("recent", "Mais recentes"), ("proximity", "Proximidade")]
 PAGE_SIZE = 9
 
 _TZ = ZoneInfo("America/Fortaleza")
 _MONTHS = ["jan", "fev", "mar", "abr", "mai", "jun", "jul", "ago", "set", "out", "nov", "dez"]
 
-
 def item_code(item_id: int) -> str:
     return f"ESQ-{int(item_id):05d}"
-
 
 def _aware(value):
     if isinstance(value, str):
@@ -74,13 +74,11 @@ def _aware(value):
         value = value.replace(tzinfo=timezone.utc)
     return value
 
-
 def format_date(value) -> str:
     if not value:
         return "—"
     d = _aware(value).astimezone(_TZ)
     return f"{d.day:02d} de {_MONTHS[d.month - 1]}. de {d.year}"
-
 
 def format_datetime(value) -> str:
     if not value:
@@ -88,12 +86,10 @@ def format_datetime(value) -> str:
     d = _aware(value).astimezone(_TZ)
     return f"{d.day:02d} de {_MONTHS[d.month - 1]}. de {d.year} {d.hour:02d}:{d.minute:02d}"
 
-
 def to_input_date(value) -> str:
     if not value:
         return ""
     return _aware(value).astimezone(_TZ).strftime("%Y-%m-%d")
-
 
 def time_ago(value) -> str:
     diff = (datetime.now(timezone.utc) - _aware(value)).total_seconds()
@@ -116,24 +112,73 @@ def time_ago(value) -> str:
     years = round(months / 12)
     return f"há {years} {'ano' if years == 1 else 'anos'}"
 
-
 def initials(name: str) -> str:
     return "".join(p[0].upper() for p in name.strip().split()[:2])
-
 
 def first_name(name: str) -> str:
     parts = name.strip().split()
     return parts[0] if parts else name
 
+def haversine_km(lat1, lng1, lat2, lng2) -> float:
+    d_lat, d_lng = math.radians(lat2 - lat1), math.radians(lng2 - lng1)
+    h = math.sin(d_lat / 2) ** 2 + math.cos(math.radians(lat1)) * math.cos(math.radians(lat2)) * math.sin(d_lng / 2) ** 2
+    return 2 * EARTH_RADIUS_KM * math.asin(math.sqrt(min(1.0, h)))
 
 def distance_km(lat, lng, to):
     if lat is None or lng is None:
         return None
-    r = 6371
-    d_lat, d_lng = math.radians(to["lat"] - lat), math.radians(to["lng"] - lng)
-    h = math.sin(d_lat / 2) ** 2 + math.cos(math.radians(lat)) * math.cos(math.radians(to["lat"])) * math.sin(d_lng / 2) ** 2
-    return round(2 * r * math.asin(math.sqrt(h)) * 10) / 10
+    return round(haversine_km(lat, lng, to["lat"], to["lng"]) * 10) / 10
 
+def format_distance(km) -> str:
+    if km is None:
+        return ""
+    if km < 0.01:
+        return "menos de 10 m"
+    meters = round(km * 100) * 10
+    if meters < 1000:
+        return f"{meters} m"
+    return f"{km:.1f}".replace(".", ",") + " km"
+
+def bounding_box(lat, lng, radius_km):
+    d_lat = math.degrees(radius_km / EARTH_RADIUS_KM)
+    cos_lat = math.cos(math.radians(lat))
+    d_lng = math.degrees(radius_km / (EARTH_RADIUS_KM * cos_lat)) if cos_lat > 1e-9 else 360.0
+    lng_min, lng_max = lng - d_lng, lng + d_lng
+    if lng_min < -180 or lng_max > 180:
+        lng_min = lng_max = None
+    return lat - d_lat, lat + d_lat, lng_min, lng_max
+
+def _blank(value) -> bool:
+    return value is None or str(value).strip() == ""
+
+def _to_float(value):
+    n = float(str(value).strip().replace(",", "."))
+    if not math.isfinite(n):
+        raise ValueError
+    return n
+
+def parse_geo_params(lat, lng, radius_km):
+    if _blank(lat) and _blank(lng) and _blank(radius_km):
+        return None, None
+    if _blank(lat) or _blank(lng):
+        return None, "Informe latitude e longitude do ponto de referência para filtrar por localização."
+    try:
+        la, ln = _to_float(lat), _to_float(lng)
+    except ValueError:
+        return None, "Latitude e longitude devem ser números."
+    if not -90 <= la <= 90:
+        return None, "Latitude deve estar entre -90 e 90."
+    if not -180 <= ln <= 180:
+        return None, "Longitude deve estar entre -180 e 180."
+    radius = None
+    if not _blank(radius_km):
+        try:
+            radius = _to_float(radius_km)
+        except ValueError:
+            return None, "O raio deve ser um número em quilômetros."
+        if not MIN_RADIUS_KM <= radius <= MAX_RADIUS_KM:
+            return None, f"O raio deve estar entre {MIN_RADIUS_KM:g} e {MAX_RADIUS_KM:g} km."
+    return {"lat": la, "lng": ln, "radiusKm": radius}, None
 
 def score_level(score: int):
     if score >= 300:
@@ -146,7 +191,6 @@ def score_level(score: int):
         return {"label": "Apoiador", "next": 90}
     return {"label": "Iniciante", "next": 40}
 
-
 def clamp_page(value) -> int:
     try:
         parsed = float(value)
@@ -155,7 +199,6 @@ def clamp_page(value) -> int:
     if not math.isfinite(parsed) or parsed < 1:
         return 1
     return int(parsed)
-
 
 def is_staff_role(role: str) -> bool:
     return role in ("ADMIN", "OPERATOR_POST")

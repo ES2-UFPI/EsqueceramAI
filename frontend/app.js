@@ -23,6 +23,8 @@ const ROTULO_STATUS = {
 };
 
 let itensCarregados = [];
+// Ponto de referência da busca por proximidade (definido por "Perto de mim").
+let referencia = null;
 
 function el(id) {
   return document.getElementById(id);
@@ -53,6 +55,30 @@ async function pedir(caminho, opcoes = {}) {
     throw new Error(detalhe);
   }
   return dados;
+}
+
+// ------------------------------------------------------- geolocalização ----
+function obterPosicao() {
+  return new Promise((resolver, rejeitar) => {
+    if (!navigator.geolocation) {
+      rejeitar(new Error("Seu navegador não permite obter a localização."));
+      return;
+    }
+    navigator.geolocation.getCurrentPosition(
+      (pos) => resolver(pos.coords),
+      (erro) => rejeitar(new Error(erro.code === 1
+        ? "Permissão de localização negada. Informe as coordenadas manualmente."
+        : "Não foi possível obter a localização.")),
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 60000 },
+    );
+  });
+}
+
+function formatarDistancia(km) {
+  if (km === null || km === undefined) return "";
+  if (km < 0.01) return "menos de 10 m";
+  const metros = Math.round(km * 100) * 10;
+  return metros < 1000 ? `${metros} m` : `${km.toFixed(1).replace(".", ",")} km`;
 }
 
 // ---------------------------------------------------------------- abas -----
@@ -113,6 +139,9 @@ function renderizarItens(itens) {
     meta.className = "cartao-meta";
     const dados = [ROTULO_CATEGORIA[item.categoria] || item.categoria];
     if (item.localizacao) dados.push(item.localizacao);
+    if (item.distancia_km !== null && item.distancia_km !== undefined) {
+      dados.push(`a ${formatarDistancia(item.distancia_km)}`);
+    }
     if (item.posto_nome) dados.push(`posto: ${item.posto_nome}`);
     meta.textContent = dados.join(" • ");
 
@@ -139,11 +168,24 @@ function filtrosAtuais() {
     tipo_registro: el("busca-tipo").value,
     categoria: el("busca-categoria").value,
     status: el("busca-status").value,
+    localizacao: el("busca-local").value.trim(),
   };
+  if (referencia) {
+    mapa.lat = referencia.latitude;
+    mapa.lng = referencia.longitude;
+    mapa.raio_km = el("busca-raio").value;
+  }
   Object.entries(mapa).forEach(([chave, valor]) => {
-    if (valor) params.set(chave, valor);
+    if (valor !== "" && valor !== null && valor !== undefined) params.set(chave, valor);
   });
   return params.toString();
+}
+
+function atualizarReferencia() {
+  el("busca-referencia").textContent = referencia
+    ? `Referência: ${referencia.latitude.toFixed(4)}, ${referencia.longitude.toFixed(4)}. `
+      + "Os itens mais próximos aparecem primeiro; itens sem coordenadas ficam de fora quando há raio."
+    : "";
 }
 
 async function carregarItens() {
@@ -165,12 +207,45 @@ el("form-busca").addEventListener("submit", (ev) => {
 
 el("busca-limpar").addEventListener("click", () => {
   el("form-busca").reset();
+  referencia = null;
+  atualizarReferencia();
   carregarItens();
+});
+
+el("busca-perto").addEventListener("click", async () => {
+  limparMensagem();
+  try {
+    const { latitude, longitude } = await obterPosicao();
+    referencia = { latitude, longitude };
+    if (!el("busca-raio").value) el("busca-raio").value = "1";
+    atualizarReferencia();
+    await carregarItens();
+  } catch (e) {
+    mostrar(e.message, "erro");
+  }
+});
+
+el("busca-raio").addEventListener("change", () => {
+  if (el("busca-raio").value && !referencia) {
+    mostrar('Para filtrar por raio, use "Perto de mim" e permita o acesso à sua localização.', "erro");
+  }
 });
 
 // --------------------------------------------------------- cadastro item ---
 el("item-categoria").addEventListener("change", (ev) => {
   el("campo-tipo-documento").hidden = ev.target.value !== "DOCUMENTO";
+});
+
+el("item-usar-localizacao").addEventListener("click", async () => {
+  limparMensagem();
+  try {
+    const { latitude, longitude } = await obterPosicao();
+    el("item-latitude").value = latitude.toFixed(6);
+    el("item-longitude").value = longitude.toFixed(6);
+    mostrar("Coordenadas preenchidas com a sua localização atual.", "sucesso");
+  } catch (e) {
+    mostrar(e.message, "erro");
+  }
 });
 
 function corpoDoItem() {

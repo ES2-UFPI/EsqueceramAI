@@ -24,6 +24,7 @@
     <label class="field"><span>Latitude (opcional)</span><input class="input" name="latitude" value="{{ values.get('latitude','') }}" placeholder="-5.0563">{{ err(errors,'latitude') }}</label>
     <label class="field"><span>Longitude (opcional)</span><input class="input" name="longitude" value="{{ values.get('longitude','') }}" placeholder="-42.7894">{{ err(errors,'longitude') }}</label>
   </div>
+  <div class="flex gap center wrap" data-geo-box><button type="button" class="btn btn-ghost btn-sm" data-geo-locate data-geo-lat-name="latitude" data-geo-lng-name="longitude">📍 Usar minha localização atual</button><span class="xs muted" data-geo-status>Com as coordenadas, o registro aparece nas buscas por proximidade.</span></div>
   <label class="field"><span>Foto (JPG, PNG ou WebP, até 3 MB){% if item and item.imageSrc %} — enviar outra substitui a atual{% endif %}</span><input class="input" type="file" name="image" accept="image/jpeg,image/png,image/webp">{{ err(errors,'image') }}</label>
   <div class="flex gap"><button class="btn btn-primary btn-lg">{{ 'Publicar registro' if mode == 'new' else 'Salvar alterações' }}</button><a class="btn btn-ghost btn-lg" href="{{ '/painel/itens' if mode == 'new' else '/itens/%d'|format(item.id) }}">Cancelar</a></div>
 </form>

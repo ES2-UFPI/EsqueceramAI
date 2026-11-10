@@ -1,14 +1,7 @@
-"""Adaptador do contrato inicial em português documentado na wiki.
-
-As rotas principais usam o contrato completo em inglês (``/api/items``). Este
-blueprint conserva ``/api/itens`` e ``/api/postos`` para o frontend estático e
-traduz os nomes para o mesmo modelo persistente, sem uma segunda aplicação.
-"""
 from datetime import datetime, timezone
-
 from flask import Blueprint, jsonify, request
 from sqlalchemy import or_, select
-
+from application.domain import bounding_box, haversine_km, parse_geo_params
 from application.models import CollectionPoint, Item, User, db
 
 bp = Blueprint("mvp", __name__, url_prefix="/api")
@@ -17,10 +10,8 @@ _TYPES = {"PERDIDO": "LOST", "ENCONTRADO": "FOUND"}
 _CATEGORIES = {"ELETRONICO": "ELECTRONIC", "DOCUMENTO": "DOCUMENT", "ACESSORIO": "ACCESSORY"}
 _STATUSES = {"ABERTO": "OPEN", "RESERVADO": "RESERVED", "DEVOLVIDO": "RETURNED", "ARQUIVADO": "ARCHIVED"}
 
-
 def _error(message, status=400):
     return jsonify(erro=message), status
-
 
 def _visitor():
     user = db.scalar(select(User).where(User.email == "visitante@esqueceram.ai"))
@@ -29,7 +20,6 @@ def _visitor():
         db.add(user)
         db.flush()
     return user
-
 
 def _item_json(item):
     inverse_type = {value: key for key, value in _TYPES.items()}
@@ -41,8 +31,8 @@ def _item_json(item):
             "atributos": item.attributes or {}, "localizacao": item.location,
             "data_ocorrencia": item.occurred_at.date().isoformat(), "status": inverse_status[item.status],
             "posto_id": item.point_id, "posto_nome": point.name if point else None,
-            "latitude": item.latitude, "longitude": item.longitude, "imagem_url": item.image_url}
-
+            "latitude": item.latitude, "longitude": item.longitude, "imagem_url": item.image_url,
+            "distancia_km": None}
 
 @bp.get("/itens")
 @bp.get("/busca")
@@ -64,8 +54,26 @@ def list_items():
     if term := request.args.get("q", "").strip():
         pattern = f"%{term}%"
         filters.append(or_(Item.title.ilike(pattern), Item.description.ilike(pattern), Item.location.ilike(pattern)))
-    return jsonify([_item_json(item) for item in db.scalars(stmt.where(*filters).order_by(Item.created_at.desc())).all()])
-
+    if place := request.args.get("localizacao", "").strip():
+        filters.append(Item.location.ilike(f"%{place[:120]}%"))
+    # Filtro geográfico: lat/lng (ponto de referência) + raio_km. Sem raio, só calcula a distância.
+    geo, geo_error = parse_geo_params(request.args.get("lat"), request.args.get("lng"), request.args.get("raio_km"))
+    if geo_error:
+        return _error(geo_error)
+    if geo and geo["radiusKm"] is not None:
+        lat_min, lat_max, lng_min, lng_max = bounding_box(geo["lat"], geo["lng"], geo["radiusKm"])
+        filters.append(Item.latitude.between(lat_min, lat_max))
+        if lng_min is not None:
+            filters.append(Item.longitude.between(lng_min, lng_max))
+    payload = [_item_json(item) for item in db.scalars(stmt.where(*filters).order_by(Item.created_at.desc())).all()]
+    if geo:
+        for row in payload:
+            if row["latitude"] is not None and row["longitude"] is not None:
+                row["distancia_km"] = round(haversine_km(geo["lat"], geo["lng"], row["latitude"], row["longitude"]), 3)
+        if geo["radiusKm"] is not None:
+            payload = [r for r in payload if r["distancia_km"] is not None and r["distancia_km"] <= geo["radiusKm"]]
+        payload.sort(key=lambda r: (r["distancia_km"] is None, r["distancia_km"] or 0))  # mais perto primeiro
+    return jsonify(payload)
 
 @bp.post("/itens")
 def create_item():
@@ -80,10 +88,14 @@ def create_item():
     point_id = data.get("posto_id") or None
     try:
         point_id = int(point_id) if point_id else None
-        latitude = float(data["latitude"]) if data.get("latitude") else None
-        longitude = float(data["longitude"]) if data.get("longitude") else None
+        latitude = float(data["latitude"]) if data.get("latitude") not in (None, "") else None
+        longitude = float(data["longitude"]) if data.get("longitude") not in (None, "") else None
     except (TypeError, ValueError):
         return _error("posto_id, latitude ou longitude inválido")
+    if (latitude is None) != (longitude is None):
+        return _error("informe latitude e longitude juntas")
+    if latitude is not None and (not -90 <= latitude <= 90 or not -180 <= longitude <= 180):
+        return _error("coordenadas fora do intervalo permitido (latitude -90 a 90, longitude -180 a 180)")
     if point_id and record_type != "ENCONTRADO":
         return _error("apenas itens ENCONTRADOS podem ser entregues em um posto de coleta")
     if point_id and not db.get(CollectionPoint, point_id):
@@ -101,13 +113,11 @@ def create_item():
     db.commit()
     return jsonify(_item_json(item)), 201
 
-
 @bp.get("/postos")
 def list_points():
     points = db.scalars(select(CollectionPoint).where(CollectionPoint.is_active.is_(True)).order_by(CollectionPoint.name)).all()
     return jsonify([{"id": p.id, "nome": p.name, "endereco": p.building, "latitude": p.latitude,
                      "longitude": p.longitude, "horario_funcionamento": p.opening_hours} for p in points])
-
 
 @bp.post("/postos")
 def create_point():

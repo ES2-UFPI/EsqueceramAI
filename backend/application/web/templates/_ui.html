@@ -9,7 +9,7 @@
   <div class="body">
     <div class="flex gap-s wrap center">{{ type_badge(i.type) }}{{ status_badge(i.status) }}<span class="xs muted" style="margin-left:auto">{{ i.id|code }}</span></div>
     <h3>{{ i.title }}</h3>
-    <p class="xs muted">📍 {{ i.location }} · {{ i.occurredAt|date }}</p>
+    <p class="xs muted">📍 {{ i.location }}{% if i.distanceKm is defined and i.distanceKm is not none %} (a {{ D.format_distance(i.distanceKm) }}){% endif %} · {{ i.occurredAt|date }}</p>
     <p class="xs soft mt-s">{{ D.CATEGORY_LABEL[i.category] }}{% if i.color %} · {{ i.color }}{% endif %}{% if i.brand %} · {{ i.brand }}{% endif %}</p>
   </div>
 </a>

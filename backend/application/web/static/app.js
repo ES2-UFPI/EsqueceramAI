@@ -32,6 +32,40 @@
     try { await call("/api/admin/users", "PATCH", { userId: +s.dataset.roleUser, role: s.value }); toast("Permissão atualizada", "Novo papel: " + s.value); }
     catch (e) { toast("Não foi possível alterar", e.message, true); location.reload(); }
   });
+  // Localização (US10): preenche latitude/longitude pelo GPS ou por um ponto de coleta
+  function geoBox(el) { const box = el.closest("[data-geo-box]"); return { form: el.closest("form"), status: box && box.querySelector("[data-geo-status]") }; }
+  function geoSay(el, text) { const { status } = geoBox(el); if (status) status.textContent = text; }
+  function geoApply(el, lat, lng) {
+    const { form } = geoBox(el); const btn = form.querySelector("[data-geo-locate]") || el;
+    const latEl = form.elements[btn.dataset.geoLatName || "lat"], lngEl = form.elements[btn.dataset.geoLngName || "lng"];
+    latEl.value = Number(lat).toFixed(6); lngEl.value = Number(lng).toFixed(6);
+    if (form.elements.raio) {  // formulário de busca: define raio e ordem padrão e já pesquisa
+      if (!form.elements.raio.value) form.elements.raio.value = "1";
+      if (form.elements.ordem) form.elements.ordem.value = "proximity";
+      form.requestSubmit();
+    }
+  }
+  document.addEventListener("click", (ev) => {
+    const clear = ev.target.closest("[data-geo-clear]");
+    if (clear) {
+      ev.preventDefault(); const { form } = geoBox(clear);
+      form.elements.lat.value = ""; form.elements.lng.value = ""; form.elements.raio.value = ""; form.requestSubmit(); return;
+    }
+    const btn = ev.target.closest("[data-geo-locate]"); if (!btn) return;
+    if (!navigator.geolocation) { geoSay(btn, "Seu navegador não permite obter a localização."); return; }
+    btn.disabled = true; geoSay(btn, "Obtendo localização…");
+    navigator.geolocation.getCurrentPosition((pos) => {
+      geoSay(btn, "Localização preenchida (precisão de cerca de " + Math.round(pos.coords.accuracy) + " m).");
+      btn.disabled = false; geoApply(btn, pos.coords.latitude, pos.coords.longitude);
+    }, (err) => {
+      geoSay(btn, err.code === 1 ? "Permissão negada. Informe as coordenadas ou escolha um ponto de coleta." : "Não foi possível obter a localização.");
+      btn.disabled = false;
+    }, { enableHighAccuracy: true, timeout: 10000, maximumAge: 60000 });
+  });
+  document.addEventListener("change", (ev) => {
+    const sel = ev.target.closest("[data-geo-point]"); if (!sel || !sel.value) return;
+    const opt = sel.selectedOptions[0]; geoApply(sel, opt.dataset.lat, opt.dataset.lng);
+  });
   // Campos dinâmicos por categoria no formulário de item
   const cat = document.querySelector("[data-category-select]");
   if (cat) {

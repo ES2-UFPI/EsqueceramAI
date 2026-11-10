@@ -58,10 +58,27 @@
               <option value="ARQUIVADO">Arquivado</option>
             </select>
           </label>
+          <label>
+            Local
+            <input type="text" id="busca-local" placeholder="ex.: Biblioteca Central">
+          </label>
+          <label>
+            Raio de busca
+            <select id="busca-raio">
+              <option value="">Sem limite</option>
+              <option value="0.2">até 200 m</option>
+              <option value="0.5">até 500 m</option>
+              <option value="1">até 1 km</option>
+              <option value="2">até 2 km</option>
+              <option value="5">até 5 km</option>
+            </select>
+          </label>
           <div class="acoes">
             <button type="submit">Buscar</button>
+            <button type="button" id="busca-perto" class="secundario">Perto de mim</button>
             <button type="button" id="busca-limpar" class="secundario">Limpar filtros</button>
           </div>
+          <p id="busca-referencia" class="ajuda" role="status" aria-live="polite"></p>
         </form>
 
         <h3>Itens cadastrados</h3>
@@ -125,6 +142,9 @@
               Longitude
               <input type="number" step="any" min="-180" max="180" id="item-longitude">
             </label>
+          </div>
+          <div class="acoes">
+            <button type="button" id="item-usar-localizacao" class="secundario">Usar minha localização</button>
           </div>
           <label>
             Data da ocorrência
