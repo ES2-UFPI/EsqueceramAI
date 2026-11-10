@@ -1,0 +1,23 @@
+{% extends "app_base.html" %}{% from "_ui.html" import field %}{% block title %}Meu perfil · Esqueceram AI{% endblock %}
+{% block content %}
+<h1 class="display" style="font-size:2rem">Meu perfil</h1>
+{% if error %}<div class="alert error mt">{{ error }}</div>{% endif %}
+<div class="grid g2 mt">
+ <section class="card pad"><h2 class="display" style="font-size:1.2rem">Dados pessoais</h2>
+  <form method="post" class="stack mt"><input type="hidden" name="_form" value="profile">
+  {% set pv = request.form if form == 'profile' else {'name': me.name, 'phone': me.phone or '', 'avatarUrl': me.avatarUrl or ''} %}
+  {% set pe = errors if form == 'profile' else {} %}
+  {{ field('Nome completo','name',pv,pe,'text','',True) }}
+  <label class="field"><span>E-mail (não editável)</span><input class="input" value="{{ me.email }}" disabled></label>
+  {{ field('Telefone','phone',pv,pe,'tel','(86) 99999-0000') }}{{ field('URL da foto (opcional)','avatarUrl',pv,pe,'url','https://…') }}
+  <button class="btn btn-primary">Salvar perfil</button></form></section>
+ <div class="stack">
+  <section class="card pad"><p class="eyebrow">Sua pontuação</p><b class="display" style="font-size:2.4rem">{{ me.score }}</b><p class="sm soft">Nível: <b>{{ level.label }}</b>{% if level.next %} · faltam {{ level.next - me.score }} pts para o próximo{% endif %}</p>
+  <p class="xs muted mt-s">+40 por achado devolvido · +15 por item recuperado · +20 por confirmar correspondências.</p></section>
+  <section class="card pad"><h2 class="display" style="font-size:1.2rem">Alterar senha</h2>
+  <form method="post" class="stack mt"><input type="hidden" name="_form" value="password">
+  {% set se = errors if form == 'password' else {} %}
+  {{ field('Senha atual','currentPassword',{},se,'password','',True) }}{{ field('Nova senha (mín. 8 caracteres)','newPassword',{},se,'password','',True) }}
+  <button class="btn btn-secondary">Alterar senha</button></form></section>
+ </div></div>
+{% endblock %}

@@ -1,0 +1,15 @@
+<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>{% block title %}Esqueceram AI · achados e perdidos{% endblock %}</title>
+<link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}"></head><body>
+{% for cat, msg in get_flashed_messages(with_categories=true) %}<span class="flash" hidden data-msg="{{ msg }}" data-tone="{{ cat }}"></span>{% endfor %}
+{% block body %}
+<header class="header"><div class="container">
+  <a href="/" class="brandmark"><i>🔎</i> Esqueceram AI</a>
+  <nav><a class="btn btn-ghost btn-sm" href="/itens">Explorar</a><a class="btn btn-ghost btn-sm" href="/itens?tipo=FOUND">Achados</a><a class="btn btn-ghost btn-sm" href="/#pontos">Pontos de coleta</a></nav>
+  <div class="flex gap-s">{% if user %}<a class="btn btn-primary btn-sm" href="/painel">Ir para o painel →</a>{% else %}
+  <a class="btn btn-secondary btn-sm" href="/entrar">Entrar</a><a class="btn btn-primary btn-sm" href="/cadastrar">Criar conta</a>{% endif %}</div>
+</div></header>
+<div class="container" style="padding-top:24px">{% block content %}{% endblock %}</div>
+<footer class="footer"><div class="container flex between wrap gap"><span><b class="brand">Esqueceram AI</b> · Achados e perdidos da comunidade acadêmica da UFPI · ES2 · Teresina, Piauí</span><span>🔒 Imagens em armazenamento privado · API REST em /api</span></div></footer>
+{% endblock %}
+<script src="{{ url_for('static', filename='app.js') }}"></script></body></html>

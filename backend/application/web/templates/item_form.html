@@ -1,0 +1,30 @@
+{% extends "app_base.html" %}{% from "_ui.html" import err %}{% block title %}{{ 'Novo registro' if mode == 'new' else 'Editar registro' }} · Esqueceram AI{% endblock %}
+{% block content %}
+<h1 class="display" style="font-size:2rem">{{ 'Novo registro' if mode == 'new' else 'Editar registro' }}</h1>
+<p class="sm muted">Quanto mais detalhes, melhor a qualidade das sugestões automáticas.</p>
+{% if error %}<div class="alert error mt">{{ error }}</div>{% endif %}
+<form method="post" enctype="multipart/form-data" class="card pad mt stack" style="max-width:820px">
+  <div><span class="eyebrow">Tipo de registro</span><div class="flex gap mt-s">{% for t in D.RECORD_TYPES %}<label class="chip"><input type="radio" name="type" value="{{ t }}" {{ 'checked' if values.get('type') == t }}> {{ 'Perdi um item' if t == 'LOST' else 'Encontrei um item' }}</label>{% endfor %}</div>{{ err(errors,'type') }}</div>
+  <label class="field"><span>Categoria</span><select class="select" name="category" data-category-select>{% for c in D.CATEGORIES %}<option value="{{ c }}" {{ 'selected' if values.get('category') == c }}>{{ D.CATEGORY_LABEL[c] }} — {{ D.CATEGORY_FIELDS[c].hint }}</option>{% endfor %}</select>{{ err(errors,'category') }}</label>
+  <label class="field"><span>Título</span><input class="input" name="title" value="{{ values.get('title','') }}" placeholder="Ex.: Fone Bluetooth JBL preto">{{ err(errors,'title') }}</label>
+  <label class="field"><span>Descrição</span><textarea class="textarea" name="description" placeholder="Detalhe características, estado, onde e como foi visto…">{{ values.get('description','') }}</textarea>{{ err(errors,'description') }}</label>
+  <div class="grid g3">
+    <label class="field"><span>Cor</span><select class="select" name="color"><option value="">—</option>{% for c in D.COLORS %}<option {{ 'selected' if values.get('color') == c }}>{{ c }}</option>{% endfor %}</select></label>
+    <label class="field"><span>Marca</span><input class="input" name="brand" value="{{ values.get('brand','') }}"></label>
+    <label class="field"><span>Modelo</span><input class="input" name="model" value="{{ values.get('model','') }}"></label>
+  </div>
+  {% for c in D.CATEGORIES %}<div data-category-group="{{ c }}" class="grid g2" {{ 'hidden' if values.get('category', 'ELECTRONIC') != c }}>{% for fld in D.CATEGORY_FIELDS[c].fields %}
+    <label class="field"><span>{{ fld.label }}</span><input class="input" name="attributes.{{ fld.name }}" value="{{ values.get('attributes.' ~ fld.name, '') }}" placeholder="{{ fld.placeholder }}"></label>{% endfor %}</div>{% endfor %}
+  <div class="grid g2">
+    <label class="field"><span>Local da ocorrência</span><input class="input" name="location" list="locs" value="{{ values.get('location','') }}">{{ err(errors,'location') }}<datalist id="locs">{% for l in D.CAMPUS_LOCATIONS %}<option value="{{ l }}">{% endfor %}</datalist></label>
+    <label class="field"><span>Data da ocorrência</span><input class="input" type="date" name="occurredAt" value="{{ values.get('occurredAt','') }}">{{ err(errors,'occurredAt') }}</label>
+  </div>
+  <div class="grid g3">
+    <label class="field"><span>Ponto de coleta</span><select class="select" name="pointId"><option value="">Nenhum</option>{% for p in points %}<option value="{{ p.id }}" {{ 'selected' if values.get('pointId')|string == p.id|string }}>{{ p.name }}</option>{% endfor %}</select>{{ err(errors,'pointId') }}</label>
+    <label class="field"><span>Latitude (opcional)</span><input class="input" name="latitude" value="{{ values.get('latitude','') }}" placeholder="-5.0563">{{ err(errors,'latitude') }}</label>
+    <label class="field"><span>Longitude (opcional)</span><input class="input" name="longitude" value="{{ values.get('longitude','') }}" placeholder="-42.7894">{{ err(errors,'longitude') }}</label>
+  </div>
+  <label class="field"><span>Foto (JPG, PNG ou WebP, até 3 MB){% if item and item.imageSrc %} — enviar outra substitui a atual{% endif %}</span><input class="input" type="file" name="image" accept="image/jpeg,image/png,image/webp">{{ err(errors,'image') }}</label>
+  <div class="flex gap"><button class="btn btn-primary btn-lg">{{ 'Publicar registro' if mode == 'new' else 'Salvar alterações' }}</button><a class="btn btn-ghost btn-lg" href="{{ '/painel/itens' if mode == 'new' else '/itens/%d'|format(item.id) }}">Cancelar</a></div>
+</form>
+{% endblock %}

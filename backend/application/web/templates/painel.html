@@ -1,0 +1,31 @@
+{% extends "app_base.html" %}{% from "_ui.html" import stat, item_card, score, bars, empty %}{% block title %}Painel · Esqueceram AI{% endblock %}
+{% block content %}
+{% set lvl = D.score_level(d.myScore) %}
+<div class="flex between center wrap gap"><div><p class="eyebrow">{{ D.ROLE_LABEL[user.role] }}</p><h1 class="display" style="font-size:2rem">Olá, {{ user.name|firstname }} 👋</h1><p class="sm muted">{{ 'Visão global da plataforma.' if d.isStaff else 'Acompanhe seus registros e sugestões.' }}</p></div>
+<div class="flex gap-s"><a class="btn btn-secondary" href="/painel/itens/novo?tipo=FOUND">Achei um item</a><a class="btn btn-primary" href="/painel/itens/novo?tipo=LOST">Perdi um item</a></div></div>
+<div class="grid g4 mt">
+  {{ stat('Perdidos ativos', d.lostActive, '/painel/itens?tipo=LOST') }}{{ stat('Encontrados ativos', d.foundActive, '/painel/itens?tipo=FOUND') }}
+  {{ stat('Correspondências pendentes', d.pendingMatches, '/painel/matches') }}{{ stat('Devoluções concluídas', d.returned) }}
+</div>
+<div class="grid g3 mt">
+  {{ stat('Recuperações em andamento', d.recoveriesInProgress) }}{{ stat('Meus registros', d.myItems, '/painel/itens') }}
+  <div class="card stat"><span class="eyebrow">Sua pontuação</span><b>{{ d.myScore }}</b><p class="xs muted">{{ lvl.label }}{% if lvl.next %} · próximo nível em {{ lvl.next }} pts{% endif %}</p></div>
+</div>
+<div class="grid split mt">
+  <section class="card pad"><div class="flex between center"><h2 class="display" style="font-size:1.2rem">✨ Sugestões de correspondência</h2><a class="btn btn-ghost btn-sm" href="/painel/matches">Ver todas</a></div>
+  {% if d.suggestions %}<ul class="stack mt">{% for m in d.suggestions %}<li class="flex between center gap"><div class="grow"><p class="bold sm">{{ m.lost.title }}</p><p class="xs muted">↔ {{ m.found.title }}</p></div>{{ score(m.score) }}</li>{% endfor %}</ul>
+  {% else %}{{ empty('Sem sugestões pendentes','Novos registros compatíveis aparecerão aqui.') }}{% endif %}</section>
+  <section class="card pad"><h2 class="display" style="font-size:1.2rem">🏆 Ranking de colaboradores</h2>
+  <ol class="stack-s mt">{% for c in d.chart.contributors %}<li class="flex between center"><span class="sm"><b>{{ loop.index }}.</b> {{ c.name }}</span><span class="badge brand">{{ c.score }} pts</span></li>{% endfor %}</ol></section>
+</div>
+<div class="grid g2 mt">
+  <section class="card pad"><h2 class="display" style="font-size:1.2rem">Registros por status</h2>{{ bars(d.chart.status, D.STATUS_LABEL) }}</section>
+  <section class="card pad"><h2 class="display" style="font-size:1.2rem">Registros por categoria</h2>{{ bars(d.chart.category, D.CATEGORY_PLURAL) }}</section>
+</div>
+{% if d.isStaff %}<section class="card pad mt"><h2 class="display" style="font-size:1.2rem">Evolução mensal</h2>
+{% set months = d.chart.monthly|map(attribute='month')|unique|list %}<div class="bars">{% for m in months %}
+{% for t in ['LOST','FOUND'] %}{% set n = (d.chart.monthly|selectattr('month','equalto',m)|selectattr('type','equalto',t)|map(attribute='total')|list|first) or 0 %}
+<div class="row"><span>{{ m }} · {{ D.RECORD_TYPE_LABEL[t] }}</span><div class="bar {{ 'lost' if t == 'LOST' else 'found' }}"><i style="width:{{ [n * 12, 100]|min }}%"></i></div><b>{{ n }}</b></div>{% endfor %}{% endfor %}</div></section>{% endif %}
+<section class="mt-l"><div class="flex between center"><h2 class="display" style="font-size:1.4rem">{{ 'Registros recentes' if d.isStaff else 'Meus registros recentes' }}</h2><a class="btn btn-secondary btn-sm" href="/painel/itens">Ver todos</a></div>
+{% if d.recent %}<div class="grid g3 mt">{% for i in d.recent %}{{ item_card(i) }}{% endfor %}</div>{% else %}<div class="card mt">{{ empty('Você ainda não tem registros','Publique o primeiro item perdido ou encontrado.','/painel/itens/novo','Novo registro') }}</div>{% endif %}</section>
+{% endblock %}

@@ -1,0 +1,10 @@
+{% extends "app_base.html" %}{% from "_ui.html" import api_button, empty %}{% block title %}Notificações · Esqueceram AI{% endblock %}
+{% block content %}
+<div class="flex between center wrap gap"><div><h1 class="display" style="font-size:2rem">Notificações</h1><p class="sm muted">Atualizações sobre seus registros e correspondências.</p></div>
+<form method="post"><button class="btn btn-secondary">Marcar todas como lidas</button></form></div>
+{% if notifications %}<ul class="stack mt">{% for n in notifications %}<li class="card pad {{ 'unread' if not n.isRead }}"><div class="flex between gap wrap"><div class="grow">
+<div class="flex gap-s center"><span class="badge {{ {'MATCH':'accent','RECOVERY':'found','UPDATE':'brand','SYSTEM':''}[n.type] }}">{{ n.type }}</span><b class="sm">{{ n.title }}</b></div>
+<p class="sm soft mt-s">{{ n.body }}</p><p class="xs muted mt-s">{{ n.createdAt|ago }}{% if n.link %} · <a class="brand bold" href="{{ n.link }}">Abrir</a>{% endif %}</p></div>
+{% if not n.isRead %}{{ api_button('Marcar como lida', '/api/notifications', 'PATCH', {'id': n.id}, 'ghost', success='Notificação lida.') }}{% endif %}</div></li>{% endfor %}</ul>
+{% else %}<div class="card mt">{{ empty('Sem notificações','Você será avisado sobre correspondências e devoluções.') }}</div>{% endif %}
+{% endblock %}

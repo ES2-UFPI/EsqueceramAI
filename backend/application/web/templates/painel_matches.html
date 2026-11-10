@@ -1,0 +1,14 @@
+{% extends "app_base.html" %}{% from "_ui.html" import score, match_badge, thumb, api_button, empty %}{% block title %}Correspondências · Esqueceram AI{% endblock %}
+{% block content %}
+<h1 class="display" style="font-size:2rem">Correspondências</h1><p class="sm muted">Sugestões automáticas entre itens perdidos e encontrados.</p>
+<div class="flex gap-s wrap mt">{% for s in D.MATCH_STATUSES %}<a class="chip {{ 'badge brand' if s == status }}" href="?{{ qs(status=s, escopo='global' if scope_global else None) }}">{{ D.MATCH_STATUS_LABEL[s] }}</a>{% endfor %}
+{% if staff %}<span style="margin-left:auto"></span><a class="chip" href="?{{ qs(status=status, escopo=None if scope_global else 'global') }}">{{ 'Ver apenas as minhas' if scope_global else 'Ver todas (equipe)' }}</a>{% endif %}</div>
+{% if matches %}<ul class="stack mt">{% for m in matches %}
+{% set can = m.status == 'PENDING' and (staff or user.id == m.lost.ownerId or user.id == m.found.ownerId) %}
+<li class="card pad"><div class="flex between center wrap gap"><div class="flex gap-s center">{{ score(m.score) }}{{ match_badge(m.status) }}</div><span class="xs muted">{{ m.createdAt|ago }}</span></div>
+<div class="grid g2 mt">
+ {% for side, label in [(m.lost,'Perdido'),(m.found,'Encontrado')] %}<a href="/itens/{{ side.id }}" class="flex gap">{{ thumb(side.imageSrc, h='72px') }}<div class="grow"><p class="eyebrow">{{ label }}</p><p class="bold sm">{{ side.title }}</p><p class="xs muted">{{ side.location }} · {{ side.occurredAt|date }} · {{ side.ownerName }}</p></div></a>{% endfor %}</div>
+{% if m.reasons %}<ul class="reasons">{% for r in m.reasons %}<li>{{ r }}</li>{% endfor %}</ul>{% endif %}
+{% if can %}<div class="flex gap-s mt">{{ api_button('✓ Confirmar', '/api/matches/%d'|format(m.id), 'PATCH', {'action':'confirm'}, 'primary', success='Correspondência confirmada! Os itens foram reservados.') }}{{ api_button('Descartar', '/api/matches/%d'|format(m.id), 'PATCH', {'action':'reject'}, success='Sugestão descartada.') }}</div>{% endif %}</li>{% endfor %}</ul>
+{% else %}<div class="card mt">{{ empty('Nada por aqui','Não há correspondências com este status.') }}</div>{% endif %}
+{% endblock %}
