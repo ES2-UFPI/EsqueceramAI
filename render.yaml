@@ -4,8 +4,19 @@ services:
     runtime: docker
     dockerContext: ./backend
     dockerfilePath: ./backend/Dockerfile
+    healthCheckPath: /api/health
     envVars:
       - key: PORT
         value: "10000"
+      - key: DATABASE_URL
+        sync: false
+      - key: SECRET_KEY
+        generateValue: true
       - key: FRONTEND_ORIGIN
-        value: "https://es2-ufpi.github.io" # Libera o CORS para o GitHub Pages
+        value: "https://es2-ufpi.github.io"
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_SERVICE_ROLE_KEY
+        sync: false
+      - key: SUPABASE_STORAGE_BUCKET
+        value: "item-images"

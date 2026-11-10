@@ -16,3 +16,8 @@ backend/storage/
 /.idea/modules.xml
 /.idea/EsqueceramAI.iml
 /.idea/vcs.xml
+__pycache__/
+*.pyc
+.env
+esqueceram.db
+.venv/
