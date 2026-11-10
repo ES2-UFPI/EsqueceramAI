@@ -1,0 +1,20 @@
+{% extends "app_base.html" %}{% from "_ui.html" import stat, bars, api_button %}{% block title %}Administração · Esqueceram AI{% endblock %}
+{% block content %}
+<p class="eyebrow">Administração</p><h1 class="display" style="font-size:2rem">Visão administrativa</h1>
+<div class="grid g4 mt">{{ stat('Contas cadastradas', o.userCount) }}{{ stat('Correspondências pendentes', o.pending) }}{{ stat('Confirmadas', o.confirmed) }}{{ stat('Descartadas', o.rejected) }}</div>
+<div class="grid g3 mt">{{ stat('Taxa de recuperação', '%d%%'|format(o.recoveryRate)) }}</div>
+<div class="grid g3 mt">
+<section class="card pad"><h2 class="display" style="font-size:1.1rem">Registros por status</h2>{{ bars(o.statusBreakdown, D.STATUS_LABEL) }}</section>
+<section class="card pad"><h2 class="display" style="font-size:1.1rem">Categorias</h2>{{ bars(o.categoryBreakdown, D.CATEGORY_PLURAL) }}</section>
+<section class="card pad"><h2 class="display" style="font-size:1.1rem">Perfis de acesso</h2>{{ bars(o.roleBreakdown, D.ROLE_LABEL) }}</section></div>
+<section class="card pad mt"><h2 class="display" style="font-size:1.1rem">Maiores colaboradores</h2><ol class="stack-s mt">{% for c in o.contributors %}<li class="flex between"><span class="sm"><b>{{ loop.index }}.</b> {{ c.name }} <span class="xs muted">({{ D.ROLE_LABEL[c.role] }} · {{ c.returned }} devolução(ões))</span></span><span class="badge brand">{{ c.score }} pts</span></li>{% endfor %}</ol></section>
+<section class="card pad mt"><div class="flex between center wrap gap"><h2 class="display" style="font-size:1.2rem">Gestão de usuários</h2>
+<form class="flex gap-s" method="get"><input class="input" name="q" value="{{ q }}" placeholder="Buscar por nome ou e-mail"><button class="btn btn-secondary">Buscar</button></form></div>
+<div class="tablewrap mt"><table class="t"><thead><tr><th>Usuário</th><th>Papel</th><th>Registros</th><th>Pontos</th><th>Status</th><th></th></tr></thead><tbody>
+{% for u in o.users %}<tr><td><b>{{ u.name }}</b><br><span class="xs muted">{{ u.email }}</span></td>
+<td><select class="select" style="max-width:170px;padding:6px 10px;font-size:12px" data-role-user="{{ u.id }}" {{ 'disabled' if u.id == me.id }}>{% for r in D.ROLES %}<option value="{{ r }}" {{ 'selected' if u.role == r }}>{{ D.ROLE_LABEL[r] }}</option>{% endfor %}</select></td>
+<td>{{ u.itemCount }}</td><td>{{ u.score }}</td><td><span class="badge {{ 'found' if u.isActive else '' }}">{{ 'Ativo' if u.isActive else 'Inativo' }}</span></td>
+<td>{% if u.id != me.id %}{{ api_button('Desativar' if u.isActive else 'Ativar', '/api/admin/users', 'PATCH', {'userId': u.id, 'isActive': not u.isActive}, success='Conta atualizada.') }}{% endif %}</td></tr>{% endfor %}</tbody></table></div></section>
+<section class="card pad mt"><h2 class="display" style="font-size:1.2rem">Pontos de coleta</h2><ul class="stack-s mt">{% for p in o.points %}<li class="sm flex between"><span>📍 {{ p.name }} <span class="xs muted">· {{ p.building }}</span></span><span class="xs muted">{{ p.itemCount }} itens</span></li>{% endfor %}</ul></section>
+<section class="card pad mt"><h2 class="display" style="font-size:1.2rem">Categorias do domínio</h2><div class="grid g3 mt">{% for c in D.CATEGORIES %}<div><b class="sm">{{ D.CATEGORY_FIELDS[c].label }}</b><p class="xs muted">{{ D.CATEGORY_FIELDS[c].hint }}</p><ul class="xs soft mt-s">{% for f in D.CATEGORY_FIELDS[c].fields %}<li>• {{ f.label }}</li>{% endfor %}</ul></div>{% endfor %}</div></section>
+{% endblock %}

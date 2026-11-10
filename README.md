@@ -1,187 +1,70 @@
-# Esqueceram AI
+# Esqueceram AI — Achados e perdidos da comunidade acadêmica (Python / Flask)
 
-Plataforma inteligente para registro, busca e recuperação de itens perdidos. Projeto desenvolvido para a disciplina de Engenharia de Software II
-da UFPI.
+Versão em **Python** do projeto (antes Next.js + Drizzle). Preserva o **domínio**, o **contrato REST**, o
+**pt-BR** e a **arquitetura em camadas** `Controller → Service → Repository → PostgreSQL/Storage`.
 
-Este documento descreve a configuração do ambiente de desenvolvimento do
-backend do projeto.
+## Como executar
 
-## Tecnologias
-
-- Python 3.10 ou superior;
-- Flask;
-- PostgreSQL;
-- Supabase Storage para armazenamento gratuito das imagens;
-- Firebase Cloud Messaging (opcional) para notificações;
-- Git.
-
-O backend segue a organização:
-
-```text
-Controller -> Service -> Repository -> PostgreSQL
-                         |
-                         -> Supabase Storage
+```bash
+python -m venv .venv && source .venv/bin/activate      # Windows: .venv\Scripts\activate
+pip install -r requirements.txt
+cp .env.example .env                                   # opcional
+python run.py                                          # http://localhost:3000
 ```
 
-O cliente não acessa diretamente o PostgreSQL. As imagens são armazenadas no
-Supabase Storage, enquanto o banco mantém apenas a referência necessária para
-acessá-las.
+- Com `DATABASE_URL=postgresql://...` usa PostgreSQL (as tabelas são criadas na inicialização,
+  equivalente ao `drizzle-kit push`). **Sem** `DATABASE_URL`, usa SQLite local (`esqueceram.db`).
+- Produção: `gunicorn -w 2 -b 0.0.0.0:3000 run:app` (após `pip install gunicorn`).
+- O primeiro acesso a `/`, `/itens`, ao login ou a `/api/health` popula o dataset demonstrativo (idempotente).
 
-> O Cloud Storage for Firebase exige atualmente o plano Blaze. Como o MVP não
-> utilizará serviços pagos, o armazenamento principal de imagens é o Supabase
-> Storage no plano gratuito.
+## Mapa TypeScript → Python
 
-## Pré-requisitos
+| Original (TS) | Python |
+| --- | --- |
+| `src/db/schema.ts` (Drizzle) | `app/models.py` (SQLAlchemy 2) |
+| `src/lib/domain.ts` | `app/domain.py` |
+| `src/server/auth.ts` | `app/auth.py` (scrypt compatível com o original) |
+| `src/server/http.ts`, `errors.ts`, Zod | `app/http.py`, `app/errors.py`, `app/validation.py` |
+| `src/server/repositories/*` | `app/repositories/*` |
+| `src/server/services/*` | `app/services/*` (auth, item, matching, storage, stats, seed) |
+| `src/app/api/**/route.ts` | `app/api/routes.py` |
+| `src/app/**/page.tsx` + componentes | `app/web/views.py` + `app/web/templates/*.html` (Jinja) |
 
-Instale os seguintes programas:
+## API REST (CORS habilitado, idêntica à original)
 
-- [Git para Windows](https://git-scm.com/install/windows);
-- [Python para Windows](https://www.python.org/downloads/windows/);
-- [PostgreSQL](https://www.postgresql.org/download/);
-- uma conta no [Supabase](https://supabase.com/);
-- opcionalmente, um projeto no [Firebase](https://firebase.google.com/) para FCM.
+Cookie `esqueceram_session` ou `Authorization: Bearer <token>`. Filtros em português: `q, tipo, categoria,
+status, local, cor, marca, modelo, de, ate, ordem, pagina`.
 
-Verifique a instalação no PowerShell:
+| Método | Endpoint |
+| --- | --- |
+| POST | `/api/auth/register` · `/login` · `/demo` · `/recover` · `/logout` |
+| GET/PATCH | `/api/auth/me` · PATCH `/api/auth/password` |
+| GET/POST | `/api/items` (POST = `multipart/form-data`, campo `image`) |
+| GET/PATCH/DELETE | `/api/items/:id` (PATCH: multipart edita; JSON `{status}` altera status) |
+| GET | `/api/images/:id` (privado, exige sessão) |
+| GET/PATCH | `/api/matches` · `/api/matches/:id` (`confirm` / `reject`) |
+| GET/PATCH | `/api/notifications` |
+| GET/POST/PATCH | `/api/points` |
+| GET/PATCH | `/api/admin/users` (ADMIN) |
+| GET | `/api/health` |
 
-```powershell
-git --version
-py --version
-py -m pip --version
-psql --version
-```
+## Contas de demonstração (senha `esqueceram123`)
 
-## Clonar o projeto
+`ana@`, `carlos@`, `operador@`, `admin@ufpi.edu.br` — a tela de login tem acesso rápido de 1 clique.
+Desative em produção com `DEMO_LOGIN_DISABLED=true`.
 
-```powershell
-git clone https://github.com/ES2-UFPI/EsqueceramAI.git
-Set-Location .\EsqueceramAI
-```
+## Entrega com respaldo legal (checkout no posto)
 
-## Criar o ambiente virtual
+Atendente do posto registra a retirada com **CPF validado**, **foto do documento**, **código de confirmação
+por e-mail** e emite o **termo de entrega em PDF** (data/hora, CPF mascarado, item, matrícula do atendente).
+Acesso em `/painel/entregas` (perfil *Operador de ponto*). Detalhes, decisões de segurança e rastreabilidade dos
+critérios de aceitação em [`docs/ENTREGA_COM_RESPALDO_LEGAL.md`](docs/ENTREGA_COM_RESPALDO_LEGAL.md).
+Testes: `pip install -r requirements-dev.txt && pytest`.
 
-O ambiente virtual mantém as dependências do projeto isoladas das bibliotecas
-instaladas globalmente no computador.
+## Observações
 
-```powershell
-py -3 -m venv .venv
-.\.venv\Scripts\Activate.ps1
-python -m pip install --upgrade pip
-```
-
-Se o PowerShell bloquear a ativação dos scripts, execute o comando abaixo uma
-vez para o usuário atual e tente ativar o ambiente novamente:
-
-```powershell
-Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
-```
-
-Quando a ativação funcionar, o terminal exibirá `(.venv)` no início da linha.
-
-## Instalar as dependências
-
-Quando o projeto possuir o arquivo `requirements.txt`, instale as dependências
-com:
-
-```powershell
-python -m pip install -r requirements.txt
-```
-
-Após alterar as dependências do projeto, atualize o arquivo:
-
-```powershell
-python -m pip freeze > requirements.txt
-```
-
-## Configurar o PostgreSQL
-
-Crie um banco de dados de desenvolvimento e um usuário para a aplicação. Por
-exemplo, no `psql`:
-
-```sql
-CREATE USER esqueceram_ai WITH PASSWORD 'defina-uma-senha-local';
-CREATE DATABASE esqueceram_ai OWNER esqueceram_ai;
-```
-
-Não use essa senha em produção e não a publique no repositório.
-
-## Configurar o armazenamento de imagens
-
-1. Crie um projeto no Supabase.
-2. Crie um bucket chamado `item-images`.
-3. Mantenha o bucket privado e faça os uploads pelo backend.
-4. Copie a URL do projeto e a service role key para os secrets do Render.
-
-O caminho do arquivo e as configurações do banco devem ser informados por
-variáveis de ambiente. Um arquivo `.env` local pode conter, por exemplo:
-
-```dotenv
-FLASK_ENV=development
-DATABASE_URL=postgresql+psycopg://esqueceram_ai:senha-local@localhost:5432/esqueceram_ai
-STORAGE_PROVIDER=supabase
-SUPABASE_URL=https://seu-projeto.supabase.co
-SUPABASE_PUBLISHABLE_KEY=sb_publishable_sua_chave_publica
-SUPABASE_SECRET_KEY=sb_secret_sua_chave_secreta
-SUPABASE_JWKS_URL=https://seu-projeto.supabase.co/auth/v1/.well-known/jwks.json
-SUPABASE_STORAGE_BUCKET=item-images
-```
-
-Os detalhes das variáveis e a aplicação do schema por migrations estão em
-[docs/supabase-config.md](docs/supabase-config.md).
-
-Nunca faça commit de `.env`, service role keys, credenciais do Firebase, tokens ou senhas.
-Mantenha somente nomes de variáveis e valores fictícios em um eventual arquivo
-`.env.example`.
-
-## Executar o backend
-
-Com o ambiente virtual ativado, execute a aplicação Flask conforme o ponto de
-entrada definido pelo projeto. Exemplos:
-
-```powershell
-python app.py
-```
-
-ou:
-
-```powershell
-python -m flask --app app run --debug
-```
-
-Por padrão, a aplicação ficará disponível em
-`http://127.0.0.1:5000`.
-
-## Testar a API
-
-O endpoint de cadastro de itens deve seguir o contrato definido pela equipe.
-Para o cadastro com imagem, a requisição utilizará `multipart/form-data`.
-Exemplo:
-
-```powershell
-curl.exe -X POST http://127.0.0.1:5000/api/itens `
-  -F "tipo_registro=PERDIDO" `
-  -F "descricao=Celular preto com capa azul" `
-  -F "categoria=ELETRONICO" `
-  -F "localizacao=Biblioteca Central" `
-  -F "data_ocorrencia=2026-10-16" `
-  -F "imagem=@C:\caminho\celular.jpg"
-```
-
-Uma implementação concluída deve retornar `201 Created` para um cadastro
-válido e respostas de erro apropriadas para dados inválidos ou imagens não
-aceitas.
-
-## Branches e contribuição
-
-O fluxo de branches, commits e Pull Requests está documentado em
-[CONTRIBUTING.md](CONTRIBUTING.md).
-
-Não faça commits diretamente nas branches `main` ou `dev`. Crie uma branch
-específica para cada tarefa e abra um Pull Request direcionado para `dev`.
-
-## Documentação adicional
-
-- [Wiki do projeto](https://github.com/ES2-UFPI/EsqueceramAI/wiki);
-- [MVP e implantação gratuita](https://github.com/ES2-UFPI/EsqueceramAI/wiki/MVP-e-Implanta%C3%A7%C3%A3o-Gratuita);
-- [Definição tecnológica](https://github.com/ES2-UFPI/EsqueceramAI/wiki/Defini%C3%A7%C3%A3o-Tecnol%C3%B3gica);
-- [Preparação do ambiente](https://github.com/ES2-UFPI/EsqueceramAI/wiki/Preparando-o-ambiente-de-desenvolvimento);
-- [Visão arquitetural da API](https://github.com/ES2-UFPI/EsqueceramAI/wiki/API-%E2%80%94-Vis%C3%A3o-Arquitetural).
+- Hashes `scrypt:<salt>:<hex>` gerados pela versão Node são aceitos aqui (e vice-versa).
+- Imagens: bucket privado do Supabase quando `SUPABASE_URL`/`SUPABASE_SERVICE_ROLE_KEY` existem;
+  caso contrário, tabela `item_images`, sempre atrás de sessão.
+- Diferenças de UI: páginas renderizadas no servidor (Jinja + CSS/JS simples) em vez de React/Tailwind;
+  gráficos viram barras em HTML/CSS.

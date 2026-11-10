@@ -1,0 +1,32 @@
+{% extends "app_base.html" %}{% block title %}{{ d.receiptNumber }} · Esqueceram AI{% endblock %}
+{% block content %}
+<nav class="xs muted mb"><a href="{{ url_for('delivery_web.lista') }}">Entregas</a> › <b class="soft">{{ d.receiptNumber }}</b></nav>
+<div class="flex between center wrap gap"><div><p class="eyebrow">Termo de entrega</p><h1 class="display" style="font-size:2rem">{{ d.receiptNumber }}</h1></div>
+<span class="badge {{ STATUS[d.status][1] }}" style="font-size:13px">{{ STATUS[d.status][0] }}</span></div>
+<div class="grid split mt">
+<div class="stack">
+  <section class="card pad"><dl class="dl" style="grid-template-columns:repeat(2,1fr)">
+    <div><dt>Item</dt><dd>{{ d.itemCode }} — {{ d.itemTitle }}</dd></div><div><dt>Ponto de coleta</dt><dd>{{ d.pointName or '—' }}</dd></div>
+    <div><dt>Retirante</dt><dd>{{ d.recipientName }}</dd></div><div><dt>CPF (mascarado)</dt><dd>{{ d.cpfMasked }}</dd></div>
+    <div><dt>E-mail de confirmação</dt><dd>{{ d.emailMasked }}</dd></div><div><dt>Atendente responsável</dt><dd>{{ d.attendantName }} · mat. {{ d.attendantRegistration }}</dd></div>
+    <div><dt>Registrada em</dt><dd>{{ d.createdAt|datetime }}</dd></div><div><dt>Confirmada em</dt><dd>{{ d.confirmedAt|datetime if d.confirmedAt else '—' }}</dd></div>
+    <div style="grid-column:1/-1"><dt>SHA-256 da imagem do documento</dt><dd class="xs" style="font-family:monospace;word-break:break-all">{{ d.documentSha256 }}</dd></div>
+    {% if d.verificationCode %}<div style="grid-column:1/-1"><dt>Código de verificação do termo</dt><dd style="font-family:monospace">{{ d.verificationCode }}</dd></div>{% endif %}
+  </dl></section>
+  <section class="card pad"><h2 class="display" style="font-size:1.2rem">Trilha de auditoria</h2>
+  <ol class="timeline mt">{% for e in d.events %}<li><p class="bold sm">{{ e.action }}</p><p class="xs muted">{{ e.createdAt|datetime }} · {{ e.detail }}</p></li>{% endfor %}</ol></section>
+</div>
+<aside class="stack">
+  <section class="card pad"><p class="eyebrow">Ações</p><div class="stack-s mt">
+    {% if d.hasReceipt %}<a class="btn btn-primary btn-block" href="/api/deliveries/{{ d.id }}/receipt" target="_blank" rel="noopener">📄 Baixar termo em PDF</a>{% endif %}
+    <a class="btn btn-secondary btn-block" href="/api/deliveries/{{ d.id }}/document" target="_blank" rel="noopener">🪪 Ver documento do retirante</a>
+    {% if d.itemId %}<a class="btn btn-ghost btn-block" href="/itens/{{ d.itemId }}">Abrir item</a>{% endif %}
+    {% if d.status == 'PENDING' and user.role == 'OPERATOR_POST' %}<a class="btn btn-accent btn-block" href="{{ url_for('delivery_web.confirmar', delivery_id=d.id) }}">Informar código</a>{% endif %}</div></section>
+  <section class="card pad"><h2 class="display" style="font-size:1.1rem">Contestação: conferir CPF</h2>
+  <p class="xs muted mt-s">Informe o CPF apresentado e o sistema confere com o registrado (sem expor o CPF) e checa a integridade do termo e do documento.</p>
+  <form method="post" action="{{ url_for('delivery_web.verificar', delivery_id=d.id) }}" class="flex gap-s mt"><input class="input" name="cpf" placeholder="000.000.000-00" inputmode="numeric" maxlength="14"><button class="btn btn-secondary">Conferir</button></form>
+  {% if verify %}<div class="alert {{ 'ok' if verify.get('cpfMatches') else 'error' }} mt xs">
+    CPF: <b>{{ 'confere com o retirante' if verify.get('cpfMatches') else 'NÃO confere' }}</b>{% if verify.get('cpfError') %} ({{ verify.cpfError }}){% endif %}<br>
+    Termo íntegro: <b>{{ 'sim' if verify.receiptIntact else ('não emitido' if verify.receiptIntact is none else 'NÃO') }}</b> · Documento íntegro: <b>{{ 'sim' if verify.documentIntact else 'NÃO' }}</b></div>{% endif %}</section>
+</aside></div>
+{% endblock %}

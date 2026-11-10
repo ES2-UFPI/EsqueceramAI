@@ -1,0 +1,13 @@
+{% extends "app_base.html" %}{% from "_ui.html" import field, api_button, empty %}{% block title %}Pontos de coleta · Esqueceram AI{% endblock %}
+{% block content %}
+<h1 class="display" style="font-size:2rem">Pontos de coleta</h1><p class="sm muted">Locais oficiais para entrega e retirada de itens.</p>
+<div class="grid g2 mt">{% for p in points %}<div class="card pad"><div class="flex between center"><h3>📍 {{ p.name }}</h3><span class="badge {{ 'found' if p.isActive else '' }}">{{ 'Ativo' if p.isActive else 'Inativo' }}</span></div>
+<p class="xs muted">{{ p.building }}</p><p class="sm soft mt-s">{{ p.description }}</p><p class="xs mt-s">🕒 {{ p.openingHours or '—' }}{% if p.contact %} · ✉️ {{ p.contact }}{% endif %}</p>
+<p class="xs muted mt-s">{{ p.itemCount }} item(ns) · {{ p.awaitingCount }} aguardando retirada</p>
+{% if staff %}<div class="mt-s">{{ api_button('Desativar' if p.isActive else 'Ativar', '/api/points', 'PATCH', {'id': p.id, 'isActive': not p.isActive}, success='Ponto atualizado.') }}</div>{% endif %}</div>{% else %}<div class="card">{{ empty('Nenhum ponto cadastrado','') }}</div>{% endfor %}</div>
+{% if staff %}<section class="card pad mt-l" style="max-width:640px"><h2 class="display" style="font-size:1.2rem">Adicionar ponto</h2>
+{% if error %}<div class="alert error mt">{{ error }}</div>{% endif %}
+<form method="post" class="stack mt">{{ field('Nome','name',values,errors,'text','',True) }}{{ field('Prédio / referência','building',values,errors,'text','',True) }}
+{{ field('Descrição','description',values,errors) }}{{ field('Horário de funcionamento','openingHours',values,errors,'text','Seg a sex, 8h às 18h') }}{{ field('Contato','contact',values,errors) }}
+<button class="btn btn-primary">Criar ponto</button></form></section>{% endif %}
+{% endblock %}

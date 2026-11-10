@@ -1,0 +1,9 @@
+Flask>=3.0
+SQLAlchemy>=2.0
+python-dotenv>=1.0
+tzdata>=2024.1
+reportlab>=4.0   # termo de entrega em PDF
+# Somente para PostgreSQL (DATABASE_URL=postgresql://...):
+psycopg2-binary>=2.9
+# Produção:
+gunicorn>=22.0

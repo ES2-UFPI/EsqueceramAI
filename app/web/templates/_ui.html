@@ -1,0 +1,43 @@
+{% macro type_badge(t) %}<span class="badge {{ 'lost' if t == 'LOST' else 'found' }}">{{ D.RECORD_TYPE_LABEL[t] }}</span>{% endmacro %}
+{% macro status_badge(s) %}<span class="badge {{ {'OPEN':'brand','RESERVED':'warn','RETURNED':'found','ARCHIVED':''}[s] }}">{{ D.STATUS_LABEL[s] }}</span>{% endmacro %}
+{% macro match_badge(s) %}<span class="badge {{ {'PENDING':'warn','CONFIRMED':'found','REJECTED':''}[s] }}">{{ D.MATCH_STATUS_LABEL[s] }}</span>{% endmacro %}
+{% macro score(n) %}<span class="score {{ 'hi' if n >= 80 else ('mid' if n >= 65 else '') }}">{{ n }}%</span>{% endmacro %}
+{% macro thumb(src, cls='', h='170px', icon='📦') %}<div class="thumb {{ cls }}" style="height:{{ h }}">{% if src %}<img src="{{ src }}" alt="" loading="lazy">{% else %}{{ icon }}{% endif %}</div>{% endmacro %}
+{% macro item_card(i) %}
+<a href="/itens/{{ i.id }}" class="card card-hover icard" style="overflow:hidden;display:block">
+  {{ thumb(i.imageSrc) }}
+  <div class="body">
+    <div class="flex gap-s wrap center">{{ type_badge(i.type) }}{{ status_badge(i.status) }}<span class="xs muted" style="margin-left:auto">{{ i.id|code }}</span></div>
+    <h3>{{ i.title }}</h3>
+    <p class="xs muted">📍 {{ i.location }} · {{ i.occurredAt|date }}</p>
+    <p class="xs soft mt-s">{{ D.CATEGORY_LABEL[i.category] }}{% if i.color %} · {{ i.color }}{% endif %}{% if i.brand %} · {{ i.brand }}{% endif %}</p>
+  </div>
+</a>
+{% endmacro %}
+{% macro stat(label, value, href=None, tone='') %}
+{% if href %}<a href="{{ href }}" class="card stat card-hover" style="display:block">{% else %}<div class="card stat">{% endif %}
+<span class="eyebrow">{{ label }}</span><b {% if tone %}class="{{ tone }}"{% endif %}>{{ value }}</b>
+{% if href %}</a>{% else %}</div>{% endif %}
+{% endmacro %}
+{% macro empty(title, text, action_href=None, action_label=None) %}
+<div class="empty"><b>{{ title }}</b><p class="sm">{{ text }}</p>{% if action_href %}<a class="btn btn-primary btn-sm mt" href="{{ action_href }}">{{ action_label }}</a>{% endif %}</div>
+{% endmacro %}
+{% macro err(errors, key) %}{% if errors and errors.get(key) %}<p class="err">{{ errors[key][0] }}</p>{% endif %}{% endmacro %}
+{% macro field(label, name, values, errors, type='text', placeholder='', required=False, extra='') %}
+<label class="field"><span>{{ label }}</span>
+<input class="input" type="{{ type }}" name="{{ name }}" value="{{ values.get(name, '') if values and type != 'password' else '' }}" placeholder="{{ placeholder }}" {{ 'required' if required }} {{ extra|safe }}>
+{{ err(errors, name) }}</label>
+{% endmacro %}
+{% macro api_button(label, url, method='POST', body=None, variant='secondary', confirm=None, success=None, redirect=None, block=False, small=True) %}
+<button type="button" class="btn btn-{{ variant }} {{ 'btn-sm' if small }} {{ 'btn-block' if block }}" data-api="{{ url }}" data-method="{{ method }}"
+ {% if body %}data-body='{{ body|tojson|forceescape }}'{% endif %} {% if confirm %}data-confirm="{{ confirm }}"{% endif %}
+ {% if success %}data-success="{{ success }}"{% endif %} {% if redirect %}data-redirect="{{ redirect }}"{% endif %}>{{ label }}</button>
+{% endmacro %}
+{% macro bars(rows, labels, cls='') %}
+{% set mx = (rows|map(attribute='total')|max) if rows else 1 %}
+<div class="bars">{% for r in rows %}<div class="row"><span>{{ labels.get(r.key, r.key) }}</span><div class="bar {{ cls }}"><i style="width:{{ (r.total / (mx or 1) * 100)|round|int }}%"></i></div><b>{{ r.total }}</b></div>{% else %}<p class="xs muted">Sem dados ainda.</p>{% endfor %}</div>
+{% endmacro %}
+{% macro pager(result, base) %}
+{% if result.totalPages > 1 %}<div class="pager">
+{% for p in range(1, result.totalPages + 1) %}{% if p == result.page %}<span class="cur">{{ p }}</span>{% else %}<a href="?{{ qs(base, pagina=p) }}">{{ p }}</a>{% endif %}{% endfor %}</div>{% endif %}
+{% endmacro %}

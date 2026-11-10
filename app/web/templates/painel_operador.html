@@ -1,0 +1,14 @@
+{% extends "app_base.html" %}{% from "_ui.html" import stat, type_badge, status_badge, api_button, thumb, empty %}{% block title %}Painel do ponto · Esqueceram AI{% endblock %}
+{% block content %}
+{% set awaiting = items|selectattr('status','in',['OPEN','RESERVED'])|list %}{% set returned = items|selectattr('status','equalto','RETURNED')|list %}
+<p class="eyebrow">Equipe</p><h1 class="display" style="font-size:2rem">Painel do ponto</h1>
+<div class="grid g4 mt">{{ stat('Itens em pontos', items|length) }}{{ stat('Aguardando retirada', awaiting|length) }}{{ stat('Devoluções concluídas', returned|length) }}{{ stat('Pontos ativos', points|selectattr('isActive')|list|length, '/painel/pontos') }}</div>
+<section class="card pad mt-l"><div class="flex between center"><h2 class="display" style="font-size:1.2rem">Itens sob responsabilidade da equipe</h2><a class="btn btn-secondary btn-sm" href="/itens">Explorar todos</a></div>
+{% if items %}<ul class="stack mt">{% for i in items %}<li class="flex gap wrap center">{{ thumb(i.imageSrc, h='64px') }}<div class="grow"><div class="flex gap-s">{{ type_badge(i.type) }}{{ status_badge(i.status) }}</div>
+<a class="bold sm" href="/itens/{{ i.id }}">{{ i.title }}</a><p class="xs muted">📍 {{ i.pointName }} · {{ i.ownerName }} · atualizado {{ i.updatedAt|ago }}</p></div>
+{% if i.status in ('OPEN','RESERVED') %}<div class="flex gap-s">{% if user.role == 'OPERATOR_POST' and i.type == 'FOUND' %}<a class="btn btn-accent btn-sm" href="/painel/entregas/nova?item={{ i.id }}">Registrar entrega</a>{% endif %}{{ api_button('Devolvido', '/api/items/%d'|format(i.id), 'PATCH', {'status':'RETURNED'}, 'primary', success='Devolução registrada.') }}{{ api_button('Arquivar', '/api/items/%d'|format(i.id), 'PATCH', {'status':'ARCHIVED'}, confirm='Arquivar este registro?', success='Registro arquivado.') }}</div>{% endif %}</li>{% endfor %}</ul>
+{% else %}{{ empty('Nenhum item nos pontos de coleta','Itens vinculados a um ponto aparecerão aqui.') }}{% endif %}</section>
+<div class="grid g2 mt">
+<section class="card pad"><h2 class="display" style="font-size:1.2rem">Atividade recente</h2><ul class="stack-s mt">{% for a in activity %}<li class="sm"><a class="bold" href="/itens/{{ a.itemId }}">{{ a.title }}</a> <span class="xs muted">· {{ a.pointName }} · {{ D.STATUS_LABEL[a.status] }} · {{ a.updatedAt|ago }}</span></li>{% else %}<li class="xs muted">Sem atividade.</li>{% endfor %}</ul></section>
+<section class="card pad"><h2 class="display" style="font-size:1.2rem">Pontos de coleta</h2><ul class="stack-s mt">{% for p in points %}<li class="sm flex between"><span>📍 {{ p.name }}</span><span class="xs muted">{{ p.awaitingCount }} aguardando</span></li>{% endfor %}</ul><a class="btn btn-secondary btn-sm mt" href="/painel/pontos">Gerenciar pontos</a></section></div>
+{% endblock %}

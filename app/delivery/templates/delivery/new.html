@@ -1,0 +1,40 @@
+{% extends "app_base.html" %}{% from "_ui.html" import field, err %}{% block title %}Nova entrega · Esqueceram AI{% endblock %}
+{% block content %}
+<nav class="xs muted mb"><a href="{{ url_for('delivery_web.lista') }}">Entregas</a> › <b class="soft">Nova entrega</b></nav>
+<h1 class="display" style="font-size:2rem">Registrar entrega ao retirante</h1>
+<p class="sm muted">Confira o documento com foto, informe o CPF e envie o código de confirmação ao e-mail do retirante.</p>
+
+{% if not registration %}
+<section class="card pad mt" style="max-width:560px"><h2 class="display" style="font-size:1.2rem">Cadastre sua matrícula</h2>
+<p class="sm soft mt-s">A matrícula do atendente responsável é impressa no termo de entrega. Cadastre-a uma vez para liberar o checkout.</p>
+<form method="post" action="{{ url_for('delivery_web.matricula') }}" class="stack mt"><input type="hidden" name="next" value="{{ request.full_path.rstrip('?') }}">
+<label class="field"><span>Matrícula do atendente</span><input class="input" name="registrationNumber" placeholder="Ex.: ATD-2024-0117" required minlength="4" maxlength="20"></label>
+<button class="btn btn-primary">Salvar matrícula</button></form></section>
+{% else %}
+{% if error %}<div class="alert error mt">{{ error }}</div>{% endif %}
+<form method="post" enctype="multipart/form-data" class="card pad mt stack" style="max-width:760px" autocomplete="off">
+  <p class="xs muted">Atendente: <b>{{ user.name }}</b> · matrícula <b>{{ registration }}</b></p>
+  <label class="field"><span>Item a ser entregue</span>
+    <select class="select" name="itemId" required><option value="">Selecione…</option>
+    {% for i in items %}<option value="{{ i.id }}" {{ 'selected' if values.get('itemId')|string == i.id|string }}>{{ i.id|code }} — {{ i.title }} ({{ i.pointName }})</option>{% endfor %}</select>
+    {{ err(errors,'itemId') }}{% if not items %}<span class="err">Nenhum item aguardando retirada nos pontos de coleta.</span>{% endif %}</label>
+  <div class="grid g2">
+    {{ field('Nome completo do retirante','recipientName',values,errors,'text','Como consta no documento',True) }}
+    {{ field('CPF do retirante','cpf',values,errors,'text','000.000.000-00',True,'inputmode="numeric" maxlength="14"') }}
+  </div>
+  {{ field('E-mail do retirante (receberá o código de confirmação)','email',values,errors,'email','retirante@exemplo.com',True) }}
+  <div><label class="field"><span>Documento com foto do retirante (RG, CNH, passaporte…)</span>
+    <input class="input" type="file" id="document" name="document" accept="image/jpeg,image/png,image/webp" required></label>
+    <input type="file" id="document-capture" accept="image/*" capture="environment" hidden>
+    <div class="flex gap-s wrap center mt-s"><button type="button" class="btn btn-secondary btn-sm" id="cam-open">📷 Capturar com a câmera</button><span class="xs muted">JPG, PNG ou WebP, até 5 MB. A imagem fica em armazenamento restrito.</span></div>
+    {{ err(errors,'document') }}
+    <div id="cam-box" hidden class="mt-s"><video id="cam-video" autoplay playsinline muted style="width:100%;max-width:440px;border-radius:12px;background:#000"></video>
+      <div class="flex gap-s mt-s"><button type="button" class="btn btn-primary btn-sm" id="cam-shot">Capturar foto</button><button type="button" class="btn btn-ghost btn-sm" id="cam-close">Fechar câmera</button></div></div>
+    <img id="doc-preview" hidden alt="Pré-visualização do documento" style="max-width:260px;border-radius:12px;border:1px solid var(--line);margin-top:10px">
+    {% if error %}<p class="xs muted mt-s">Por segurança do navegador, selecione o documento novamente.</p>{% endif %}</div>
+  <div class="alert xs">🔒 O CPF completo não é armazenado: o sistema guarda apenas a versão mascarada e um código de conferência. O termo em PDF exibirá o CPF mascarado.</div>
+  <div class="flex gap"><button class="btn btn-primary btn-lg">Enviar código ao retirante →</button><a class="btn btn-ghost btn-lg" href="{{ url_for('delivery_web.lista') }}">Cancelar</a></div>
+</form>
+<script src="{{ url_for('delivery_web.static', filename='delivery.js') }}"></script>
+{% endif %}
+{% endblock %}

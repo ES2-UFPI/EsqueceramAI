@@ -1,0 +1,9 @@
+{% extends "base.html" %}{% from "_ui.html" import field %}{% block title %}Criar conta · Esqueceram AI{% endblock %}
+{% block body %}<div class="authwrap"><div class="card authcard">
+<a href="/" class="brandmark"><i>🔎</i> Esqueceram AI</a><h1 class="display mt" style="font-size:1.8rem">Criar conta</h1>
+{% if error %}<div class="alert error mt">{{ error }}</div>{% endif %}
+<form method="post" class="stack mt">
+{{ field('Nome completo','name',values,errors,'text','Ana Beatriz Lima',True) }}{{ field('E-mail','email',values,errors,'email','voce@ufpi.edu.br',True) }}
+{{ field('Telefone (usado na recuperação de senha)','phone',values,errors,'tel','(86) 99999-0000') }}{{ field('Senha (mín. 8 caracteres)','password',values,errors,'password','',True) }}
+<button class="btn btn-primary btn-block btn-lg">Criar conta</button></form>
+<p class="xs mt">Já tem conta? <a class="brand bold" href="/entrar">Entrar</a></p></div></div>{% endblock %}
