@@ -7,7 +7,7 @@
   <div style="padding:22px">
     <div class="flex gap-s wrap center">{{ type_badge(item.type) }}{{ status_badge(item.status) }}<span class="badge">{{ D.CATEGORY_LABEL[item.category] }}</span><span class="xs muted bold" style="margin-left:auto">{{ item.id|code }}</span></div>
     <h1 class="display mt-s" style="font-size:2rem;line-height:1.15">{{ item.title }}</h1>
-    <p class="xs soft mt-s">📍 {{ item.location }} · 📅 {{ item.occurredAt|date }} · 🕒 publicado {{ item.createdAt|ago }}</p>
+    <p class="xs soft mt-s">📍 {{ item.location }}{% if item.latitude is not none and item.longitude is not none %} (<a href="https://www.openstreetmap.org/?mlat={{ item.latitude }}&amp;mlon={{ item.longitude }}#map=18/{{ item.latitude }}/{{ item.longitude }}" target="_blank" rel="noopener noreferrer">ver no mapa</a>){% endif %} · 📅 {{ item.occurredAt|date }} · 🕒 publicado {{ item.createdAt|ago }}</p>
     <h2 class="bold sm mt" style="border-top:1px solid var(--line);padding-top:16px">Descrição do registro</h2>
     <p class="sm soft mt-s" style="white-space:pre-line">{{ item.description }}</p>
     <dl class="dl mt">

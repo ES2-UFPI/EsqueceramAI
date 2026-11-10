@@ -1,22 +1,17 @@
-"""Acesso a dados de itens, imagens e estatísticas (src/server/repositories/items.ts)."""
 import math
 import re
 from datetime import datetime, timezone
-
 from sqlalchemy import case, exists, func, or_, select
-
-from application.domain import CAMPUS_CENTER
+from application.domain import CAMPUS_CENTER, bounding_box, haversine_km
 from application.models import CollectionPoint, Item, ItemImage, User, db, utcnow
 from application.validation import parse_iso
 
 _has_image = exists().where(ItemImage.item_id == Item.id).correlate(Item).label("has_image")
 
-
 def _base():
     return (select(Item, User, CollectionPoint, _has_image)
             .join(User, User.id == Item.user_id)
             .outerjoin(CollectionPoint, CollectionPoint.id == Item.point_id))
-
 
 def map_item(row) -> dict:
     i, u, p, has_image = row
@@ -31,11 +26,10 @@ def map_item(row) -> dict:
         "ownerAvatar": u.avatar_url,
         "pointName": p.name if p else None, "pointBuilding": p.building if p else None,
         "pointHours": p.opening_hours if p else None,
+        "distanceKm": None,  # preenchido por list_items quando há ponto de referência (filtro geográfico)
     }
 
-
 def item_row_json(i: Item) -> dict:
-    """Linha crua do banco (como o `returning()` do Drizzle), em camelCase."""
     return {"id": i.id, "userId": i.user_id, "type": i.type, "category": i.category, "title": i.title,
             "description": i.description, "color": i.color, "brand": i.brand, "model": i.model,
             "attributes": i.attributes or {}, "location": i.location, "occurredAt": i.occurred_at,
@@ -43,10 +37,8 @@ def item_row_json(i: Item) -> dict:
             "imageUrl": i.image_url, "storageKey": i.storage_key, "createdAt": i.created_at,
             "updatedAt": i.updated_at}
 
-
 def _aware(d):
     return d if d.tzinfo else d.replace(tzinfo=timezone.utc)
-
 
 def _conditions(f: dict) -> list:
     c = []
@@ -71,11 +63,38 @@ def _conditions(f: dict) -> list:
         c.append(or_(*parts))
     return c
 
+def _geo_conditions(geo: dict | None) -> list:
+    if not geo or geo.get("radiusKm") is None:
+        return []
+    lat_min, lat_max, lng_min, lng_max = bounding_box(geo["lat"], geo["lng"], geo["radiusKm"])
+    c = [Item.latitude.between(lat_min, lat_max)]
+    if lng_min is not None:
+        c.append(Item.longitude.between(lng_min, lng_max))
+    return c
+
+def _attach_distance(items: list[dict], geo: dict) -> None:
+    for it in items:
+        if it["latitude"] is not None and it["longitude"] is not None:
+            it["distanceKm"] = round(haversine_km(geo["lat"], geo["lng"], it["latitude"], it["longitude"]), 3)
+
+
+def _list_near(where, order, geo, sort, page, page_size) -> dict:
+    items = [map_item(r) for r in db.execute(_base().where(*where).order_by(*order))]
+    _attach_distance(items, geo)
+    if geo.get("radiusKm") is not None:
+        items = [it for it in items if it["distanceKm"] is not None and it["distanceKm"] <= geo["radiusKm"]]
+    if sort == "proximity":  # sort estável: empates mantêm a ordem por data
+        items.sort(key=lambda it: (it["distanceKm"] is None, it["distanceKm"] or 0))
+    total = len(items)
+    start = (page - 1) * page_size
+    return {"items": items[start:start + page_size], "total": total, "page": page, "pageSize": page_size,
+            "totalPages": max(math.ceil(total / page_size), 1)}
 
 def list_items(f: dict) -> dict:
     page_size = min(f.get("pageSize") or 9, 50)
     page = max(f.get("page") or 1, 1)
-    where = _conditions(f)
+    geo = f.get("geo")
+    where = _conditions(f) + _geo_conditions(geo)
     order = []
     q = (f.get("q") or "").strip()
     if f.get("sort") == "proximity":
@@ -85,23 +104,25 @@ def list_items(f: dict) -> dict:
         term = f"%{q}%"
         order.append(case((Item.title.ilike(term), 0), (Item.description.ilike(term), 1), else_=2).asc())
     order += [Item.occurred_at.desc(), Item.id.desc()]
+    if geo and (geo.get("radiusKm") is not None or f.get("sort") == "proximity"):
+        return _list_near(where, order, geo, f.get("sort"), page, page_size)
     rows = db.execute(_base().where(*where).order_by(*order).limit(page_size).offset((page - 1) * page_size))
     total = db.scalar(select(func.count()).select_from(Item).where(*where)) or 0
-    return {"items": [map_item(r) for r in rows], "total": total, "page": page, "pageSize": page_size,
+    items = [map_item(r) for r in rows]
+    if geo:  # só informa a distância dos itens da página; a ordem segue a escolhida
+        _attach_distance(items, geo)
+    return {"items": items, "total": total, "page": page, "pageSize": page_size,
             "totalPages": max(math.ceil(total / page_size), 1)}
-
 
 def find_item_by_id(item_id: int):
     row = db.execute(_base().where(Item.id == item_id).limit(1)).first()
     return map_item(row) if row else None
-
 
 def create_item(values: dict) -> Item:
     row = Item(**values)
     db.add(row)
     db.commit()
     return row
-
 
 def update_item(item_id: int, values: dict):
     row = db.get(Item, item_id)
@@ -113,7 +134,6 @@ def update_item(item_id: int, values: dict):
     db.commit()
     return row
 
-
 def set_item_status(item_id: int, status: str):
     row = db.get(Item, item_id)
     if row:
@@ -121,13 +141,11 @@ def set_item_status(item_id: int, status: str):
         db.commit()
     return row
 
-
 def delete_item(item_id: int):
     row = db.get(Item, item_id)
     if row:
         db.delete(row)
         db.commit()
-
 
 def save_item_image(*, item_id, provider, storage_key, mime_type, size_bytes, data):
     row = db.execute(select(ItemImage).where(ItemImage.item_id == item_id)).scalar_one_or_none()
@@ -138,10 +156,8 @@ def save_item_image(*, item_id, provider, storage_key, mime_type, size_bytes, da
                          mime_type=mime_type, size_bytes=size_bytes, data=data))
     db.commit()
 
-
 def find_item_image(item_id: int):
     return db.execute(select(ItemImage).where(ItemImage.item_id == item_id).limit(1)).scalar_one_or_none()
-
 
 def list_open_by_type(record_type: str) -> list[dict]:
     rows = db.scalars(select(Item).where(Item.type == record_type, Item.status.in_(["OPEN", "RESERVED"])))
@@ -150,15 +166,12 @@ def list_open_by_type(record_type: str) -> list[dict]:
              "location": i.location, "occurredAt": i.occurred_at, "attributes": i.attributes or {}}
             for i in rows]
 
-
 def recent_items(limit=6, owner_id=None) -> list[dict]:
     cond = Item.user_id == owner_id if owner_id else Item.status != "ARCHIVED"
     return [map_item(r) for r in db.execute(_base().where(cond).order_by(Item.created_at.desc()).limit(limit))]
 
-
 def count_items(*where) -> int:
     return db.scalar(select(func.count()).select_from(Item).where(*where)) or 0
-
 
 def _group_count(col, owner_id):
     stmt = select(col, func.count()).group_by(col)
@@ -166,13 +179,10 @@ def _group_count(col, owner_id):
         stmt = stmt.where(Item.user_id == owner_id)
     return [{"key": k, "total": int(t)} for k, t in db.execute(stmt)]
 
-
 def count_by_status(owner_id=None): return _group_count(Item.status, owner_id)
 def count_by_category(owner_id=None): return _group_count(Item.category, owner_id)
 
-
 def monthly_series(months=6) -> list[dict]:
-    """Novos itens por mês e tipo (agregação em Python: portável entre PostgreSQL e SQLite)."""
     now = utcnow()
     y, m = now.year, now.month - (months - 1)
     while m < 1:
@@ -184,7 +194,6 @@ def monthly_series(months=6) -> list[dict]:
         key = (created.strftime("%Y-%m"), typ)
         counts[key] = counts.get(key, 0) + 1
     return [{"month": mo, "type": t, "total": n} for (mo, t), n in sorted(counts.items())]
-
 
 def items_at_points(point_id=None) -> list[dict]:
     stmt = (select(Item, User, CollectionPoint, _has_image).join(User, User.id == Item.user_id)

@@ -1,9 +1,6 @@
-"""Páginas renderizadas no servidor (src/app/**/page.tsx → Jinja)."""
 from functools import wraps
 from urllib.parse import urlencode
-
 from flask import (Blueprint, flash, g, redirect, render_template, request, make_response, url_for)
-
 from application import domain as D
 from application.auth import SESSION_COOKIE, can_manage_item, cookie_token, destroy_session, get_current_user
 from application.errors import ApiError
@@ -18,8 +15,8 @@ from application.validation import Form
 
 bp = Blueprint("web", __name__)
 
-ITEM_FILTER_KEYS = ["q", "tipo", "categoria", "status", "local", "cor", "marca", "modelo", "de", "ate", "ordem"]
-
+ITEM_FILTER_KEYS = ["q", "tipo", "categoria", "status", "local", "cor", "marca", "modelo", "de", "ate", "ordem",
+                    "lat", "lng", "raio"]
 
 # ------------------------------------------------------------------ helpers
 @bp.app_template_filter("date")
@@ -40,16 +37,13 @@ def _humanize(k):
     s = re.sub(r"([A-Z])", r" \1", k)
     return s[:1].upper() + s[1:]
 
-
 @bp.app_context_processor
 def inject():
     return {"D": D, "user": get_current_user(), "DEMO_PASSWORD": DEMO_PASSWORD_HINT,
             "qs": lambda base=None, **kw: urlencode({k: v for k, v in {**(base or {}), **kw}.items() if v not in (None, "")})}
 
-
 def safe_next(value, default="/painel"):
     return value if value and value.startswith("/") and not value.startswith("//") else default
-
 
 def login_required(*roles):
     def deco(fn):
@@ -65,18 +59,14 @@ def login_required(*roles):
         return wrapper
     return deco
 
-
 def shell_ctx(user):
     return {"pending_count": count_pending_matches(user["id"]), "unread_count": count_unread_notifications(user["id"])}
-
 
 def render_not_found():
     return render_template("not_found.html"), 404
 
-
 def _form_error(exc: ApiError):
     return {"error": exc.message, "errors": exc.details or {}}
-
 
 # ------------------------------------------------------------- páginas públicas
 @bp.get("/")
@@ -84,7 +74,6 @@ def home():
     ensure_seeded()
     top = list_matches(status="PENDING", limit=1)
     return render_template("home.html", data=get_public_home(), points=list_points(True), top=top[0] if top else None)
-
 
 @bp.route("/entrar", methods=["GET", "POST"])
 def entrar():
@@ -103,7 +92,6 @@ def entrar():
             ctx.update(_form_error(exc), values=request.form)
     return render_template("entrar.html", **ctx)
 
-
 @bp.route("/cadastrar", methods=["GET", "POST"])
 def cadastrar():
     ctx = {"values": {}, "error": None, "errors": {}}
@@ -114,7 +102,6 @@ def cadastrar():
         except ApiError as exc:
             ctx.update(_form_error(exc), values=request.form)
     return render_template("cadastrar.html", **ctx)
-
 
 @bp.route("/recuperar-senha", methods=["GET", "POST"])
 def recuperar():
@@ -128,14 +115,12 @@ def recuperar():
             ctx.update(_form_error(exc), values=request.form)
     return render_template("recuperar.html", **ctx)
 
-
 @bp.post("/sair")
 def sair():
     destroy_session(cookie_token())
     resp = make_response(redirect("/"))
     resp.delete_cookie(SESSION_COOKIE, path="/")
     return resp
-
 
 def _item_filters(args, page_key="pagina"):
     return {"q": args.get("q") or None, "type": args.get("tipo") or None, "category": args.get("categoria") or None,
@@ -144,20 +129,21 @@ def _item_filters(args, page_key="pagina"):
             "to": args.get("ate") or None, "sort": args.get("ordem") or None, "page": D.clamp_page(args.get(page_key)),
             "pageSize": D.PAGE_SIZE}
 
-
 def _clean(f):
     allowed = {"type": D.RECORD_TYPES, "category": D.CATEGORIES, "status": D.STATUSES, "sort": [v for v, _ in D.SORT_OPTIONS]}
     return {k: (v if k not in allowed or v in allowed[k] else None) for k, v in f.items()}
-
 
 @bp.get("/itens")
 def itens():
     ensure_seeded()
     filters = request.args.to_dict()
-    result = item_service.search_items(_clean(_item_filters(request.args)))
+    geo, geo_error = D.parse_geo_params(filters.get("lat"), filters.get("lng"), filters.get("raio"))
+    query = _clean(_item_filters(request.args))
+    query["geo"] = geo  # filtro inválido não derruba a página: avisamos e listamos sem ele
+    result = item_service.search_items(query)
     base = {k: filters.get(k) for k in ITEM_FILTER_KEYS}
-    return render_template("itens.html", result=result, f=filters, base=base, points=list_points(True))
-
+    return render_template("itens.html", result=result, f=filters, base=base, points=list_points(True),
+                           geo=geo, geo_error=geo_error)
 
 @bp.get("/itens/<int:item_id>")
 def item_detalhe(item_id):
@@ -171,7 +157,6 @@ def item_detalhe(item_id):
                            is_staff=bool(viewer and viewer["role"] in ("ADMIN", "OPERATOR_POST")),
                            is_owner=bool(viewer and viewer["id"] == detail["item"]["userId"]))
 
-
 # ------------------------------------------------------------------- painel
 @bp.get("/painel")
 @login_required()
@@ -180,7 +165,6 @@ def painel(user):
         flash("Você não tem permissão para acessar essa área.", "error")
     return render_template("painel.html", d=get_dashboard(user), **shell_ctx(user), active="/painel")
 
-
 @bp.get("/painel/itens")
 @login_required()
 def painel_itens(user):
@@ -188,11 +172,9 @@ def painel_itens(user):
     result = item_service.list_my_items(user, filters)
     return render_template("painel_itens.html", result=result, f=request.args.to_dict(), **shell_ctx(user), active="/painel/itens")
 
-
 def _item_form_context(user, values, error=None, errors=None, item=None):
     return {"values": values, "error": error, "errors": errors or {}, "item": item, "points": list_points(True),
             **shell_ctx(user), "active": "/painel/itens"}
-
 
 @bp.route("/painel/itens/novo", methods=["GET", "POST"])
 @login_required()
@@ -207,7 +189,6 @@ def item_novo(user):
         except ApiError as exc:
             return render_template("item_form.html", mode="new", **_item_form_context(user, request.form, exc.message, exc.details))
     return render_template("item_form.html", mode="new", **_item_form_context(user, values))
-
 
 @bp.route("/painel/itens/<int:item_id>/editar", methods=["GET", "POST"])
 @login_required()
@@ -233,7 +214,6 @@ def item_editar(user, item_id):
         values[f"attributes.{k}"] = v
     return render_template("item_form.html", mode="edit", **_item_form_context(user, values, item=item))
 
-
 @bp.get("/painel/matches")
 @login_required()
 def painel_matches(user):
@@ -244,7 +224,6 @@ def painel_matches(user):
     return render_template("painel_matches.html", matches=matches, status=status, scope_global=scope_global, staff=staff,
                            **shell_ctx(user), active="/painel/matches")
 
-
 @bp.route("/painel/notificacoes", methods=["GET", "POST"])
 @login_required()
 def painel_notificacoes(user):
@@ -253,7 +232,6 @@ def painel_notificacoes(user):
         return redirect("/painel/notificacoes")
     return render_template("painel_notificacoes.html", notifications=list_notifications(user["id"], 50),
                            **shell_ctx(user), active="/painel/notificacoes")
-
 
 @bp.route("/painel/perfil", methods=["GET", "POST"])
 @login_required()
@@ -274,7 +252,6 @@ def painel_perfil(user):
     me = auth_service.get_profile(user["id"])
     return render_template("painel_perfil.html", me=me, level=D.score_level(me["score"]), **ctx,
                            **shell_ctx(me), active="/painel/perfil")
-
 
 @bp.route("/painel/pontos", methods=["GET", "POST"])
 @login_required()
@@ -301,14 +278,12 @@ def painel_pontos(user):
     return render_template("painel_pontos.html", points=list_points(not staff), staff=staff, error=error, errors=errors,
                            values=request.form, **shell_ctx(user), active="/painel/pontos")
 
-
 @bp.get("/painel/operador")
 @login_required("OPERATOR_POST", "ADMIN")
 def painel_operador(user):
     items = items_at_points()
     return render_template("painel_operador.html", points=list_points(), items=items, activity=list_recent_point_activity(6),
                            **shell_ctx(user), active="/painel/operador")
-
 
 @bp.get("/painel/admin")
 @login_required("ADMIN")

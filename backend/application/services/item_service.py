@@ -13,7 +13,6 @@ from application.services.matching_service import generate_matches_for_item
 from application.services.storage_service import store_item_image
 from application.validation import Form, parse_iso
 
-
 def parse_item_form(form) -> dict:
     """`form` aceita campos planos e `attributes.<chave>` (como no multipart original)."""
     raw = {k: v for k, v in form.items() if not k.startswith("attributes.")}
@@ -38,6 +37,8 @@ def parse_item_form(form) -> dict:
     f.number("pointId", integer=True, positive=True)
     f.number("latitude", lo=-90, hi=90)
     f.number("longitude", lo=-180, hi=180)
+    if (f.data.get("latitude") is None) != (f.data.get("longitude") is None):
+        f.errors.setdefault("latitude", []).append("Informe latitude e longitude juntas.")
     data = f.finish()
     data["attributes"] = attributes
     return data

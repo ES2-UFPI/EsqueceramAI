@@ -1,10 +1,9 @@
-"""Controllers HTTP da API REST (src/app/api/**/route.ts)."""
 from flask import Blueprint, Response, g, jsonify, redirect, request
 from sqlalchemy import func, select, text
-
 from application.auth import SESSION_COOKIE, cookie_token, destroy_session
 from application.delivery.policy import enforce_checkout_policy
-from application.domain import CATEGORIES, MATCH_STATUSES, RECORD_TYPES, ROLES, SORT_OPTIONS, STATUSES, clamp_page
+from application.domain import (CATEGORIES, MATCH_STATUSES, RECORD_TYPES, ROLES, SORT_OPTIONS, STATUSES, clamp_page,
+                                parse_geo_params)
 from application.errors import ApiError, forbidden, not_found, unauthorized
 from application.http import api_user, controller, cors_headers, read_json
 from application.models import User, db
@@ -21,15 +20,12 @@ from application.validation import Form
 
 bp = Blueprint("api", __name__, url_prefix="/api")
 
-
 def _one_of(value, allowed):
     return value if value in allowed else None
-
 
 @bp.route("/<path:_>", methods=["OPTIONS"])
 def preflight(_):
     return Response(status=204)
-
 
 # ------------------------------------------------------------------ auth
 @bp.post("/auth/<action>")
@@ -52,14 +48,12 @@ def auth_post(action):
         return resp
     raise ApiError("Rota de autenticação não encontrada.", 404)
 
-
 @bp.get("/auth/<action>")
 @controller
 def auth_get(action):
     if action != "me":
         raise ApiError("Rota de autenticação não encontrada.", 404)
     return jsonify(user=api_user(required=False))
-
 
 @bp.patch("/auth/<action>")
 @controller
@@ -71,22 +65,23 @@ def auth_patch(action):
         return jsonify(auth_service.change_password(user["id"], read_json()))
     raise ApiError("Rota de autenticação não encontrada.", 404)
 
-
 # ------------------------------------------------------------------ itens
 @bp.get("/items")
 @controller
 def items_list():
     a = request.args
+    geo, geo_error = parse_geo_params(a.get("lat"), a.get("lng"), a.get("raio"))
+    if geo_error:
+        raise ApiError(geo_error, 422)
     result = item_service.search_items({
         "q": (a.get("q") or "")[:120] or None, "type": _one_of(a.get("tipo"), RECORD_TYPES),
         "category": _one_of(a.get("categoria"), CATEGORIES), "status": _one_of(a.get("status"), STATUSES),
         "location": (a.get("local") or "")[:120] or None, "color": (a.get("cor") or "")[:40] or None,
         "brand": (a.get("marca") or "")[:60] or None, "model": (a.get("modelo") or "")[:60] or None,
         "from": a.get("de") or None, "to": a.get("ate") or None,
-        "sort": _one_of(a.get("ordem"), [v for v, _ in SORT_OPTIONS]),
+        "sort": _one_of(a.get("ordem"), [v for v, _ in SORT_OPTIONS]), "geo": geo,
         "page": clamp_page(a.get("pagina")), "pageSize": 9})
     return jsonify(result)
-
 
 @bp.post("/items")
 @controller
@@ -97,7 +92,6 @@ def items_create():
     result = item_service.create_item_from_form(user, request.form.to_dict(), request.files.get("image"))
     return jsonify(item=item_row_json(result["item"]), matches=result["matches"]), 201
 
-
 @bp.get("/items/<int:item_id>")
 @controller
 def items_get(item_id):
@@ -105,7 +99,6 @@ def items_get(item_id):
     if not detail:
         raise not_found("Registro")
     return jsonify(detail)
-
 
 @bp.patch("/items/<int:item_id>")
 @controller
@@ -120,12 +113,10 @@ def items_patch(item_id):
     enforce_checkout_policy(payload["status"], item_id)  # opcional (DELIVERY_REQUIRE_CHECKOUT)
     return jsonify(item_service.change_item_status(user, item_id, payload["status"], payload.get("note")))
 
-
 @bp.delete("/items/<int:item_id>")
 @controller
 def items_delete(item_id):
     return jsonify(item_service.remove_item(api_user(), item_id))
-
 
 @bp.get("/images/<int:item_id>")
 @controller
@@ -141,7 +132,6 @@ def images_get(item_id):
     _, mime, data = image
     return Response(data, mimetype=mime, headers={"Cache-Control": "private, max-age=120", "Content-Length": str(len(data))})
 
-
 # ---------------------------------------------------------------- matches
 @bp.get("/matches")
 @controller
@@ -150,7 +140,6 @@ def matches_list():
     status = _one_of(request.args.get("status"), MATCH_STATUSES)
     is_global = request.args.get("escopo") == "global" and user["role"] in ("ADMIN", "OPERATOR_POST")
     return jsonify(matches=list_matches(user_id=None if is_global else user["id"], status=status, limit=50))
-
 
 @bp.patch("/matches/<int:match_id>")
 @controller
@@ -161,14 +150,12 @@ def matches_patch(match_id):
         raise ApiError("Ação inválida. Use 'confirm' ou 'reject'.", 422)
     return jsonify(decide_match(user, match_id, payload["action"], payload.get("note")))
 
-
 # ---------------------------------------------------------- notificações
 @bp.get("/notifications")
 @controller
 def notifications_get():
     user = api_user()
     return jsonify(notifications=list_notifications(user["id"], 50), unread=count_unread_notifications(user["id"]))
-
 
 @bp.patch("/notifications")
 @controller
@@ -180,7 +167,6 @@ def notifications_patch():
     elif payload.get("id"):
         mark_notification_read(payload["id"], user["id"])
     return jsonify(ok=True, unread=count_unread_notifications(user["id"]))
-
 
 # ----------------------------------------------------------------- pontos
 def _point_form(raw):
@@ -194,12 +180,10 @@ def _point_form(raw):
     f.number("longitude", lo=-180, hi=180)
     return f.finish()
 
-
 @bp.get("/points")
 @controller
 def points_get():
     return jsonify(points=list_points(request.args.get("todos") != "1"))
-
 
 @bp.post("/points")
 @controller
@@ -212,7 +196,6 @@ def points_post():
                          openingHours=d["openingHours"] or None, contact=d["contact"] or None,
                          latitude=d["latitude"], longitude=d["longitude"])
     return jsonify(point=point_json(point)), 201
-
 
 @bp.patch("/points")
 @controller
@@ -227,7 +210,6 @@ def points_patch():
                          description=payload.get("description"))
     return jsonify(point=point_json(point) if point else None)
 
-
 # ------------------------------------------------------------------ admin
 def _require_admin():
     user = api_user()
@@ -235,13 +217,11 @@ def _require_admin():
         raise forbidden("Acesso restrito à administração.")
     return user
 
-
 @bp.get("/admin/users")
 @controller
 def admin_users_get():
     _require_admin()
     return jsonify(users=list_users(q=request.args.get("q") or None, role=_one_of(request.args.get("papel"), ROLES)))
-
 
 @bp.patch("/admin/users")
 @controller
@@ -263,15 +243,9 @@ def admin_users_patch():
         set_user_active(uid, p["isActive"])
     return jsonify(ok=True)
 
-
 # ----------------------------------------------------------------- health
 @bp.get("/health")
 def health():
-    """Health check público usado pelo Render.
-
-    A resposta mínima é estável para monitores; os detalhes não expõem
-    credenciais nem erros internos.
-    """
     try:
         db.execute(text("select 1"))
         ensure_seeded()

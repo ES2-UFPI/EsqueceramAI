@@ -1,11 +1,11 @@
 """Pequeno validador (substitui o Zod). Acumula erros por campo e levanta ValidationFailed."""
+import math 
 import re
 from datetime import datetime
 
 from application.errors import ValidationFailed
 
 _EMAIL = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
-
 
 class Form:
     def __init__(self, raw: dict | None):
@@ -66,6 +66,8 @@ class Form:
             return None
         try:
             n = float(v)
+            if not math.isfinite(n):     
+                raise ValueError
             if integer and n != int(n):
                 raise ValueError
             n = int(n) if integer else n
@@ -81,7 +83,6 @@ class Form:
         if self.errors:
             raise ValidationFailed(self.errors)
         return self.data
-
 
 def parse_iso(value: str) -> datetime | None:
     try:
