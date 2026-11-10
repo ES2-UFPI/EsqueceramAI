@@ -1,0 +1,9 @@
+{% extends "app_base.html" %}{% from "_ui.html" import item_card, pager, empty %}{% block title %}Meus registros · Esqueceram AI{% endblock %}
+{% block content %}
+<div class="flex between center wrap gap"><div><h1 class="display" style="font-size:2rem">Meus registros</h1><p class="sm muted">{{ result.total }} registro(s).</p></div><a class="btn btn-primary" href="/painel/itens/novo">＋ Novo registro</a></div>
+<form class="card pad mt flex gap wrap" method="get"><input class="input grow" name="q" value="{{ f.get('q','') }}" placeholder="Buscar nos meus registros">
+<select class="select" name="tipo" style="width:auto"><option value="">Todos os tipos</option>{% for t in D.RECORD_TYPES %}<option value="{{ t }}" {{ 'selected' if f.get('tipo') == t }}>{{ D.RECORD_TYPE_LABEL[t] }}</option>{% endfor %}</select>
+<select class="select" name="status" style="width:auto"><option value="">Todos os status</option>{% for s in D.STATUSES %}<option value="{{ s }}" {{ 'selected' if f.get('status') == s }}>{{ D.STATUS_LABEL[s] }}</option>{% endfor %}</select><button class="btn btn-secondary">Filtrar</button></form>
+{% if result["items"] %}<div class="grid g3 mt">{% for i in result["items"] %}{{ item_card(i) }}{% endfor %}</div>{{ pager(result, {'q': f.get('q'), 'tipo': f.get('tipo'), 'status': f.get('status')}) }}
+{% else %}<div class="card mt">{{ empty('Nenhum registro encontrado','Publique um item perdido ou encontrado.','/painel/itens/novo','Novo registro') }}</div>{% endif %}
+{% endblock %}

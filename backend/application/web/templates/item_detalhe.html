@@ -1,0 +1,55 @@
+{% extends "base.html" %}{% from "_ui.html" import type_badge, status_badge, match_badge, score, thumb, api_button, empty %}{% block title %}{{ item.title }} · Esqueceram AI{% endblock %}
+{% block content %}
+<nav class="xs muted mb"><a href="/">Início</a> › <a href="/itens">Explorar</a> › <a href="/itens?tipo={{ item.type }}">{{ D.RECORD_TYPE_LABEL[item.type] }}</a> › <b class="soft">{{ item.title }}</b></nav>
+<div class="grid split">
+<div class="stack">
+  <article class="card" style="overflow:hidden">{{ thumb(item.imageSrc, h='320px', icon='📦') }}
+  <div style="padding:22px">
+    <div class="flex gap-s wrap center">{{ type_badge(item.type) }}{{ status_badge(item.status) }}<span class="badge">{{ D.CATEGORY_LABEL[item.category] }}</span><span class="xs muted bold" style="margin-left:auto">{{ item.id|code }}</span></div>
+    <h1 class="display mt-s" style="font-size:2rem;line-height:1.15">{{ item.title }}</h1>
+    <p class="xs soft mt-s">📍 {{ item.location }} · 📅 {{ item.occurredAt|date }} · 🕒 publicado {{ item.createdAt|ago }}</p>
+    <h2 class="bold sm mt" style="border-top:1px solid var(--line);padding-top:16px">Descrição do registro</h2>
+    <p class="sm soft mt-s" style="white-space:pre-line">{{ item.description }}</p>
+    <dl class="dl mt">
+      {% for label, val in [('Cor', item.color), ('Marca', item.brand), ('Modelo', item.model)] %}{% if val %}<div><dt>{{ label }}</dt><dd>{{ val }}</dd></div>{% endif %}{% endfor %}
+      {% for k, v in item.attributes.items() %}{% if v %}<div><dt>{{ k|humanize_key }}</dt><dd>{{ v }}</dd></div>{% endif %}{% endfor %}
+      <div><dt>Categoria</dt><dd>{{ D.CATEGORY_LABEL[item.category] }}</dd></div><div><dt>Última atualização</dt><dd>{{ item.updatedAt|date }}</dd></div>
+    </dl>
+  </div></article>
+
+  <section class="card pad"><div class="flex between center"><h2 class="display" style="font-size:1.2rem">✨ Correspondências sugeridas</h2>{% if pending %}<span class="badge accent">{{ pending|length }} pendentes</span>{% endif %}</div>
+  <p class="xs muted">A IA compara características dos dois lados. Confirme apenas quando tiver certeza.</p>
+  {% if not d.matches %}{{ empty('Nenhuma correspondência ainda','Assim que alguém publicar um item do tipo oposto compatível, você receberá uma notificação.') }}{% else %}
+  <ul class="stack mt">{% for m in d.matches %}{% set other = m.found if m.lost.id == item.id else m.lost %}
+  {% set can = m.status == 'PENDING' and user and (is_staff or user.id == m.lost.ownerId or user.id == m.found.ownerId) %}
+  <li class="card pad" style="box-shadow:none"><div class="flex gap wrap">
+    <a href="/itens/{{ other.id }}" class="flex gap grow">{{ thumb(other.imageSrc, h='64px', icon='🔍') }}<div class="grow"><p class="eyebrow">{{ 'Item encontrado' if item.type == 'LOST' else 'Item perdido' }} correspondente</p><p class="bold sm">{{ other.title }}</p><p class="xs muted">{{ other.location }} · {{ other.occurredAt|date }} · por {{ other.ownerName }}</p></div></a>
+    <div style="text-align:right">{{ score(m.score) }}<br>{{ match_badge(m.status) }}</div></div>
+    {% if m.reasons %}<ul class="reasons">{% for r in m.reasons %}<li>{{ r }}</li>{% endfor %}</ul>{% endif %}
+    {% if can %}<div class="flex gap-s mt-s">{{ api_button('✓ Confirmar correspondência', '/api/matches/%d'|format(m.id), 'PATCH', {'action':'confirm'}, 'primary', success='Correspondência confirmada! Os itens foram reservados.') }}{{ api_button('Descartar', '/api/matches/%d'|format(m.id), 'PATCH', {'action':'reject'}, success='Sugestão descartada.') }}</div>
+    {% elif not user and m.status == 'PENDING' %}<p class="xs muted mt-s"><a class="brand bold" href="/entrar">Entre na plataforma</a> para confirmar ou descartar esta correspondência.</p>{% endif %}
+  </li>{% endfor %}</ul>{% endif %}</section>
+
+  <section class="card pad"><h2 class="display" style="font-size:1.2rem">🕒 Histórico do registro</h2>
+  {% if d.timeline %}<ol class="timeline mt">{% for e in d.timeline %}<li><p class="bold sm">{{ e.note }}</p><p class="xs muted">{{ e.createdAt|datetime }}{% if e.actorName %} · {{ e.actorName }}{% endif %} · {{ e.status }}</p></li>{% endfor %}</ol>{% else %}<p class="xs muted mt-s">Nenhum evento registrado.</p>{% endif %}</section>
+</div>
+<aside class="stack">
+  <section class="card pad"><div class="flex between center"><p class="eyebrow">Situação</p>{{ status_badge(item.status) }}</div>
+  <p class="xs muted mt-s">{% if confirmed %}✓ Correspondência confirmada. Combine a retirada no ponto de coleta.{% elif item.status == 'RETURNED' %}Este item já foi devolvido ao responsável.{% elif item.status == 'ARCHIVED' %}Este registro está arquivado e não aparece na busca pública.{% elif item.status == 'RESERVED' %}O item está reservado para retirada.{% else %}O registro está em aberto e participando das sugestões automáticas.{% endif %}</p>
+  <div class="stack-s mt">
+    {% if not user %}<a class="btn btn-primary btn-block" href="/entrar?next=/itens/{{ item.id }}">🔒 Entrar para ver contato</a>{% endif %}
+    {% if user and not is_owner and item.status != 'RETURNED' %}<p class="alert xs">ℹ️ Encontrou este item? Confirme a correspondência e combine a entrega com {{ item.ownerName|firstname }}.</p>{% endif %}
+    {% if user and user.role == 'OPERATOR_POST' and item.type == 'FOUND' and item.pointName and item.status in ('OPEN','RESERVED') %}<a class="btn btn-accent btn-block" href="/painel/entregas/nova?item={{ item.id }}">📝 Registrar entrega (CPF e documento)</a>{% endif %}
+    {% if d.canManage %}
+      <a class="btn btn-secondary btn-block" href="/painel/itens/{{ item.id }}/editar">✏️ Editar registro</a>
+      {% if item.status != 'RETURNED' %}{{ api_button('Marcar como devolvido' if item.type == 'FOUND' else 'Registrar recuperação', '/api/items/%d'|format(item.id), 'PATCH', {'status':'RETURNED'}, 'primary', success='Devolução registrada. Pontuação atualizada!', block=True, small=False) }}{% endif %}
+      {% if item.status != 'ARCHIVED' %}{{ api_button('Arquivar registro', '/api/items/%d'|format(item.id), 'PATCH', {'status':'ARCHIVED'}, confirm='Arquivar este registro? Ele deixará de aparecer nas buscas.', success='Registro arquivado.', block=True, small=False) }}
+      {% else %}{{ api_button('Reabrir registro', '/api/items/%d'|format(item.id), 'PATCH', {'status':'OPEN'}, success='Registro reaberto.', block=True, small=False) }}{% endif %}
+      {{ api_button('Excluir definitivamente', '/api/items/%d'|format(item.id), 'DELETE', None, 'danger', confirm='Excluir este registro definitivamente? Esta ação não pode ser desfeita.', success='Registro excluído.', redirect='/painel/itens', block=True, small=False) }}
+    {% endif %}
+  </div></section>
+  <section class="card pad"><p class="eyebrow">Responsável</p><div class="flex gap center mt-s"><span class="badge brand">{{ item.ownerName|initials }}</span><div><p class="bold sm">{{ item.ownerName }}</p><p class="xs muted">{{ D.ROLE_LABEL[item.ownerRole] }}</p></div></div>
+  {% if user %}<p class="xs soft mt-s">✉️ {{ item.ownerEmail }}{% if item.ownerPhone %}<br>📞 {{ item.ownerPhone }}{% endif %}</p>{% endif %}</section>
+  {% if item.pointName %}<section class="card pad"><p class="eyebrow">Ponto de coleta</p><p class="bold sm mt-s">📍 {{ item.pointName }}</p><p class="xs muted">{{ item.pointBuilding }}</p>{% if item.pointHours %}<p class="xs soft">🕒 {{ item.pointHours }}</p>{% endif %}</section>{% endif %}
+</aside></div>
+{% endblock %}

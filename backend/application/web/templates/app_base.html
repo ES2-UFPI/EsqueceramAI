@@ -1,0 +1,16 @@
+{% extends "base.html" %}{% from "_ui.html" import api_button %}
+{% block body %}
+{% set nav = [('/painel','🏠','Visão geral',0),('/itens','🔍','Explorar itens',0),('/painel/itens','📦','Meus registros',0),('/painel/matches','✨','Correspondências',pending_count),('/painel/notificacoes','🔔','Notificações',unread_count),('/painel/pontos','📍','Pontos de coleta',0),('/painel/perfil','👤','Meu perfil',0)] %}
+{% if user.role in ('ADMIN','OPERATOR_POST') %}{% set nav = nav + [('/painel/operador','🛡️','Painel do ponto',0),('/painel/entregas','📝','Entregas',0)] %}{% endif %}
+{% if user.role == 'ADMIN' %}{% set nav = nav + [('/painel/admin','⚙️','Administração',0)] %}{% endif %}
+<div class="shell">
+<aside class="sidebar">
+  <a href="/" class="brandmark" style="margin-bottom:20px"><i>🔎</i> Esqueceram AI</a>
+  <a href="/painel/itens/novo" class="btn btn-primary btn-block" style="margin-bottom:14px">＋ Novo registro</a>
+  {% for href, ic, label, n in nav %}<a class="nav {{ 'on' if active == href }}" href="{{ href }}">{{ ic }} {{ label }}{% if n %}<span class="count">{{ n }}</span>{% endif %}</a>{% endfor %}
+  <div class="card pad mt-l"><div class="flex gap center"><span class="badge brand">{{ user.name|initials }}</span><div class="grow"><p class="bold sm" style="overflow:hidden;text-overflow:ellipsis">{{ user.name }}</p><p class="xs muted">{{ D.ROLE_LABEL[user.role] }} · {{ user.score }} pts</p></div></div>
+  <form method="post" action="/sair" class="mt-s"><button class="btn btn-ghost btn-sm btn-block" type="submit">Sair da conta</button></form></div>
+</aside>
+<div><nav class="mobilebar">{% for href, ic, label, n in nav %}<a class="btn btn-ghost btn-sm" href="{{ href }}">{{ ic }} {{ label }}</a>{% endfor %}</nav>
+<main class="main">{% block content %}{% endblock %}</main></div></div>
+{% endblock %}

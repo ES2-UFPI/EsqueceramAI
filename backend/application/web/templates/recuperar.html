@@ -1,0 +1,8 @@
+{% extends "base.html" %}{% from "_ui.html" import field %}{% block title %}Recuperar senha · Esqueceram AI{% endblock %}
+{% block body %}<div class="authwrap"><div class="card authcard">
+<a href="/" class="brandmark"><i>🔎</i> Esqueceram AI</a><h1 class="display mt" style="font-size:1.8rem">Recuperar senha</h1>
+<p class="sm muted mt-s">Confirme seu e-mail e o telefone cadastrado para definir uma nova senha.</p>
+{% if error %}<div class="alert error mt">{{ error }}</div>{% endif %}
+<form method="post" class="stack mt">{{ field('E-mail','email',values,errors,'email','',True) }}{{ field('Telefone cadastrado','phone',values,errors,'tel','(86) 99999-0000',True) }}
+{{ field('Nova senha','newPassword',values,errors,'password','',True) }}<button class="btn btn-primary btn-block btn-lg">Redefinir senha</button></form>
+<p class="xs mt"><a class="brand bold" href="/entrar">Voltar ao login</a></p></div></div>{% endblock %}
