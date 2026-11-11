@@ -169,6 +169,7 @@ def get_item_detail(item_id: int, viewer: dict | None):
         return None
     return {"item": item, "matches": list_matches_for_item(item_id), "timeline": list_item_events(item_id),
             "canManage": bool(viewer and can_manage_item(viewer, item)),
+            "claim": claim_service.status_for(viewer, item),
             "hasSecret": claim_service.get_secret(item_id) is not None}
 
 

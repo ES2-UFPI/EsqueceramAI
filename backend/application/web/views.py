@@ -159,6 +159,22 @@ def item_detalhe(item_id):
                            challenge_question=claim_service.question_for(viewer, detail["item"]))
 
 # ------------------------------------------------------------------- painel
+@bp.post("/itens/<int:item_id>/reivindicar")
+@login_required()
+def item_reivindicar(user, item_id):
+    """US04: valida a resposta da pergunta-chave e volta ao detalhe com o resultado."""
+    message, tone = None, "error"
+    try:
+        result = claim_service.answer(item_id, user, request.form.get("answer", ""))
+        if result["verified"]:
+            message, tone = "Posse validada! Avisamos quem registrou o item para combinar a retirada.", "ok"
+    except ApiError as exc:
+        message = exc.message
+    if message:
+        flash(message, tone)
+    return redirect(f"/itens/{item_id}")
+
+
 @bp.get("/correspondencias/<int:match_id>")
 def correspondencia(match_id):
     """Página do link enviado por e-mail: o usuário confirma o match ou descarta o falso positivo."""

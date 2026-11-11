@@ -186,6 +186,25 @@ class ItemSecret(Base):
     updated_at: Mapped[datetime] = mapped_column(UTCDateTime, default=utcnow)
 
 
+CLAIM_PENDING, CLAIM_VERIFIED, CLAIM_BLOCKED = "PENDING", "VERIFIED", "BLOCKED"
+CLAIM_STATUSES = (CLAIM_PENDING, CLAIM_VERIFIED, CLAIM_BLOCKED)
+
+
+class ItemClaim(Base):
+    """US04: tentativa de um usuário provar que é o dono de um item encontrado."""
+    __tablename__ = "item_claims"
+    __table_args__ = (UniqueConstraint("item_id", "claimant_id", name="item_claims_unique"),)
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    item_id: Mapped[int] = mapped_column(ForeignKey("items.id", ondelete="CASCADE"), index=True)
+    claimant_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
+    status: Mapped[str] = mapped_column(String(12), default=CLAIM_PENDING)
+    attempts: Mapped[int] = mapped_column(Integer, default=0)
+    last_attempt_at: Mapped[datetime | None] = mapped_column(UTCDateTime, nullable=True)
+    verified_at: Mapped[datetime | None] = mapped_column(UTCDateTime, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(UTCDateTime, default=utcnow)
+    updated_at: Mapped[datetime] = mapped_column(UTCDateTime, default=utcnow)
+
+
 class ItemEvent(Base):
     __tablename__ = "item_events"
     __table_args__ = (Index("item_events_item_idx", "item_id"),)

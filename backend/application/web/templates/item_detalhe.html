@@ -40,7 +40,8 @@
   {% if is_owner and d.hasSecret %}<p class="alert xs mt-s">🔐 O detalhe confidencial e a resposta esperada nunca aparecem nesta página. Confira a resposta quando alguém reivindicar o item; para alterar a pergunta, use “Editar registro”.</p>{% endif %}
   <div class="stack-s mt">
     {% if not user %}<a class="btn btn-primary btn-block" href="/entrar?next=/itens/{{ item.id }}">🔒 Entrar para ver contato</a>{% endif %}
-    {% if challenge_question %}
+    {% if d.claim.verified %}<p class="alert xs">✓ Você validou a posse deste item respondendo à pergunta-chave.</p>
+    {% elif challenge_question %}
       <section class="card pad stack" style="box-shadow:none">
         <p class="eyebrow">🔐 Validar posse</p>
         <p class="xs muted">Acredita que este item é seu? Responda à pergunta-chave feita por quem o encontrou.</p>

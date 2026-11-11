@@ -10,13 +10,23 @@ acertar a pergunta. Este módulo cuida só do **cadastro**; o fluxo de reivindic
 """
 import hashlib
 import hmac
+import logging
 import os
 import unicodedata
 
+from sqlalchemy import select
+from sqlalchemy.exc import IntegrityError
+
+from application.delivery.email_service import EmailError
+from application.delivery.mailer import send_ownership_confirmed
+from application.domain import item_code
 from application.errors import ApiError, forbidden, not_found
-from application.models import ItemSecret, db, utcnow
-from application.repositories.engagement import add_item_event
+from application.models import CLAIM_VERIFIED, ItemClaim, ItemSecret, db, utcnow
+from application.repositories.engagement import add_item_event, create_notifications
 from application.repositories.items import find_item_by_id, is_seeded_item
+from application.repositories.users import find_user_by_id
+
+log = logging.getLogger("esqueceram.claim")
 
 SECRET_DETAIL_MIN = 3
 SECRET_DETAIL_MAX = 200
@@ -154,3 +164,99 @@ def question_for(user: dict | None, item: dict) -> str | None:
 
 def _is_claimable(item: dict | None) -> bool:
     return bool(item and item["type"] == "FOUND" and item["status"] in ("OPEN", "RESERVED"))
+
+
+# ------------------------------------------------------ #30 validação da resposta
+MAX_FAILED_ATTEMPTS = 3
+
+
+def _check_answer(item_id: int, answer: str, stored_hash: str | None) -> bool:
+    if not stored_hash or not normalize_answer(answer):
+        return False
+    return hmac.compare_digest(answer_hash(item_id, answer), stored_hash)
+
+
+def _load_claim(item_id: int, claimant: dict) -> ItemClaim | None:
+    return db.execute(select(ItemClaim).where(ItemClaim.item_id == item_id,
+                                              ItemClaim.claimant_id == claimant["id"])).scalar_one_or_none()
+
+
+def _resolve_claim(item_id: int, user: dict) -> ItemClaim:
+    claim = _load_claim(item_id, user)
+    try:
+        claim = claim or ItemClaim(item_id=item_id, claimant_id=user["id"])
+        db.add(claim)
+        db.commit()
+    except IntegrityError:  # duas requisições simultâneas criaram a mesma linha
+        db.rollback()
+        claim = _load_claim(item_id, user)
+    return claim
+
+
+def answer(item_id: int, user: dict, response: str) -> dict:
+    """Confere a resposta e só então autoriza o aviso ao dono. Bloqueio: ticket #31."""
+    item = find_item_by_id(item_id)
+    if not item:
+        raise not_found("Registro")
+    _require_claimable_item(item)
+    secret = get_secret(item_id)
+    if not secret:
+        raise ApiError("Este item não usa pergunta de segurança; use a correspondência para validar a posse.", 409)
+    if user["id"] == item["userId"]:
+        raise ApiError("Você registrou este item; não é possível reivindicá-lo.", 409)
+
+    claim = _resolve_claim(item_id, user)
+    if claim.status == CLAIM_VERIFIED:
+        return {"verified": True}
+    if not normalize_answer(response):
+        raise ApiError("Informe a resposta da pergunta.", 422, {"answer": ["Campo obrigatório."]})
+
+    if _check_answer(item_id, response, secret.answer_hash):
+        claim.status, claim.verified_at, claim.last_attempt_at = CLAIM_VERIFIED, utcnow(), utcnow()
+        db.commit()
+        add_item_event(item_id=item_id, actor_id=user["id"], status=item["status"],
+                       note="Posse validada pela pergunta-chave.")
+        _notify_owner(item, user)
+        return {"verified": True}
+
+    claim.attempts += 1
+    claim.last_attempt_at = utcnow()
+    db.commit()
+    add_item_event(item_id=item_id, actor_id=user["id"], status=item["status"],
+                   note="Tentativa de validação de posse incorreta.")
+    raise ApiError("Resposta incorreta.", 422, {"answer": ["Resposta incorreta."]})
+
+
+def _notify_owner(item: dict, claimant: dict):
+    """Só depois de acertar a pergunta o dono é avisado (item de notificação + e-mail)."""
+    create_notifications([{
+        "userId": item["userId"], "type": "RECOVERY",
+        "title": "Alguém validou a posse do seu achado",
+        "body": f"{claimant['name']} respondeu corretamente à pergunta de segurança de \"{item['title']}\" "
+                "e é o provável dono. Combine a retirada no ponto de coleta.",
+        "link": f"/itens/{item['id']}",
+    }])
+    owner = find_user_by_id(item["userId"])
+    if not owner or not owner.email:
+        return
+    try:
+        send_ownership_confirmed(to=owner.email, name=owner.name, claimant=claimant["name"],
+                                 title=item["title"], code=item_code(item["id"]))
+    except EmailError as exc:
+        log.warning("Falha ao enviar confirmação de posse do item %s: %s", item["id"], exc)
+
+
+def status_for(user: dict | None, item: dict) -> dict:
+    """Estado da reivindicação para a página de detalhe (nunca revela o detalhe oculto)."""
+    if not user:
+        return {"available": False, "reason": "login"}
+    if user["id"] == item["userId"]:
+        return {"available": False, "reason": "owner"}
+    secret = get_secret(item["id"])
+    if not secret:
+        return {"available": False, "reason": "no-question"}
+    if not _is_claimable(item):
+        return {"available": False, "reason": "unavailable"}
+    claim = _load_claim(item["id"], user)
+    return {"available": True, "reason": None,
+            "verified": bool(claim and claim.status == CLAIM_VERIFIED)}
