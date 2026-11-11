@@ -3,6 +3,7 @@
 Roda uma vez em banco vazio e nunca sobrescreve dados reais.
 """
 import threading
+from contextlib import contextmanager
 from datetime import datetime, timedelta, timezone
 
 from sqlalchemy import select
@@ -33,6 +34,18 @@ IMAGES = {
 def _days_ago(days, hours=10):
     d = datetime.now(timezone.utc) - timedelta(days=days)
     return d.replace(hour=hours, minute=0, second=0, microsecond=0)
+
+
+@contextmanager
+def _quiet_match_emails():
+    """O dataset demonstrativo não deve disparar e-mails reais: as sugestões continuam no painel."""
+    from application.services import matching_service
+    previous = matching_service.NOTIFICATION_THRESHOLD
+    matching_service.NOTIFICATION_THRESHOLD = 100  # acima do placar máximo (99)
+    try:
+        yield
+    finally:
+        matching_service.NOTIFICATION_THRESHOLD = previous
 
 
 def _p(key, name, email, phone, role, score, label, description, persona=False):
@@ -217,7 +230,8 @@ def _seed():
         created_items.append({"id": row.id, "title": e["title"]})
         add_item_event(item_id=row.id, actor_id=owner_id, status="OPEN",
                        note="Registro de item perdido publicado." if e["type"] == "LOST" else "Registro de item encontrado publicado.")
-        generate_matches_for_item(row.id)
+        with _quiet_match_emails():
+            generate_matches_for_item(row.id)
 
     operator = find_user_by_email("operador@ufpi.edu.br")
     operator_id = operator.id if operator else created["renata"]

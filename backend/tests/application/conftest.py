@@ -26,6 +26,24 @@ def app():
     return application
 
 
+@pytest.fixture(autouse=True)
+def _capture_emails(request, monkeypatch):
+    """Nenhum teste fala com um SMTP real: o envio para no backend "console" e fica visível.
+
+    O módulo de segurança do e-mail testa `send_email` de propósito; ali a captura não se aplica.
+    """
+    if request.node.module.__name__.endswith("test_delivery_email_security"):
+        return []
+    from application.delivery import email_service
+    sent = []
+
+    def fake(to, subject, body, html_body=None):
+        sent.append({"to": to, "subject": subject, "body": body, "html": html_body})
+        return "console"
+    monkeypatch.setattr(email_service, "send_email", fake)
+    return sent
+
+
 @pytest.fixture()
 def client(app):
     return app.test_client()

@@ -1,9 +1,11 @@
-"""Envio do código de confirmação por e-mail.
+"""Envio de e-mails do Esqueceram AI (código de confirmação e avisos de correspondência).
 
 - SMTP: defina SMTP_HOST (+ SMTP_PORT, SMTP_USER, SMTP_PASSWORD, SMTP_FROM, SMTP_STARTTLS, SMTP_SSL).
 - Sem SMTP_HOST (ou com EMAIL_BACKEND=console): modo desenvolvimento, a mensagem é impressa no console
   do servidor. Nunca exibimos o código na tela, para não anular a verificação.
+- APP_BASE_URL é a raiz dos links enviados (o backend também serve as páginas web).
 """
+import html
 import logging
 import os
 import smtplib
@@ -35,7 +37,16 @@ def mask_email(email: str) -> str:
     return f"{local[:1]}***@{domain}"
 
 
-def send_email(to: str, subject: str, body: str) -> str:
+def app_base_url() -> str:
+    return (os.getenv("APP_BASE_URL") or "").rstrip("/")
+
+
+def public_url(path: str) -> str:
+    """Link absoluto para as páginas web servidas pelo próprio backend."""
+    return f"{app_base_url()}{path}"
+
+
+def send_email(to: str, subject: str, body: str, html_body: str | None = None) -> str:
     """Envia a mensagem e devolve o backend usado ("smtp" ou "console")."""
     if backend_name() == "console":
         banner = "=" * 62
@@ -47,6 +58,8 @@ def send_email(to: str, subject: str, body: str) -> str:
     msg["From"] = os.getenv("SMTP_FROM", "Esqueceram AI <no-reply@esqueceram.local>")
     msg["To"], msg["Subject"] = to, subject
     msg.set_content(body)
+    if html_body:
+        msg.add_alternative(html_body, subtype="html")
     host, port = os.environ["SMTP_HOST"], int(os.getenv("SMTP_PORT", "587"))
     try:
         if _flag("SMTP_SSL", False):
@@ -76,3 +89,53 @@ def send_confirmation_code(*, to: str, name: str, code: str, item_title: str, po
         f"Esqueceram AI · achados e perdidos"
     )
     return send_email(to, "Código de confirmação de retirada - Esqueceram AI", body)
+
+
+def _match_card(item: dict, label: str) -> str:
+    lines = [f"<p><strong>{label}:</strong> {html.escape(item['title'])}</p>",
+             f"<p>Local: {html.escape(item['location'])}</p>"]
+    details = [item.get("color"), item.get("brand"), item.get("model")]
+    details = [html.escape(str(d)) for d in details if d]
+    if details:
+        lines.append(f"<p>Detalhes: {' · '.join(details)}</p>")
+    if item.get("description"):
+        lines.append(f"<p style=\"color:#555\">{html.escape(item['description'][:280])}</p>")
+    return "".join(lines)
+
+
+def send_match_notification(*, to: str, name: str, lost: dict, found: dict, score: int, reasons: list[str],
+                            match_id: int) -> str:
+    """Avisa quem perdeu o item que uma correspondência forte foi publicada (US09)."""
+    card = public_url(f"/correspondencias/{match_id}")
+    painel = public_url("/painel/matches")
+    reasons_text = "".join(f"  - {r}\n" for r in reasons) or "  - Características compatíveis\n"
+    body = (
+        f"Olá, {name}.\n\n"
+        f"Boa notícia: encontramos um item com {score}% de similaridade com o seu relato \"{lost['title']}\".\n\n"
+        f"Item encontrado: {found['title']}\n"
+        f"Local: {found['location']}\n\n"
+        f"Por que sugerimos esta correspondência:\n{reasons_text}\n"
+        f"Veja os detalhes e confirme se o item é seu:\n{card}\n\n"
+        f"Se não for o seu item, você também pode descartar a sugestão nesse mesmo link "
+        f"para melhorar as próximas recomendações.\n\n"
+        f"Esqueceram AI · achados e perdidos"
+    )
+    reason_items = "".join(f"<li>{html.escape(r)}</li>" for r in reasons) or "<li>Características compatíveis</li>"
+    html_body = (
+        "<div style=\"font-family:Arial,Helvetica,sans-serif;color:#1f2933;max-width:560px\">"
+        "<h2 style=\"margin:0 0 8px\">Encontramos uma possível correspondência</h2>"
+        f"<p>Olá, {html.escape(name)}. Um item recém-publicado tem <strong>{score}% de similaridade</strong> "
+        f"com o seu relato <em>\"{html.escape(lost['title'])}\"</em>.</p>"
+        f"<div style=\"border:1px solid #e3e8ee;border-radius:10px;padding:16px;margin:16px 0\">"
+        f"{_match_card(found, 'Item encontrado')}</div>"
+        f"<p><strong>Por que sugerimos:</strong></p><ul>{reason_items}</ul>"
+        f"<p><a href=\"{html.escape(card)}\" style=\"display:inline-block;background:#1d4ed8;color:#fff;"
+        f"padding:10px 18px;border-radius:8px;text-decoration:none\">Ver item e confirmar</a></p>"
+        f"<p style=\"color:#555;font-size:13px\">Se não for o seu item, descarte em "
+        f"<a href=\"{html.escape(card)}\">Ver item e confirmar</a>; isso melhora as próximas sugestões.</p>"
+        f"<p style=\"color:#777;font-size:12px\">Painel de correspondências: "
+        f"<a href=\"{html.escape(painel)}\">{html.escape(painel)}</a></p>"
+        "</div>"
+    )
+    return send_email(to, f"Encontramos um item parecido com o seu relato ({score}%) - Esqueceram AI",
+                      body, html_body)

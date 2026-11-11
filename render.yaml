@@ -20,3 +20,17 @@ services:
         sync: false
       - key: SUPABASE_STORAGE_BUCKET
         value: "item-images"
+      - key: MATCH_NOTIFY_THRESHOLD
+        value: "75"
+      - key: APP_BASE_URL
+        value: "https://esqueceram-ai-api.onrender.com"
+      - key: SMTP_HOST
+        sync: false
+      - key: SMTP_PORT
+        value: "587"
+      - key: SMTP_USER
+        sync: false
+      - key: SMTP_PASSWORD
+        sync: false
+      - key: SMTP_FROM
+        sync: false
