@@ -9,6 +9,6 @@
 <div class="grid g2 mt">
  {% for side, label in [(m.lost,'Perdido'),(m.found,'Encontrado')] %}<a href="/itens/{{ side.id }}" class="flex gap">{{ thumb(side.imageSrc, h='72px') }}<div class="grow"><p class="eyebrow">{{ label }}</p><p class="bold sm">{{ side.title }}</p><p class="xs muted">{{ side.location }} · {{ side.occurredAt|date }} · {{ side.ownerName }}</p></div></a>{% endfor %}</div>
 {% if m.reasons %}<ul class="reasons">{% for r in m.reasons %}<li>{{ r }}</li>{% endfor %}</ul>{% endif %}
-{% if can %}<div class="flex gap-s mt">{{ api_button('✓ Confirmar', '/api/matches/%d'|format(m.id), 'PATCH', {'action':'confirm'}, 'primary', success='Correspondência confirmada! Os itens foram reservados.') }}{{ api_button('Descartar', '/api/matches/%d'|format(m.id), 'PATCH', {'action':'reject'}, success='Sugestão descartada.') }}</div>{% endif %}</li>{% endfor %}</ul>
+{% if can %}<div class="flex gap-s mt">{{ api_button('✓ Confirmar', '/api/matches/%d'|format(m.id), 'PATCH', {'action':'confirm'}, 'primary', success='Correspondência confirmada! Os itens foram reservados.') }}{{ api_button('Descartar', '/api/matches/%d'|format(m.id), 'PATCH', {'action':'reject'}, success='Sugestão descartada.') }}<a class="btn btn-ghost btn-sm" href="/correspondencias/{{ m.id }}">Ver página do aviso</a></div>{% endif %}</li>{% endfor %}</ul>
 {% else %}<div class="card mt">{{ empty('Nada por aqui','Não há correspondências com este status.') }}</div>{% endif %}
 {% endblock %}

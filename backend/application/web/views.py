@@ -8,7 +8,7 @@ from application.repositories.engagement import (count_pending_matches, count_un
                                          list_notifications, list_recent_events, mark_all_notifications_read)
 from application.repositories.items import items_at_points
 from application.repositories.points import create_point, list_points, list_recent_point_activity
-from application.services import auth_service, item_service
+from application.services import auth_service, item_service, matching_service
 from application.services.seed_service import DEMO_PASSWORD_HINT, DEMO_PERSONAS, ensure_seeded
 from application.services.stats_service import get_admin_overview, get_dashboard, get_public_home
 from application.validation import Form
@@ -158,6 +158,19 @@ def item_detalhe(item_id):
                            is_owner=bool(viewer and viewer["id"] == detail["item"]["userId"]))
 
 # ------------------------------------------------------------------- painel
+@bp.get("/correspondencias/<int:match_id>")
+def correspondencia(match_id):
+    """Página do link enviado por e-mail: o usuário confirma o match ou descarta o falso positivo."""
+    viewer = get_current_user()
+    match = matching_service.get_match_for_decision(match_id)
+    if not match:
+        return render_not_found()
+    is_owner = bool(viewer and viewer["id"] in (match["lost"]["ownerId"], match["found"]["ownerId"]))
+    is_staff = bool(viewer and viewer["role"] in ("ADMIN", "OPERATOR_POST"))
+    return render_template("match_decisao.html", m=match, can=is_owner or is_staff,
+                           needs_login=viewer is None and match["status"] == "PENDING")
+
+
 @bp.get("/painel")
 @login_required()
 def painel(user):

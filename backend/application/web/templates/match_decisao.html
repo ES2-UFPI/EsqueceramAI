@@ -1,0 +1,41 @@
+{% extends "base.html" %}{% from "_ui.html" import match_badge, score, thumb, api_button, empty %}{% block title %}Correspondência · Esqueceram AI{% endblock %}
+{% block content %}
+{% set notify = m.notifications|selectattr('status', 'equalto', 'SENT')|list %}
+<div class="card pad" style="max-width:760px;margin:0 auto">
+  <div class="flex between center wrap gap">
+    <div><p class="eyebrow">Aviso de correspondência</p><h1 class="display" style="font-size:1.6rem">Um item encontrado parece ser o seu</h1></div>
+    <div style="text-align:right">{{ score(m.score) }}<br>{{ match_badge(m.status) }}</div>
+  </div>
+  <p class="sm muted mt-s">Você recebeu este aviso porque o nosso algoritmo comparou o seu relato com um item recém-cadastrado.
+  {% if notify %}A notificação foi enviada por e-mail em {{ notify[0].sentAt|datetime }}.{% endif %}</p>
+
+  <div class="grid g2 mt">
+    {% for side, label in [(m.lost, 'Seu relato'), (m.found, 'Item encontrado')] %}
+    <a href="/itens/{{ side.id }}" class="card pad" style="box-shadow:none">
+      <div class="flex gap">{{ thumb(side.imageSrc, h='64px') }}<div class="grow"><p class="eyebrow">{{ label }}</p>
+      <p class="bold sm">{{ side.title }}</p><p class="xs muted">{{ side.location }} · {{ side.occurredAt|date }}</p></div></div>
+    </a>
+    {% endfor %}
+  </div>
+
+  {% if m.reasons %}<p class="eyebrow mt">Por que sugerimos esta correspondência</p><ul class="reasons">{% for r in m.reasons %}<li>{{ r }}</li>{% endfor %}</ul>{% endif %}
+
+  {% if m.status == 'PENDING' %}
+    {% if can %}
+    <div class="alert sm mt">Isso é o seu item? Confirme para reservar o encontrado para você, ou descarte se for um falso positivo.</div>
+    <div class="flex gap-s mt">
+      {{ api_button('✓ É o meu item, confirmar', '/api/matches/%d'|format(m.id), 'PATCH', {'action': 'confirm'}, 'primary', success='Correspondência confirmada! O item foi reservado para retirada.', redirect='/painel/matches', small=False) }}
+      {{ api_button('Não é o meu item', '/api/matches/%d'|format(m.id), 'PATCH', {'action': 'reject'}, 'secondary', success='Sugestão descartada. Obrigado por ajudar!', redirect='/painel/matches', small=False) }}
+    </div>
+    {% elif needs_login %}
+    <div class="alert sm mt">Entre na sua conta para confirmar que o item é seu ou descartar a sugestão.</div>
+    <a class="btn btn-primary btn-block mt-s" href="/entrar?next=/correspondencias/{{ m.id }}">🔒 Entrar para responder</a>
+    {% else %}
+    <div class="alert sm mt">Esta correspondência pertence a outro usuário; apenas os responsáveis pelos itens ou a equipe do posto podem respondê-la.</div>
+    {% endif %}
+  {% else %}
+    <div class="card mt" style="box-shadow:none">{{ empty('Correspondência já respondida', 'Já existe uma decisão para esta sugestão. Veja o histórico no painel de correspondências.') }}</div>
+    <a class="btn btn-secondary btn-block mt-s" href="/painel/matches">Abrir painel de correspondências</a>
+  {% endif %}
+</div>
+{% endblock %}
