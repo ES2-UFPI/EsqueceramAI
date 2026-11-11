@@ -8,7 +8,7 @@ from application.repositories.engagement import (count_pending_matches, count_un
                                          list_notifications, list_recent_events, mark_all_notifications_read)
 from application.repositories.items import items_at_points
 from application.repositories.points import create_point, list_points, list_recent_point_activity
-from application.services import auth_service, item_service, matching_service
+from application.services import auth_service, claim_service, item_service, matching_service
 from application.services.seed_service import DEMO_PASSWORD_HINT, DEMO_PERSONAS, ensure_seeded
 from application.services.stats_service import get_admin_overview, get_dashboard, get_public_home
 from application.validation import Form
@@ -186,8 +186,13 @@ def painel_itens(user):
     return render_template("painel_itens.html", result=result, f=request.args.to_dict(), **shell_ctx(user), active="/painel/itens")
 
 def _item_form_context(user, values, error=None, errors=None, item=None):
+    secret = claim_service.get_secret(item["id"]) if item else None
+    values = dict(values)
+    if secret:  # a resposta nunca volta ao formulário; só o detalhe e a pergunta
+        values.setdefault("secretDetail", secret.detail)
+        values.setdefault("secretQuestion", secret.question)
     return {"values": values, "error": error, "errors": errors or {}, "item": item, "points": list_points(True),
-            **shell_ctx(user), "active": "/painel/itens"}
+            "has_secret": secret is not None, **shell_ctx(user), "active": "/painel/itens"}
 
 @bp.route("/painel/itens/novo", methods=["GET", "POST"])
 @login_required()

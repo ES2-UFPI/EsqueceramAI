@@ -4,7 +4,7 @@
 <p class="sm muted">Quanto mais detalhes, melhor a qualidade das sugestões automáticas.</p>
 {% if error %}<div class="alert error mt">{{ error }}</div>{% endif %}
 <form method="post" enctype="multipart/form-data" class="card pad mt stack" style="max-width:820px">
-  <div><span class="eyebrow">Tipo de registro</span><div class="flex gap mt-s">{% for t in D.RECORD_TYPES %}<label class="chip"><input type="radio" name="type" value="{{ t }}" {{ 'checked' if values.get('type') == t }}> {{ 'Perdi um item' if t == 'LOST' else 'Encontrei um item' }}</label>{% endfor %}</div>{{ err(errors,'type') }}</div>
+  <div><span class="eyebrow">Tipo de registro</span><div class="flex gap mt-s">{% for t in D.RECORD_TYPES %}<label class="chip"><input type="radio" name="type" value="{{ t }}" data-record-type {{ 'checked' if values.get('type') == t }}> {{ 'Perdi um item' if t == 'LOST' else 'Encontrei um item' }}</label>{% endfor %}</div>{{ err(errors,'type') }}</div>
   <label class="field"><span>Categoria</span><select class="select" name="category" data-category-select>{% for c in D.CATEGORIES %}<option value="{{ c }}" {{ 'selected' if values.get('category') == c }}>{{ D.CATEGORY_LABEL[c] }} — {{ D.CATEGORY_FIELDS[c].hint }}</option>{% endfor %}</select>{{ err(errors,'category') }}</label>
   <label class="field"><span>Título</span><input class="input" name="title" value="{{ values.get('title','') }}" placeholder="Ex.: Fone Bluetooth JBL preto">{{ err(errors,'title') }}</label>
   <label class="field"><span>Descrição</span><textarea class="textarea" name="description" placeholder="Detalhe características, estado, onde e como foi visto…">{{ values.get('description','') }}</textarea>{{ err(errors,'description') }}</label>
@@ -26,6 +26,16 @@
   </div>
   <div class="flex gap center wrap" data-geo-box><button type="button" class="btn btn-ghost btn-sm" data-geo-locate data-geo-lat-name="latitude" data-geo-lng-name="longitude">📍 Usar minha localização atual</button><span class="xs muted" data-geo-status>Com as coordenadas, o registro aparece nas buscas por proximidade.</span></div>
   <label class="field"><span>Foto (JPG, PNG ou WebP, até 3 MB){% if item and item.imageSrc %} — enviar outra substitui a atual{% endif %}</span><input class="input" type="file" name="image" accept="image/jpeg,image/png,image/webp">{{ err(errors,'image') }}</label>
+  <fieldset class="card pad stack" style="box-shadow:none" data-secret-box {{ 'hidden' if values.get('type') != 'FOUND' }}>
+    <legend class="eyebrow">🔐 Validação de posse (opcional)</legend>
+    <p class="xs muted">Guarde um detalhe que só o verdadeiro dono conhece e crie uma pergunta-chave. O detalhe nunca é exibido: só serve para você conferir a resposta de quem reivindicar o item.</p>
+    <label class="field"><span>Detalhe confidencial (nunca exibido)</span><textarea class="textarea" name="secretDetail" placeholder="Ex.: arranhão em forma de X na tampa, adesivo na capa interna…">{{ values.get('secretDetail','') }}</textarea>{{ err(errors,'secretDetail') }}</label>
+    <div class="grid g2">
+      <label class="field"><span>Pergunta-chave</span><input class="input" name="secretQuestion" value="{{ values.get('secretQuestion','') }}" placeholder="Ex.: Qual é a cor do adesivo dentro da capa?">{{ err(errors,'secretQuestion') }}</label>
+      <label class="field"><span>Resposta esperada{% if has_secret %} — preencha para manter a atual{% endif %}</span><input class="input" name="secretAnswer" value="" autocomplete="off" placeholder="Ex.: do Sport">{{ err(errors,'secretAnswer') }}</label>
+    </div>
+    {% if has_secret %}<label class="chip"><input type="checkbox" name="secretClear" value="1"> Remover a pergunta-chave deste registro</label>{% endif %}
+  </fieldset>
   <div class="flex gap"><button class="btn btn-primary btn-lg">{{ 'Publicar registro' if mode == 'new' else 'Salvar alterações' }}</button><a class="btn btn-ghost btn-lg" href="{{ '/painel/itens' if mode == 'new' else '/itens/%d'|format(item.id) }}">Cancelar</a></div>
 </form>
 {% endblock %}

@@ -223,7 +223,9 @@ def _seed():
             continue
         row = create_item({
             "user_id": owner_id, "type": e["type"], "category": e["category"], "title": e["title"],
-            "description": e["description"], "color": e.get("color"), "brand": e.get("brand"), "model": e.get("model"),
+            # prefixo usado por `repositories.items.is_seeded_item` (bloqueia pergunta secreta)
+            "description": f"Registro demonstrativo: {e['description']}",
+            "color": e.get("color"), "brand": e.get("brand"), "model": e.get("model"),
             "attributes": e.get("attributes", {}), "location": e["location"], "occurred_at": e["occurredAt"],
             "point_id": e.get("pointId"), "latitude": e.get("latitude"), "longitude": e.get("longitude"),
             "image_url": e.get("imageUrl")})

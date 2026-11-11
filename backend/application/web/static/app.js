@@ -74,4 +74,16 @@
     });
     cat.addEventListener("change", sync); sync();
   }
+  // US04: validação de posse só existe para itens encontrados
+  const secretBox = document.querySelector("[data-secret-box]");
+  if (secretBox) {
+    const syncSecret = () => {
+      const found = document.querySelector("[data-record-type][value='FOUND']");
+      const on = !found || found.checked;
+      secretBox.hidden = !on;
+      secretBox.querySelectorAll("input, textarea").forEach(i => i.disabled = !on);
+    };
+    document.querySelectorAll("[data-record-type]").forEach(r => r.addEventListener("change", syncSecret));
+    syncSecret();
+  }
 })();

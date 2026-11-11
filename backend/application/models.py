@@ -171,6 +171,21 @@ class MatchNotification(Base):
     sent_at: Mapped[datetime | None] = mapped_column(UTCDateTime, nullable=True)
 
 
+class ItemSecret(Base):
+    """US04 (#27): detalhe confidencial e pergunta-chave usados para validar a posse.
+
+    Tabela separada de propósito: nenhuma listagem ou serialização de item consulta estes
+    campos, então o detalhe nunca vaza por descuido. A resposta é guardada apenas como HMAC.
+    """
+    __tablename__ = "item_secrets"
+    item_id: Mapped[int] = mapped_column(ForeignKey("items.id", ondelete="CASCADE"), primary_key=True)
+    detail: Mapped[str] = mapped_column(Text)
+    question: Mapped[str] = mapped_column(Text)
+    answer_hash: Mapped[str] = mapped_column(String(64))
+    created_at: Mapped[datetime] = mapped_column(UTCDateTime, default=utcnow)
+    updated_at: Mapped[datetime] = mapped_column(UTCDateTime, default=utcnow)
+
+
 class ItemEvent(Base):
     __tablename__ = "item_events"
     __table_args__ = (Index("item_events_item_idx", "item_id"),)
