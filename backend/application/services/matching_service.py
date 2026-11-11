@@ -1,16 +1,24 @@
 """Correspondência explicável entre perdidos e encontrados (src/server/services/matching-service.ts)."""
+import logging
 import math
+import os
 import re
 import unicodedata
 
 from application.domain import CATEGORY_LABEL
+from application.delivery.email_service import EmailError, send_match_notification
 from application.errors import ApiError, forbidden, not_found
-from application.repositories.engagement import (add_item_event, create_notifications, find_match_by_id,
-                                         find_match_pairs_for_item, list_matches, update_match_status, upsert_match)
+from application.repositories.engagement import (add_item_event, claim_match_notification, create_notifications,
+                                         find_match_by_id, find_match_pairs_for_item, finish_match_notification,
+                                         list_matches, match_notifications, update_match_status, upsert_match)
 from application.repositories.items import find_item_by_id, list_open_by_type, set_item_status
-from application.repositories.users import add_user_score
+from application.repositories.users import add_user_score, find_user_by_id
+
+log = logging.getLogger("esqueceram.matching")
 
 MATCH_THRESHOLD = 55
+# US09: só dispara a notificação externa quando a similaridade é alta, para não incomodar o usuário.
+NOTIFICATION_THRESHOLD = int(os.getenv("MATCH_NOTIFY_THRESHOLD", "75"))
 
 STOPWORDS = {"de", "da", "do", "das", "dos", "com", "para", "por", "que", "uma", "um", "na", "no", "nas",
              "nos", "em", "e", "o", "a", "os", "as", "meu", "minha", "encontrado", "encontrada", "perdido",
@@ -134,7 +142,7 @@ def generate_matches_for_item(item_id: int) -> int:
         result = score_pair(lost, found)
         if result["score"] < MATCH_THRESHOLD:
             continue
-        upsert_match(lost_item_id=lost["id"], found_item_id=found["id"], score=result["score"], reasons=result["reasons"])
+        match = upsert_match(lost_item_id=lost["id"], found_item_id=found["id"], score=result["score"], reasons=result["reasons"])
         if (lost["id"], found["id"]) not in existing:
             created += 1
             create_notifications([
@@ -145,7 +153,32 @@ def generate_matches_for_item(item_id: int) -> int:
                  "body": f"O item \"{found['title']}\" tem {result['score']}% de similaridade com \"{lost['title']}\".",
                  "link": "/painel/matches"},
             ])
+        if result["score"] >= NOTIFICATION_THRESHOLD:
+            notify_match(match.id, lost, found, result)
     return created
+
+
+def notify_match(match_id: int, lost: dict, found: dict, result: dict) -> int:
+    """Avisa por e-mail quem perdeu o item quando a similaridade é alta (>= NOTIFICATION_THRESHOLD).
+
+    A reserva é feita par a par no ``match_notifications`` (chave única por match/destinatário):
+    se a geração rodar duas vezes, o segundo disparo sai sem enviar. Uma falha de SMTP libera a
+    reserva para que um próximo registro possa tentar de novo.
+    """
+    recipient = find_user_by_id(lost["userId"])
+    if not recipient or not recipient.email:
+        return 0
+    if not claim_match_notification(match_id=match_id, user_id=recipient.id, channel="EMAIL"):
+        return 0  # já notificado (idempotência) ou outro processo reservou o envio
+    try:
+        backend = send_match_notification(to=recipient.email, name=recipient.name, lost=lost, found=found,
+                                          score=result["score"], reasons=result["reasons"], match_id=match_id)
+    except EmailError as exc:
+        finish_match_notification(match_id=match_id, user_id=recipient.id, channel="EMAIL", status="FAILED", error=str(exc)[:300])
+        log.warning("Falha ao notificar correspondência %s: %s", match_id, exc)
+        return 0
+    finish_match_notification(match_id=match_id, user_id=recipient.id, channel="EMAIL", status="SENT", error=None)
+    return 1
 
 
 def suggestions_for_user(user_id: int, limit=6):
@@ -154,6 +187,14 @@ def suggestions_for_user(user_id: int, limit=6):
 
 def global_pending_matches(limit=20):
     return list_matches(status="PENDING", limit=limit)
+
+
+def get_match_for_decision(match_id: int) -> dict | None:
+    """Detalhe de uma correspondência para a página do link enviado por e-mail."""
+    match = find_match_by_id(match_id)
+    if not match:
+        return None
+    return {**match, "notifications": match_notifications(match_id)}
 
 
 def decide_match(user: dict, match_id: int, action: str, note: str | None = None) -> dict:

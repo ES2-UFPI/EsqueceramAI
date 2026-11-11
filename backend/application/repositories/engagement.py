@@ -1,8 +1,9 @@
 """Matches, notificações e histórico de eventos (src/server/repositories/engagement.ts)."""
 from sqlalchemy import and_, exists, func, or_, select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import aliased
 
-from application.models import Item, ItemEvent, ItemImage, Match, Notification, User, db, utcnow
+from application.models import Item, ItemEvent, ItemImage, Match, MatchNotification, Notification, User, db, utcnow
 
 LI, FI = aliased(Item, name="lost_item"), aliased(Item, name="found_item")
 LO, FO = aliased(User, name="lost_owner"), aliased(User, name="found_owner")
@@ -87,6 +88,48 @@ def find_match_by_id(match_id: int):
 
 def find_match_pairs_for_item(item_id: int) -> list[Match]:
     return list(db.scalars(select(Match).where(or_(Match.lost_item_id == item_id, Match.found_item_id == item_id))))
+
+
+# ------------------------------------------------- avisos externos do match (US09)
+def claim_match_notification(*, match_id: int, user_id: int, channel: str = "EMAIL") -> bool:
+    """Reserva o envio só uma vez; True quando este chamador deve notificar.
+
+    Uma linha anterior FAILED (falha de SMTP) é reaberta para uma nova tentativa.
+    """
+    existing = db.execute(select(MatchNotification).where(
+        MatchNotification.match_id == match_id, MatchNotification.user_id == user_id,
+        MatchNotification.channel == channel)).scalar_one_or_none()
+    if existing:
+        if existing.status != "FAILED":
+            return False
+        existing.status, existing.error = "PENDING", None
+        db.commit()
+        return True
+    db.add(MatchNotification(match_id=match_id, user_id=user_id, channel=channel, status="PENDING"))
+    try:
+        db.commit()
+    except IntegrityError:  # outro processo reservou entre a leitura e o commit
+        db.rollback()
+        return False
+    return True
+
+
+def finish_match_notification(*, match_id: int, user_id: int, channel: str, status: str, error: str | None):
+    row = db.execute(select(MatchNotification).where(
+        MatchNotification.match_id == match_id, MatchNotification.user_id == user_id,
+        MatchNotification.channel == channel)).scalar_one_or_none()
+    if row:
+        row.status, row.error = status, error
+        row.sent_at = utcnow() if status == "SENT" else None
+        db.commit()
+    return row
+
+
+def match_notifications(match_id: int) -> list[dict]:
+    rows = db.scalars(select(MatchNotification).where(MatchNotification.match_id == match_id)
+                      .order_by(MatchNotification.created_at))
+    return [{"id": n.id, "userId": n.user_id, "channel": n.channel, "status": n.status,
+             "error": n.error, "createdAt": n.created_at, "sentAt": n.sent_at} for n in rows]
 
 
 # ------------------------------------------------------------- notificações
