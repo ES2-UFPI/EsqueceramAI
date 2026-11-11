@@ -120,3 +120,37 @@ def remove_secret_for_item(item_id: int):
     if row:
         db.delete(row)
         db.commit()
+
+
+# ------------------------------------------------------------- #29 reivindicação
+def _require_claimable_item(item: dict) -> None:
+    if item["type"] != "FOUND":
+        raise ApiError("Apenas itens encontrados podem ser reivindicados.", 422)
+    if item["status"] not in ("OPEN", "RESERVED"):
+        raise ApiError("Este item não está disponível para reivindicação.", 409)
+
+
+def challenge(item_id: int, user: dict) -> dict | None:
+    """Mostra a pergunta-chave a quem vai reivindicar — o detalhe nunca sai daqui."""
+    item = find_item_by_id(item_id)
+    if not item:
+        raise not_found("Registro")
+    _require_claimable_item(item)
+    secret = get_secret(item_id)
+    if not secret:
+        return None
+    if user["id"] == item["userId"]:
+        raise ApiError("Você registrou este item; não é possível reivindicá-lo.", 409)
+    return {"itemId": item_id, "question": secret.question}
+
+
+def question_for(user: dict | None, item: dict) -> str | None:
+    """Pergunta exibida na página do item para quem pode reivindicá-lo."""
+    if not user or user["id"] == item["userId"] or not _is_claimable(item):
+        return None
+    secret = get_secret(item["id"])
+    return secret.question if secret else None
+
+
+def _is_claimable(item: dict | None) -> bool:
+    return bool(item and item["type"] == "FOUND" and item["status"] in ("OPEN", "RESERVED"))

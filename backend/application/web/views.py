@@ -155,7 +155,8 @@ def item_detalhe(item_id):
     confirmed = any(m["status"] == "CONFIRMED" for m in detail["matches"])
     return render_template("item_detalhe.html", d=detail, item=detail["item"], pending=pending, confirmed=confirmed,
                            is_staff=bool(viewer and viewer["role"] in ("ADMIN", "OPERATOR_POST")),
-                           is_owner=bool(viewer and viewer["id"] == detail["item"]["userId"]))
+                           is_owner=bool(viewer and viewer["id"] == detail["item"]["userId"]),
+                           challenge_question=claim_service.question_for(viewer, detail["item"]))
 
 # ------------------------------------------------------------------- painel
 @bp.get("/correspondencias/<int:match_id>")

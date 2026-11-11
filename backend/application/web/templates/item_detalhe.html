@@ -40,7 +40,17 @@
   {% if is_owner and d.hasSecret %}<p class="alert xs mt-s">🔐 O detalhe confidencial e a resposta esperada nunca aparecem nesta página. Confira a resposta quando alguém reivindicar o item; para alterar a pergunta, use “Editar registro”.</p>{% endif %}
   <div class="stack-s mt">
     {% if not user %}<a class="btn btn-primary btn-block" href="/entrar?next=/itens/{{ item.id }}">🔒 Entrar para ver contato</a>{% endif %}
-    {% if user and not is_owner and item.status != 'RETURNED' %}<p class="alert xs">ℹ️ Encontrou este item? Confirme a correspondência e combine a entrega com {{ item.ownerName|firstname }}.</p>{% endif %}
+    {% if challenge_question %}
+      <section class="card pad stack" style="box-shadow:none">
+        <p class="eyebrow">🔐 Validar posse</p>
+        <p class="xs muted">Acredita que este item é seu? Responda à pergunta-chave feita por quem o encontrou.</p>
+        <p class="bold sm">{{ challenge_question }}</p>
+        <form method="post" action="/itens/{{ item.id }}/reivindicar" class="stack-s">
+          <input class="input" name="answer" autocomplete="off" required placeholder="Sua resposta">
+          <button class="btn btn-accent btn-block">Validar resposta</button>
+        </form>
+      </section>
+    {% elif user and not is_owner and item.status != 'RETURNED' %}<p class="alert xs">ℹ️ Encontrou este item? Confirme a correspondência e combine a entrega com {{ item.ownerName|firstname }}.</p>{% endif %}
     {% if user and user.role == 'OPERATOR_POST' and item.type == 'FOUND' and item.pointName and item.status in ('OPEN','RESERVED') %}<a class="btn btn-accent btn-block" href="/painel/entregas/nova?item={{ item.id }}">📝 Registrar entrega (CPF e documento)</a>{% endif %}
     {% if d.canManage %}
       <a class="btn btn-secondary btn-block" href="/painel/itens/{{ item.id }}/editar">✏️ Editar registro</a>
