@@ -174,6 +174,39 @@ def test_edit_can_add_secret_later_and_remove_it(creator):
         db.commit()
 
 
+def test_detail_page_shows_question_to_claimant_and_never_the_detail(created_item, claimant):
+    page = claimant.get(f"/itens/{created_item}").get_data(as_text=True)
+    assert SECRET["secretQuestion"] in page
+    assert SECRET["secretDetail"] not in page
+    assert SECRET["secretAnswer"] not in page
+
+    # quem não está logado não vê nem a pergunta
+    anonymous = claimant.application.test_client().get(f"/itens/{created_item}").get_data(as_text=True)
+    assert SECRET["secretQuestion"] not in anonymous
+
+
+def test_form_post_flow_validates_and_flashes_result(created_item, claimant):
+    response = claimant.post(f"/itens/{created_item}/reivindicar", data={"answer": SECRET["secretAnswer"]},
+                             follow_redirects=True)
+    assert response.status_code == 200
+    page = response.get_data(as_text=True)
+    assert "Posse validada" in page
+    assert SECRET["secretDetail"] not in page
+
+
+def test_form_post_shows_remaining_attempts(created_item, claimant):
+    response = claimant.post(f"/itens/{created_item}/reivindicar", data={"answer": "errado"},
+                             follow_redirects=True)
+    page = response.get_data(as_text=True)
+    assert "Restam 2 tentativa" in page
+
+
+def test_form_only_offers_secret_box_for_found_items(creator):
+    form = creator.get("/painel/itens/novo").get_data(as_text=True)
+    assert "secretQuestion" in form
+    assert "data-secret-box" in form
+
+
 def test_normalize_answer_ignores_case_accents_and_punctuation():
     assert claim_service.normalize_answer("  Árvore-D'Água! ") == "arvore d agua"
     assert claim_service.normalize_answer("SPORT club") == claim_service.normalize_answer("sport  CLUB")

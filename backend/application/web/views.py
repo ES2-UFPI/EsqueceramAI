@@ -8,7 +8,7 @@ from application.repositories.engagement import (count_pending_matches, count_un
                                          list_notifications, list_recent_events, mark_all_notifications_read)
 from application.repositories.items import items_at_points
 from application.repositories.points import create_point, list_points, list_recent_point_activity
-from application.services import auth_service, item_service, matching_service
+from application.services import auth_service, claim_service, item_service, matching_service
 from application.services.seed_service import DEMO_PASSWORD_HINT, DEMO_PERSONAS, ensure_seeded
 from application.services.stats_service import get_admin_overview, get_dashboard, get_public_home
 from application.validation import Form
@@ -155,9 +155,35 @@ def item_detalhe(item_id):
     confirmed = any(m["status"] == "CONFIRMED" for m in detail["matches"])
     return render_template("item_detalhe.html", d=detail, item=detail["item"], pending=pending, confirmed=confirmed,
                            is_staff=bool(viewer and viewer["role"] in ("ADMIN", "OPERATOR_POST")),
-                           is_owner=bool(viewer and viewer["id"] == detail["item"]["userId"]))
+                           is_owner=bool(viewer and viewer["id"] == detail["item"]["userId"]),
+                           challenge_question=_detail_challenge(viewer, detail["item"], detail),
+                           challenge_error=None)
 
 # ------------------------------------------------------------------- painel
+@bp.post("/itens/<int:item_id>/reivindicar")
+@login_required()
+def item_reivindicar(user, item_id):
+    """US04: valida a resposta da pergunta-chave e volta ao detalhe com o resultado."""
+    message, tone = None, "error"
+    try:
+        result = claim_service.answer(item_id, user, request.form.get("answer", ""))
+        if result["verified"]:
+            message, tone = "Posse validada! Avisamos quem registrou o item para combinar a retirada.", "ok"
+    except ApiError as exc:
+        message = exc.message
+    if message:
+        flash(message, tone)
+    return redirect(f"/itens/{item_id}")
+
+
+def _detail_challenge(user, item, detail):
+    """A pergunta exibida a quem vai reivindicar (nunca o detalhe oculto)."""
+    if not user or not detail["claim"].get("available"):
+        return None
+    secret = claim_service.get_secret(item["id"])
+    return secret.question if secret else None
+
+
 @bp.get("/correspondencias/<int:match_id>")
 def correspondencia(match_id):
     """Página do link enviado por e-mail: o usuário confirma o match ou descarta o falso positivo."""
@@ -186,8 +212,13 @@ def painel_itens(user):
     return render_template("painel_itens.html", result=result, f=request.args.to_dict(), **shell_ctx(user), active="/painel/itens")
 
 def _item_form_context(user, values, error=None, errors=None, item=None):
+    secret = claim_service.get_secret(item.id) if item else None
+    values = dict(values)
+    if secret:  # a resposta nunca volta ao formulário; só o detalhe e a pergunta
+        values.setdefault("secretDetail", secret.detail)
+        values.setdefault("secretQuestion", secret.question)
     return {"values": values, "error": error, "errors": errors or {}, "item": item, "points": list_points(True),
-            **shell_ctx(user), "active": "/painel/itens"}
+            "has_secret": secret is not None, **shell_ctx(user), "active": "/painel/itens"}
 
 @bp.route("/painel/itens/novo", methods=["GET", "POST"])
 @login_required()
