@@ -176,7 +176,13 @@ def test_edit_can_add_secret_later_and_remove_it(creator):
         assert edited.status_code == 200
         assert claim_service.get_secret(item_id) is not None
 
-        cleaned = creator.patch(f"/api/items/{item_id}", data=_multipart(item_form()),
+        # atualizar o item sem os campos da pergunta não pode apagar o detalhe oculto
+        kept = creator.patch(f"/api/items/{item_id}", data=_multipart(item_form(title="Mochila preta com adesivo")),
+                             content_type="multipart/form-data")
+        assert kept.status_code == 200
+        assert claim_service.get_secret(item_id) is not None
+
+        cleaned = creator.patch(f"/api/items/{item_id}", data=_multipart({**item_form(), "secretClear": "1"}),
                                 content_type="multipart/form-data")
         assert cleaned.status_code == 200
         assert claim_service.get_secret(item_id) is None

@@ -109,7 +109,9 @@ def save_secret(user: dict, item_id: int, form: dict) -> ItemSecret | None:
     if block is not None and item["type"] != "FOUND":
         raise ApiError("Apenas itens encontrados podem ter detalhe oculto.", 422)
     if block is None:
-        if current:  # apagou o bloco: deixa de haver validação por pergunta
+        # Só remove quando pedido de forma explícita: atualizações parciais do item
+        # (por exemplo, mudar o status) não podem apagar a pergunta-chave sem aviso.
+        if current and str(form.get("secretClear") or "").lower() in ("1", "true", "on", "sim"):
             db.delete(current)
             db.commit()
             add_item_event(item_id=item_id, actor_id=user["id"], status=item["status"],

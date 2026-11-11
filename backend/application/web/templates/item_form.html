@@ -34,6 +34,7 @@
       <label class="field"><span>Pergunta-chave</span><input class="input" name="secretQuestion" value="{{ values.get('secretQuestion','') }}" placeholder="Ex.: Qual é a cor do adesivo dentro da capa?">{{ err(errors,'secretQuestion') }}</label>
       <label class="field"><span>Resposta esperada{% if has_secret %} — preencha para manter a atual{% endif %}</span><input class="input" name="secretAnswer" value="" autocomplete="off" placeholder="Ex.: do Sport">{{ err(errors,'secretAnswer') }}</label>
     </div>
+    {% if has_secret %}<label class="chip"><input type="checkbox" name="secretClear" value="1"> Remover a pergunta-chave deste registro</label>{% endif %}
   </fieldset>
   <div class="flex gap"><button class="btn btn-primary btn-lg">{{ 'Publicar registro' if mode == 'new' else 'Salvar alterações' }}</button><a class="btn btn-ghost btn-lg" href="{{ '/painel/itens' if mode == 'new' else '/itens/%d'|format(item.id) }}">Cancelar</a></div>
 </form>
