@@ -168,7 +168,8 @@ def get_item_detail(item_id: int, viewer: dict | None):
     if item["status"] == "ARCHIVED" and not (staff or (viewer and viewer["id"] == item["userId"])):
         return None
     return {"item": item, "matches": list_matches_for_item(item_id), "timeline": list_item_events(item_id),
-            "canManage": bool(viewer and can_manage_item(viewer, item))}
+            "canManage": bool(viewer and can_manage_item(viewer, item)),
+            "hasSecret": claim_service.get_secret(item_id) is not None}
 
 
 def search_items(filters: dict):
