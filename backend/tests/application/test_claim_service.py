@@ -213,6 +213,16 @@ def test_form_post_shows_remaining_attempts(created_item, claimant):
     assert "Restam 2 tentativa" in page
 
 
+def test_edit_form_prefills_question_but_never_the_answer(created_item, creator):
+    page = creator.get(f"/painel/itens/{created_item}/editar")
+    assert page.status_code == 200
+    html = page.get_data(as_text=True)
+    assert "Arranhão em forma de" in html  # Jinja escapa as aspas simples do texto
+    assert SECRET["secretQuestion"] in html
+    assert SECRET["secretAnswer"] not in html
+    assert "preencha para manter a atual" in html
+
+
 def test_form_only_offers_secret_box_for_found_items(creator):
     form = creator.get("/painel/itens/novo").get_data(as_text=True)
     assert "secretQuestion" in form

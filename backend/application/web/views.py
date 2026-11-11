@@ -212,7 +212,7 @@ def painel_itens(user):
     return render_template("painel_itens.html", result=result, f=request.args.to_dict(), **shell_ctx(user), active="/painel/itens")
 
 def _item_form_context(user, values, error=None, errors=None, item=None):
-    secret = claim_service.get_secret(item.id) if item else None
+    secret = claim_service.get_secret(item["id"]) if item else None
     values = dict(values)
     if secret:  # a resposta nunca volta ao formulário; só o detalhe e a pergunta
         values.setdefault("secretDetail", secret.detail)
