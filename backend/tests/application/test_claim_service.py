@@ -120,6 +120,18 @@ def test_wrong_answer_is_rejected_with_remaining_attempts(created_item, claimant
     assert response.json["details"]["answer"] == ["Resposta incorreta. Restam 2 tentativa(s)."]
 
 
+# --------------------------------- #30 só valida a posse depois da resposta certa
+def test_confirmation_email_only_after_correct_answer(created_item, claimant, _capture_emails):
+    claimant.post(f"/api/items/{created_item}/claim", json={"answer": "chute"})
+    assert not [m for m in _capture_emails if "Posse validada" in m["subject"]]
+
+    claimant.post(f"/api/items/{created_item}/claim", json={"answer": SECRET["secretAnswer"]})
+    sent = [m for m in _capture_emails if "Posse validada" in m["subject"]]
+    assert len(sent) == 1
+    assert sent[0]["to"] == "carlos@ufpi.edu.br"
+    assert "Ana Beatriz Lima" in sent[0]["body"]
+
+
 # ------------------------------------------------- #31 bloqueio após três erros
 def test_three_wrong_answers_block_further_attempts(created_item, claimant):
     for expected_left in (2, 1):

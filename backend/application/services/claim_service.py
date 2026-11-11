@@ -12,16 +12,23 @@ Como funciona:
 """
 import hashlib
 import hmac
+import logging
 import os
 import unicodedata
 
 from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 
+from application.delivery.email_service import EmailError
+from application.delivery.mailer import send_ownership_confirmed
+from application.domain import item_code
 from application.errors import ApiError, forbidden, not_found
-from application.models import CLAIM_BLOCKED, CLAIM_PENDING, CLAIM_VERIFIED, Item, ItemClaim, ItemSecret, db, utcnow
+from application.models import CLAIM_BLOCKED, CLAIM_PENDING, CLAIM_VERIFIED, ItemClaim, ItemSecret, db, utcnow
 from application.repositories.engagement import add_item_event, create_notifications
 from application.repositories.items import find_item_by_id
+from application.repositories.users import find_user_by_id
+
+log = logging.getLogger("esqueceram.claim")
 
 MAX_FAILED_ATTEMPTS = 3
 
@@ -227,6 +234,7 @@ def answer(item_id: int, user: dict, response: str) -> dict:
 
 
 def _notify_owner(item: dict, claimant: dict):
+    """Só depois de acertar a pergunta o dono é avisado (item de notificação + e-mail)."""
     create_notifications([{
         "userId": item["userId"], "type": "RECOVERY",
         "title": "Alguém validou a posse do seu achado",
@@ -234,6 +242,14 @@ def _notify_owner(item: dict, claimant: dict):
                 "e é o provável dono. Combine a retirada no ponto de coleta.",
         "link": f"/itens/{item['id']}",
     }])
+    owner = find_user_by_id(item["userId"])
+    if not owner or not owner.email:
+        return
+    try:
+        send_ownership_confirmed(to=owner.email, name=owner.name, claimant=claimant["name"],
+                                 title=item["title"], code=item_code(item["id"]))
+    except EmailError as exc:
+        log.warning("Falha ao enviar confirmação de posse do item %s: %s", item["id"], exc)
 
 
 def status_for(user: dict | None, item: dict) -> dict:
