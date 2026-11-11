@@ -9,6 +9,7 @@ from application.repositories.engagement import (add_item_event, create_notifica
 from application.repositories.items import (create_item, delete_item, find_item_by_id, list_items, set_item_status, update_item)
 from application.repositories.points import find_point_by_id
 from application.repositories.users import add_user_score
+from application.services import claim_service
 from application.services.matching_service import generate_matches_for_item
 from application.services.storage_service import store_item_image
 from application.validation import Form, parse_iso
@@ -66,6 +67,7 @@ def create_item_from_form(user: dict, form, image=None) -> dict:
     data = parse_item_form(form)
     _assert_point(data["pointId"])
     created = create_item(_to_values(data, user["id"]))
+    claim_service.save_secret(user, created.id, form)
     if image is not None and getattr(image, "filename", ""):
         store_item_image(created.id, image)
     add_item_event(item_id=created.id, actor_id=user["id"], status="OPEN",
@@ -86,6 +88,7 @@ def update_item_from_form(user: dict, item_id: int, form, image=None):
     _assert_point(data["pointId"])
     values = _to_values(data, current["userId"])
     updated = update_item(item_id, values)
+    claim_service.save_secret(user, item_id, form)
     if not updated:
         raise ApiError("Não foi possível atualizar o registro.", 500)
     if image is not None and getattr(image, "filename", ""):
@@ -163,7 +166,9 @@ def get_item_detail(item_id: int, viewer: dict | None):
     if item["status"] == "ARCHIVED" and not (staff or (viewer and viewer["id"] == item["userId"])):
         return None
     return {"item": item, "matches": list_matches_for_item(item_id), "timeline": list_item_events(item_id),
-            "canManage": bool(viewer and can_manage_item(viewer, item))}
+            "canManage": bool(viewer and can_manage_item(viewer, item)),
+            "claim": claim_service.status_for(viewer, item),
+            "hasSecret": claim_service.get_secret(item_id) is not None}
 
 
 def search_items(filters: dict):
