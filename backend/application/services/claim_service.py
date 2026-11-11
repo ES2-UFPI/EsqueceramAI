@@ -21,7 +21,7 @@ from application.delivery.email_service import EmailError
 from application.delivery.mailer import send_ownership_confirmed
 from application.domain import item_code
 from application.errors import ApiError, forbidden, not_found
-from application.models import CLAIM_VERIFIED, ItemClaim, ItemSecret, db, utcnow
+from application.models import CLAIM_BLOCKED, CLAIM_PENDING, CLAIM_VERIFIED, ItemClaim, ItemSecret, db, utcnow
 from application.repositories.engagement import add_item_event, create_notifications
 from application.repositories.items import find_item_by_id, is_seeded_item
 from application.repositories.users import find_user_by_id
@@ -166,8 +166,12 @@ def _is_claimable(item: dict | None) -> bool:
     return bool(item and item["type"] == "FOUND" and item["status"] in ("OPEN", "RESERVED"))
 
 
-# ------------------------------------------------------ #30 validação da resposta
+# ------------------------------------------- #30 validação / #31 limite de tentativas
 MAX_FAILED_ATTEMPTS = 3
+
+
+def _attempts_left(attempts: int) -> int:
+    return max(MAX_FAILED_ATTEMPTS - attempts, 0)
 
 
 def _check_answer(item_id: int, answer: str, stored_hash: str | None) -> bool:
@@ -206,8 +210,11 @@ def answer(item_id: int, user: dict, response: str) -> dict:
         raise ApiError("Você registrou este item; não é possível reivindicá-lo.", 409)
 
     claim = _resolve_claim(item_id, user)
+    if claim.status == CLAIM_BLOCKED:
+        raise ApiError("Você atingiu o limite de tentativas para este item.", 429,
+                       {"answer": ["Limite de tentativas atingido."]})
     if claim.status == CLAIM_VERIFIED:
-        return {"verified": True}
+        return {"verified": True, "attemptsLeft": _attempts_left(claim.attempts), "blocked": False}
     if not normalize_answer(response):
         raise ApiError("Informe a resposta da pergunta.", 422, {"answer": ["Campo obrigatório."]})
 
@@ -217,14 +224,25 @@ def answer(item_id: int, user: dict, response: str) -> dict:
         add_item_event(item_id=item_id, actor_id=user["id"], status=item["status"],
                        note="Posse validada pela pergunta-chave.")
         _notify_owner(item, user)
-        return {"verified": True}
+        return {"verified": True, "attemptsLeft": _attempts_left(claim.attempts), "blocked": False}
 
+    # #31: o contador nunca é reiniciado, nem por acertos — a validação já aconteceu,
+    # então não há como "perder" tentativas adivinhando de novo depois de acertar.
     claim.attempts += 1
     claim.last_attempt_at = utcnow()
+    if claim.attempts >= MAX_FAILED_ATTEMPTS:
+        claim.status = CLAIM_BLOCKED
     db.commit()
+    left = _attempts_left(claim.attempts)
+    if left <= 0:
+        add_item_event(item_id=item_id, actor_id=user["id"], status=item["status"],
+                       note="Tentativas de validação de posse esgotadas.")
+        raise ApiError("Resposta incorreta. Você atingiu o limite de tentativas para este item.", 429,
+                       {"answer": ["Limite de tentativas atingido."]})
     add_item_event(item_id=item_id, actor_id=user["id"], status=item["status"],
-                   note="Tentativa de validação de posse incorreta.")
-    raise ApiError("Resposta incorreta.", 422, {"answer": ["Resposta incorreta."]})
+                   note=f"Tentativa de validação de posse incorreta ({claim.attempts}/{MAX_FAILED_ATTEMPTS}).")
+    raise ApiError(f"Resposta incorreta. Restam {left} tentativa(s).", 422,
+                   {"answer": [f"Resposta incorreta. Restam {left} tentativa(s)."]})
 
 
 def _notify_owner(item: dict, claimant: dict):
@@ -259,4 +277,7 @@ def status_for(user: dict | None, item: dict) -> dict:
         return {"available": False, "reason": "unavailable"}
     claim = _load_claim(item["id"], user)
     return {"available": True, "reason": None,
-            "verified": bool(claim and claim.status == CLAIM_VERIFIED)}
+            "status": claim.status if claim else CLAIM_PENDING,
+            "attemptsLeft": _attempts_left(claim.attempts if claim else 0),
+            "verified": bool(claim and claim.status == CLAIM_VERIFIED),
+            "blocked": bool(claim and claim.status == CLAIM_BLOCKED)}

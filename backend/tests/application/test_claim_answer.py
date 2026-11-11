@@ -58,7 +58,7 @@ def test_correct_answer_validates_ownership(item_with_secret, claimant):
 def test_wrong_answer_is_rejected(item_with_secret, claimant):
     response = claimant.post(f"/api/items/{item_with_secret}/claim", json={"answer": "adesivo do Náutico"})
     assert response.status_code == 422
-    assert response.json["details"]["answer"] == ["Resposta incorreta."]
+    assert response.json["error"].startswith("Resposta incorreta.")
 
 
 def test_notification_and_email_only_after_the_right_answer(item_with_secret, claimant, _capture_emails):

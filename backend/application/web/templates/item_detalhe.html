@@ -41,10 +41,11 @@
   <div class="stack-s mt">
     {% if not user %}<a class="btn btn-primary btn-block" href="/entrar?next=/itens/{{ item.id }}">🔒 Entrar para ver contato</a>{% endif %}
     {% if d.claim.verified %}<p class="alert xs">✓ Você validou a posse deste item respondendo à pergunta-chave.</p>
+    {% elif d.claim.blocked %}<p class="alert error xs">🔒 Limite de tentativas atingido para este item. Não é possível responder novamente.</p>
     {% elif challenge_question %}
       <section class="card pad stack" style="box-shadow:none">
         <p class="eyebrow">🔐 Validar posse</p>
-        <p class="xs muted">Acredita que este item é seu? Responda à pergunta-chave feita por quem o encontrou.</p>
+        <p class="xs muted">Acredita que este item é seu? Responda à pergunta-chave feita por quem o encontrou. Restam {{ d.claim.attemptsLeft }} tentativa(s).</p>
         <p class="bold sm">{{ challenge_question }}</p>
         <form method="post" action="/itens/{{ item.id }}/reivindicar" class="stack-s">
           <input class="input" name="answer" autocomplete="off" required placeholder="Sua resposta">
