@@ -38,9 +38,6 @@ def item_row_json(i: Item) -> dict:
             "imageUrl": i.image_url, "storageKey": i.storage_key, "createdAt": i.created_at,
             "updatedAt": i.updated_at}
 
-SEEDED_DESCRIPTION_PREFIX = "Registro demonstrativo"
-
-
 def is_seeded_item(item: dict) -> bool:
     """Itens do dataset demonstrativo não recebem detalhe secreto.
 
