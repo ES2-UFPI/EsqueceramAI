@@ -58,7 +58,7 @@ def test_public_pages_never_render_the_secret(item_with_secret, app):
 def test_owner_detail_page_shows_a_hint_but_not_the_detail(item_with_secret, app):
     owner = persona_client(app, "carlos@ufpi.edu.br")
     body = owner.get(f"/itens/{item_with_secret}").get_data(as_text=True)
-    assert "nunca aparecem nesta página" in body
+    assert "nunca aparece na página" in body
     assert SECRET["secretDetail"] not in body
     assert SECRET["secretAnswer"] not in body
 

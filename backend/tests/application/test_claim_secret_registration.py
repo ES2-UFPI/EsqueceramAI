@@ -28,6 +28,11 @@ def _multipart(data):
     payload.setdefault("image", (io.BytesIO(b""), ""))
     return payload
 
+def _cleanup_item(item_id):
+    db.query(ItemSecret).filter(ItemSecret.item_id == item_id).delete(synchronize_session=False)
+    db.query(Item).filter(Item.id == item_id).delete(synchronize_session=False)
+    db.commit()
+
 @pytest.fixture()
 def creator(app):
     return persona_client(app, "carlos@ufpi.edu.br")
@@ -36,10 +41,6 @@ def creator(app):
 def created_item(creator):
     response = creator.post("/api/items", data=_multipart(item_form(**SECRET)), content_type="multipart/form-data")
     item_id = response.json["item"]["id"]
-    yield item_id
-    db.query(ItemSecret).filter(ItemSecret.item_id == item_id).delete(synchronize_session=False)
-    db.query(Item).filter(Item.id == item_id).delete(synchronize_session=False)
-    db.commit()
     yield item_id
     _cleanup_item(item_id)
 
