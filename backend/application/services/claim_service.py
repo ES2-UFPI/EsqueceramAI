@@ -66,6 +66,9 @@ def is_claimable(item: dict | None) -> bool:
 
 _is_claimable = is_claimable
 
+_is_claimable = is_claimable
+
+
 def _require_owner(user: dict, item: dict):
     if item["userId"] != user["id"] and user["role"] != "ADMIN":
         raise forbidden("Apenas quem registrou o item pode definir a pergunta-chave.")
@@ -180,6 +183,15 @@ def challenge(item_id: int, user: dict) -> dict | None:
             "verified": status == CLAIM_VERIFIED, "blocked": status == CLAIM_BLOCKED}
 
 
+def question_for(user: dict | None, item: dict) -> str | None:
+    """Pergunta exibida na página do item para quem pode reivindicá-lo."""
+    if not user or user["id"] == item["userId"] or not is_claimable(item):
+        return None
+    secret = get_secret(item["id"])
+    return secret.question if secret else None
+
+
+# ------------------------------------------- #30 validação / #31 limite de tentativas
 def _resolve_claim(item_id: int, user: dict) -> ItemClaim:
     claim = _load_claim(item_id, user)
     try:

@@ -40,6 +40,8 @@ def created_item(creator):
     db.query(ItemSecret).filter(ItemSecret.item_id == item_id).delete(synchronize_session=False)
     db.query(Item).filter(Item.id == item_id).delete(synchronize_session=False)
     db.commit()
+    yield item_id
+    _cleanup_item(item_id)
 
 @pytest.fixture()
 def created_demo_item(creator, app):
@@ -79,7 +81,8 @@ def test_lost_item_without_secret_is_still_accepted(creator):
     """A checagem do bloco não pode barrar itens perdidos comuns."""
     response = creator.post("/api/items", data=_multipart(item_form(type="LOST")),
                             content_type="multipart/form-data")
-    assert response.status_code == 201
+    assert response.status_code == 201, response.json
+    _cleanup_item(response.json["item"]["id"])
 
 
 def test_seeded_items_cannot_receive_a_secret(creator, created_demo_item):
@@ -107,8 +110,32 @@ def test_seeded_items_prevent_bypass(creator, created_demo_item):
                        content_type="multipart/form-data")
     assert r2.status_code == 422
 
+def test_seeded_items_cannot_receive_a_secret(creator, created_demo_item):
+    """Impede o cadastro de pergunta-chave em registro demonstrativo isolado."""
+    response = creator.patch(f"/api/items/{created_demo_item}", data=_multipart(item_form(**SECRET)),
+                             content_type="multipart/form-data")
+    assert response.status_code == 422, response.json
+    assert "demonstrativos" in response.json["error"]
+
+
+def test_seeded_items_prevent_bypass(creator, created_demo_item):
+    """Valida que uma tentativa de edição bloqueada não altera os dados do item nem remove a trava is_demo."""
+    r1 = creator.patch(f"/api/items/{created_demo_item}", data=_multipart(item_form(**SECRET, title="Trocou titulo")),
+                       content_type="multipart/form-data")
+    assert r1.status_code == 422
+
+    item = find_item_by_id(created_demo_item)
+    assert item["title"] == "Mochila preta encontrada na biblioteca"
+    assert is_seeded_item(item) is True
+
+    r2 = creator.patch(f"/api/items/{created_demo_item}", data=_multipart(item_form(**SECRET)),
+                       content_type="multipart/form-data")
+    assert r2.status_code == 422
+
+
 def test_edit_can_add_secret_later_keep_it_and_remove_explicitly(creator):
     created = creator.post("/api/items", data=_multipart(item_form()), content_type="multipart/form-data")
+    assert created.status_code == 201, created.json
     item_id = created.json["item"]["id"]
     try:
         assert claim_service.get_secret(item_id) is None
@@ -128,8 +155,7 @@ def test_edit_can_add_secret_later_keep_it_and_remove_explicitly(creator):
         assert cleaned.status_code == 200
         assert claim_service.get_secret(item_id) is None
     finally:
-        db.query(ItemSecret).filter(ItemSecret.item_id == item_id).delete(synchronize_session=False)
-        db.commit()
+        _cleanup_item(item_id)
 
 
 def test_only_the_owner_can_set_the_question(created_item, app):
