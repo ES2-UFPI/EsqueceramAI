@@ -1,7 +1,7 @@
 from datetime import datetime, timezone
 from flask import Blueprint, jsonify, request
 from sqlalchemy import or_, select
-from application.domain import bounding_box, haversine_km, parse_geo_params
+from application.domain import bounding_box, haversine_km, matches_place, parse_geo_params
 from application.models import CollectionPoint, Item, User, db
 
 bp = Blueprint("mvp", __name__, url_prefix="/api")
@@ -31,6 +31,7 @@ def _item_json(item):
             "atributos": item.attributes or {}, "localizacao": item.location,
             "data_ocorrencia": item.occurred_at.date().isoformat(), "status": inverse_status[item.status],
             "posto_id": item.point_id, "posto_nome": point.name if point else None,
+            "posto_endereco": point.building if point else None,
             "latitude": item.latitude, "longitude": item.longitude, "imagem_url": item.image_url,
             "distancia_km": None}
 
@@ -54,8 +55,7 @@ def list_items():
     if term := request.args.get("q", "").strip():
         pattern = f"%{term}%"
         filters.append(or_(Item.title.ilike(pattern), Item.description.ilike(pattern), Item.location.ilike(pattern)))
-    if place := request.args.get("localizacao", "").strip():
-        filters.append(Item.location.ilike(f"%{place[:120]}%"))
+    place = request.args.get("localizacao", "").strip()[:120]  # filtrado em Python: ignora acentos (ver matches_place)
     # Filtro geográfico: lat/lng (ponto de referência) + raio_km. Sem raio, só calcula a distância.
     geo, geo_error = parse_geo_params(request.args.get("lat"), request.args.get("lng"), request.args.get("raio_km"))
     if geo_error:
@@ -66,6 +66,8 @@ def list_items():
         if lng_min is not None:
             filters.append(Item.longitude.between(lng_min, lng_max))
     payload = [_item_json(item) for item in db.scalars(stmt.where(*filters).order_by(Item.created_at.desc())).all()]
+    if place:
+        payload = [r for r in payload if matches_place(place, r["localizacao"], r["posto_nome"], r["posto_endereco"])]
     if geo:
         for row in payload:
             if row["latitude"] is not None and row["longitude"] is not None:
