@@ -4,7 +4,7 @@ from contextlib import contextmanager
 from datetime import datetime, timezone
 
 from sqlalchemy import (JSON, Boolean, DateTime, Enum, Float, ForeignKey, Index, Integer,
-                        LargeBinary, String, Text, UniqueConstraint, create_engine, text)
+                        LargeBinary, String, Text, UniqueConstraint, create_engine, inspect, text)
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import DeclarativeBase, Mapped, Session, mapped_column, scoped_session, sessionmaker
 from sqlalchemy.types import TypeDecorator
@@ -254,7 +254,37 @@ def _sync_item_status_enum():
                 conn.execute(text(f"ALTER TYPE item_status ADD VALUE IF NOT EXISTS '{value}'{position}"))
             previous = value
 
+def _sync_missing_columns():
+    """Adiciona colunas que o modelo já declara mas a tabela existente ainda não tem.
+
+    `create_all` só cria tabelas ausentes: um banco em uso (o do Render/Supabase) nunca
+    ganha colunas novas. Sem isso, `Item.is_demo` derruba toda leitura de `items` com
+    UndefinedColumn. As colunas adicionadas têm default, então as linhas já existentes
+    continuam válidas.
+    """
+    inspector = inspect(engine)
+    existentes = set(inspector.get_table_names())
+    with engine.begin() as conn:
+        for table in Base.metadata.sorted_tables:
+            if table.name not in existentes:
+                continue
+            colunas = {c["name"] for c in inspector.get_columns(table.name)}
+            for column in table.columns:
+                if column.name in colunas:
+                    continue
+                ddl = (f"ALTER TABLE {table.name} ADD COLUMN {column.name} "
+                       f"{column.type.compile(dialect=engine.dialect)}")
+                if column.server_default is not None:
+                    # str vira literal entre aspas: "0" serve para BOOLEAN no PostgreSQL.
+                    default = column.server_default.arg
+                    ddl += f" DEFAULT {default!r}" if isinstance(default, str) else f" DEFAULT {default}"
+                    if not column.nullable:
+                        ddl += " NOT NULL"
+                conn.execute(text(ddl))
+
+
 def init_db():
-    """Equivalente a `drizzle-kit push`: cria as tabelas que ainda não existem."""
+    """Equivalente a `drizzle-kit push`: cria o que falta em banco novo ou já em uso."""
     Base.metadata.create_all(engine)
+    _sync_missing_columns()
     _sync_item_status_enum()
