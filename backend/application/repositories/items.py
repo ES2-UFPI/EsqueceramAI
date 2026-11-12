@@ -40,13 +40,13 @@ def item_row_json(i: Item) -> dict:
 SEEDED_DESCRIPTION_PREFIX = "Registro demonstrativo"
 
 
-def is_seeded_item(i_found: dict) -> bool:
+def is_seeded_item(item: dict) -> bool:
     """Itens do dataset demonstrativo não recebem detalhe secreto.
 
     Eles existem em bancos de produção e as contas demo são públicas; sem esta trava,
     qualquer visitante poderia criar uma pergunta-chave num item de outra pessoa.
     """
-    return i_found["description"].startswith(SEEDED_DESCRIPTION_PREFIX)
+    return bool(item.get("isDemo"))
 
 
 def _aware(d):
