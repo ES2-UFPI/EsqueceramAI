@@ -69,7 +69,7 @@ def test_item_rules(app, make_item, sent_codes, attendant):
 
 
 # ---------------------------------------------------------- fluxo completo
-def test_full_flow_receipt_and_item_returned(app, make_item, sent_codes, attendant):
+def test_full_flow_receipt_and_item_delivered(app, make_item, sent_codes, attendant):
     item = make_item()
     before = user_score("carlos@ufpi.edu.br")
     r = start(attendant, item)
@@ -87,7 +87,7 @@ def test_full_flow_receipt_and_item_returned(app, make_item, sent_codes, attenda
     wrong = "000000" if code != "000000" else "111111"
     r = attendant.post(f"/api/deliveries/{d['id']}/confirm", json={"code": wrong})
     assert r.status_code == 422 and "Restam 4" in r.get_json()["error"]
-    assert attendant.get(f"/api/items/{item}").get_json()["item"]["status"] != "RETURNED"
+    assert attendant.get(f"/api/items/{item}").get_json()["item"]["status"] == "OPEN"   # código errado não entrega nada
 
     r = attendant.post(f"/api/deliveries/{d['id']}/confirm", json={"code": code})
     assert r.status_code == 200
@@ -95,9 +95,9 @@ def test_full_flow_receipt_and_item_returned(app, make_item, sent_codes, attenda
     assert done["status"] == "COMPLETED" and done["confirmedAt"] and done["verificationCode"]
     assert [e["action"] for e in done["events"]] == ["CREATED", "CODE_SENT", "CODE_WRONG", "CONFIRMED"]
 
-    # item devolvido pelo fluxo EXISTENTE (pontuação do achador + linha do tempo sem dados pessoais)
+    # item com status final "Entregue" (pontuação do achador + linha do tempo sem dados pessoais)
     detail = attendant.get(f"/api/items/{item}").get_json()
-    assert detail["item"]["status"] == "RETURNED"
+    assert detail["item"]["status"] == "DELIVERED" and done["itemStatus"] == "DELIVERED"
     assert user_score("carlos@ufpi.edu.br") == before + 40
     notes = " ".join(e["note"] for e in detail["timeline"])
     assert done["receiptNumber"] in notes and "982" not in notes and "Maria" not in notes
@@ -112,7 +112,7 @@ def test_full_flow_receipt_and_item_returned(app, make_item, sent_codes, attenda
     # código é de uso único; entrega concluída não aceita novas ações
     assert attendant.post(f"/api/deliveries/{d['id']}/confirm", json={"code": code}).status_code == 409
     assert attendant.post(f"/api/deliveries/{d['id']}/cancel").status_code == 409
-    assert start(attendant, item).status_code == 409                  # item já devolvido
+    assert start(attendant, item).status_code == 409                  # item já entregue
 
 
 def test_cannot_start_second_delivery_while_pending(app, make_item, sent_codes, attendant):

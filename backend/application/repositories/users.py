@@ -1,6 +1,6 @@
 """Acesso a dados de usuários (src/server/repositories/users.ts)."""
 from sqlalchemy import func, or_, select
-
+from application.domain import FINAL_STATUSES
 from application.models import Item, User, db, utcnow
 
 
@@ -50,7 +50,7 @@ def _count_items(*extra):
 
 def list_users(q: str | None = None, role: str | None = None) -> list[dict]:
     stmt = select(User, _count_items().label("n"),
-                  _count_items(Item.status == "RETURNED").label("r")).order_by(User.name)
+                  _count_items(Item.status.in_(FINAL_STATUSES)).label("r")).order_by(User.name)
     if q:
         like = f"%{q}%"
         stmt = stmt.where(or_(User.name.ilike(like), User.email.ilike(like)))
@@ -76,7 +76,7 @@ def set_user_active(user_id: int, active: bool):
 
 
 def top_contributors(limit=5) -> list[dict]:
-    stmt = (select(User, _count_items(Item.status == "RETURNED").label("r"))
+    stmt = (select(User, _count_items(Item.status.in_(FINAL_STATUSES)).label("r"))
             .where(User.is_active.is_(True)).order_by(User.score.desc()).limit(limit))
     return [{"id": u.id, "name": u.name, "role": u.role, "score": u.score, "returned": r}
             for u, r in db.execute(stmt)]

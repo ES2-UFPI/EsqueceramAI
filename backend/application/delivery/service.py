@@ -1,10 +1,8 @@
 """Regras de negócio da entrega com respaldo legal.
 
 Fluxo:  start_delivery (CPF + documento + e-mail)  →  código enviado ao retirante
-        →  confirm_delivery (atendente digita o código)  →  termo em PDF + item marcado como devolvido.
+        →  confirm_delivery (atendente digita o código)  →  termo em PDF + item com status final "Entregue".
 
-A devolução reaproveita `change_item_status` (pontuação, notificações e devolução do item
-correspondente continuam exatamente como no fluxo existente).
 """
 import re
 from datetime import timedelta
@@ -18,7 +16,7 @@ from application.delivery.email_service import EmailError, backend_name, mask_em
 from application.delivery.receipt import ReceiptData, build_receipt_pdf, receipt_number, verification_code
 from application.domain import item_code
 from application.errors import ApiError, forbidden, not_found
-from application.models import utcnow
+from application.models import atomic, utcnow
 from application.repositories.items import find_item_by_id, items_at_points
 from application.services.item_service import change_item_status
 from application.validation import Form
@@ -242,12 +240,12 @@ def confirm_delivery(user: dict, delivery_id: int, code: str) -> m.Delivery:
     pdf, vcode = build_receipt_pdf(receipt)
 
     number = receipt_number(d.id, d.created_at)
-    change_item_status(user, d.item_id, "RETURNED", note=f"Entrega registrada no termo {number}.")
-
-    d.status, d.confirmed_at, d.code_hash = m.COMPLETED, confirmed_at, None
-    repo.save(d)
-    repo.save_receipt(d.id, verification_code=vcode, sha256=sec.sha256_hex(pdf), pdf=pdf)
-    repo.add_event(d.id, "CONFIRMED", f"Entrega confirmada; termo {number} emitido (verificação {vcode})")
+    with atomic():  # tudo ou nada: item "Entregue", entrega concluída, termo e auditoria juntos
+        change_item_status(user, d.item_id, "DELIVERED", note=f"Entrega registrada no termo {number}.")
+        d.status, d.confirmed_at, d.code_hash = m.COMPLETED, confirmed_at, None
+        repo.save(d)
+        repo.save_receipt(d.id, verification_code=vcode, sha256=sec.sha256_hex(pdf), pdf=pdf)
+        repo.add_event(d.id, "CONFIRMED", f"Entrega confirmada; termo {number} emitido (verificação {vcode})")
     return d
 
 
@@ -324,6 +322,8 @@ def delivery_dict(d: m.Delivery, *, detail: bool = False) -> dict:
     }
     if detail:
         doc, receipt = repo.get_document(d.id), repo.get_receipt(d.id)
+        item = find_item_by_id(d.item_id) if d.item_id else None
+        out["itemStatus"] = item["status"] if item else None  # status final do item (DELIVERED após a conclusão)
         out["documentSha256"] = doc.sha256 if doc else None
         out["verificationCode"] = receipt.verification_code if receipt else None
         out["events"] = [{"action": e.action, "detail": e.detail, "createdAt": e.created_at} for e in repo.list_events(d.id)]

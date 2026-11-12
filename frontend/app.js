@@ -19,6 +19,7 @@ const ROTULO_STATUS = {
   ABERTO: "Aberto",
   RESERVADO: "Reservado",
   DEVOLVIDO: "Devolvido",
+  ENTREGUE: "Entregue",
   ARQUIVADO: "Arquivado",
 };
 

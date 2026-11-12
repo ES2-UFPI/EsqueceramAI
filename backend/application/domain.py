@@ -6,7 +6,8 @@ from zoneinfo import ZoneInfo
 
 RECORD_TYPES = ("LOST", "FOUND")
 CATEGORIES = ("ELECTRONIC", "DOCUMENT", "ACCESSORY")
-STATUSES = ("OPEN", "RESERVED", "RETURNED", "ARCHIVED")
+STATUSES = ("OPEN", "RESERVED", "RETURNED", "DELIVERED", "ARCHIVED")
+FINAL_STATUSES = ("RETURNED", "DELIVERED")
 MATCH_STATUSES = ("PENDING", "CONFIRMED", "REJECTED")
 ROLES = ("USER", "OPERATOR_POST", "ADMIN")
 NOTIFICATION_TYPES = ("MATCH", "UPDATE", "RECOVERY", "SYSTEM")
@@ -14,7 +15,8 @@ NOTIFICATION_TYPES = ("MATCH", "UPDATE", "RECOVERY", "SYSTEM")
 RECORD_TYPE_LABEL = {"LOST": "Perdido", "FOUND": "Encontrado"}
 CATEGORY_LABEL = {"ELECTRONIC": "Eletrônico", "DOCUMENT": "Documento", "ACCESSORY": "Acessório"}
 CATEGORY_PLURAL = {"ELECTRONIC": "Eletrônicos", "DOCUMENT": "Documentos", "ACCESSORY": "Acessórios"}
-STATUS_LABEL = {"OPEN": "Em aberto", "RESERVED": "Reservado", "RETURNED": "Devolvido", "ARCHIVED": "Arquivado"}
+STATUS_LABEL = {"OPEN": "Em aberto", "RESERVED": "Reservado", "RETURNED": "Devolvido", "DELIVERED": "Entregue",
+                "ARCHIVED": "Arquivado"}
 MATCH_STATUS_LABEL = {"PENDING": "Aguardando confirmação", "CONFIRMED": "Confirmado", "REJECTED": "Descartado"}
 ROLE_LABEL = {"USER": "Comunidade", "OPERATOR_POST": "Operador de ponto", "ADMIN": "Administrador"}
 

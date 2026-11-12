@@ -1,4 +1,5 @@
 """Indicadores de dashboard, home pública e administração (src/server/services/stats-service.ts)."""
+from application.domain import FINAL_STATUSES
 from application.models import Item
 from application.repositories.engagement import (count_matches, count_pending_matches, count_unread_notifications, list_matches)
 from application.repositories.items import (count_by_category, count_by_status, count_items, monthly_series, recent_items)
@@ -12,7 +13,7 @@ def _scope_counts(owner_id=None) -> dict:
         return count_items(*conds)
     return {"lostActive": n(Item.type == "LOST", Item.status.in_(["OPEN", "RESERVED"])),
             "foundActive": n(Item.type == "FOUND", Item.status.in_(["OPEN", "RESERVED"])),
-            "reserved": n(Item.status == "RESERVED"), "returned": n(Item.status == "RETURNED"), "total": n()}
+            "reserved": n(Item.status == "RESERVED"), "returned": n(Item.status.in_(FINAL_STATUSES)), "total": n()}
 
 
 def get_dashboard(user: dict) -> dict:
@@ -42,7 +43,7 @@ def get_public_home() -> dict:
 
 
 def get_admin_overview(query: str | None = None) -> dict:
-    returned, total = count_items(Item.status == "RETURNED"), count_items()
+    returned, total = count_items(Item.status.in_(FINAL_STATUSES)), count_items()
     return {
         "userCount": count_users(),
         "roleBreakdown": [{"key": r["role"], "total": r["total"]} for r in count_users_by_role()],
