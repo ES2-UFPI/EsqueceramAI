@@ -175,14 +175,6 @@ def item_reivindicar(user, item_id):
     return redirect(f"/itens/{item_id}")
 
 
-def _detail_challenge(user, item, detail):
-    """A pergunta exibida a quem vai reivindicar (nunca o detalhe oculto)."""
-    if not user or not detail["claim"].get("available"):
-        return None
-    secret = claim_service.get_secret(item["id"])
-    return secret.question if secret else None
-
-
 @bp.get("/correspondencias/<int:match_id>")
 def correspondencia(match_id):
     """Página do link enviado por e-mail: o usuário confirma o match ou descarta o falso positivo."""
