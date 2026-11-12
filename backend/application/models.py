@@ -172,10 +172,11 @@ class MatchNotification(Base):
 
 
 class ItemSecret(Base):
-    """US04 (#27): detalhe confidencial e pergunta-chave usados para validar a posse.
+    """US04: detalhe confidencial e pergunta-chave usados para validar a posse.
 
-    Tabela separada de propósito: nenhuma listagem ou serialização de item consulta estes
-    campos, então o detalhe nunca vaza por descuido. A resposta é guardada apenas como HMAC.
+    Tabela separada de propósito: nenhuma listagem ou serialização de item consulta
+    estes campos, então o detalhe nunca vaza por descuido. A resposta é guardada
+    apenas como HMAC (ver ``services.claim_service``).
     """
     __tablename__ = "item_secrets"
     item_id: Mapped[int] = mapped_column(ForeignKey("items.id", ondelete="CASCADE"), primary_key=True)

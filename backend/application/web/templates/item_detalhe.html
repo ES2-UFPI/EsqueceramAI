@@ -36,23 +36,25 @@
 <aside class="stack">
   <section class="card pad"><div class="flex between center"><p class="eyebrow">Situação</p>{{ status_badge(item.status) }}</div>
   <p class="xs muted mt-s">{% if confirmed %}✓ Correspondência confirmada. Combine a retirada no ponto de coleta.{% elif item.status == 'RETURNED' %}Este item já foi devolvido ao responsável.{% elif item.status == 'ARCHIVED' %}Este registro está arquivado e não aparece na busca pública.{% elif item.status == 'RESERVED' %}O item está reservado para retirada.{% else %}O registro está em aberto e participando das sugestões automáticas.{% endif %}</p>
-  {% if item.type == 'FOUND' %}<p class="xs muted mt-s">🔐 Este registro exige resposta à pergunta-chave para confirmar a posse.</p>{% endif %}
-  {% if is_owner and d.hasSecret %}<p class="alert xs mt-s">🔐 O detalhe confidencial e a resposta esperada nunca aparecem nesta página. Confira a resposta quando alguém reivindicar o item; para alterar a pergunta, use “Editar registro”.</p>{% endif %}
   <div class="stack-s mt">
     {% if not user %}<a class="btn btn-primary btn-block" href="/entrar?next=/itens/{{ item.id }}">🔒 Entrar para ver contato</a>{% endif %}
-    {% if d.claim.verified %}<p class="alert xs">✓ Você validou a posse deste item respondendo à pergunta-chave.</p>
-    {% elif d.claim.blocked %}<p class="alert error xs">🔒 Limite de tentativas atingido para este item. Não é possível responder novamente.</p>
-    {% elif challenge_question %}
+    {% if is_owner and d.hasSecret %}<p class="alert xs">🔐 Este registro tem detalhe oculto e pergunta-chave. O detalhe nunca aparece na página; confira a resposta quando alguém reivindicar.</p>{% endif %}
+    {% if user and d.claim.available %}
+      {% if d.claim.verified %}<p class="alert xs">✓ Você validou a posse deste item respondendo à pergunta-chave.</p>
+      {% elif d.claim.blocked %}<p class="alert error xs">🔒 Limite de tentativas atingido para este item. Não é possível responder novamente.</p>
+      {% else %}
       <section class="card pad stack" style="box-shadow:none">
         <p class="eyebrow">🔐 Validar posse</p>
-        <p class="xs muted">Acredita que este item é seu? Responda à pergunta-chave feita por quem o encontrou. Restam {{ d.claim.attemptsLeft }} tentativa(s).</p>
-        <p class="bold sm">{{ challenge_question }}</p>
+        <p class="xs muted">Responda à pergunta-chave para provar que este item é seu. Restam {{ d.claim.attemptsLeft }} tentativa(s).</p>
         <form method="post" action="/itens/{{ item.id }}/reivindicar" class="stack-s">
+          <p class="bold sm">{{ challenge_question }}</p>
           <input class="input" name="answer" autocomplete="off" required placeholder="Sua resposta">
+          {% if challenge_error %}<p class="err">{{ challenge_error }}</p>{% endif %}
           <button class="btn btn-accent btn-block">Validar resposta</button>
         </form>
       </section>
-    {% elif user and not is_owner and item.status != 'RETURNED' %}<p class="alert xs">ℹ️ Encontrou este item? Confirme a correspondência e combine a entrega com {{ item.ownerName|firstname }}.</p>{% endif %}
+      {% endif %}
+    {% elif user and not is_owner and item.status != 'RETURNED' and not d.hasSecret %}<p class="alert xs">ℹ️ Encontrou este item? Confirme a correspondência e combine a entrega com {{ item.ownerName|firstname }}.</p>{% endif %}
     {% if user and user.role == 'OPERATOR_POST' and item.type == 'FOUND' and item.pointName and item.status in ('OPEN','RESERVED') %}<a class="btn btn-accent btn-block" href="/painel/entregas/nova?item={{ item.id }}">📝 Registrar entrega (CPF e documento)</a>{% endif %}
     {% if d.canManage %}
       <a class="btn btn-secondary btn-block" href="/painel/itens/{{ item.id }}/editar">✏️ Editar registro</a>

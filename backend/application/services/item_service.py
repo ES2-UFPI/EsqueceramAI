@@ -6,8 +6,7 @@ from application.domain import CATEGORIES, RECORD_TYPES, STATUSES
 from application.errors import ApiError, forbidden, not_found
 from application.repositories.engagement import (add_item_event, create_notifications, list_item_events, list_matches,
                                          list_matches_for_item)
-from application.repositories.items import (create_item, delete_item, find_item_by_id, is_seeded_item, list_items,
-                                            set_item_status, update_item)
+from application.repositories.items import (create_item, delete_item, find_item_by_id, list_items, set_item_status, update_item)
 from application.repositories.points import find_point_by_id
 from application.repositories.users import add_user_score
 from application.services import claim_service
@@ -88,9 +87,8 @@ def update_item_from_form(user: dict, item_id: int, form, image=None):
     data = parse_item_form(form)
     _assert_point(data["pointId"])
     values = _to_values(data, current["userId"])
-    seeded = is_seeded_item(current)
     updated = update_item(item_id, values)
-    claim_service.save_secret(user, item_id, form, seeded=seeded)
+    claim_service.save_secret(user, item_id, form)
     if not updated:
         raise ApiError("Não foi possível atualizar o registro.", 500)
     if image is not None and getattr(image, "filename", ""):
