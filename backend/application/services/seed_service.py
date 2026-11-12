@@ -223,12 +223,11 @@ def _seed():
             continue
         row = create_item({
             "user_id": owner_id, "type": e["type"], "category": e["category"], "title": e["title"],
-            # prefixo usado por `repositories.items.is_seeded_item` (bloqueia pergunta secreta)
-            "description": f"Registro demonstrativo: {e['description']}",
-            "color": e.get("color"), "brand": e.get("brand"), "model": e.get("model"),
+            "description": e["description"], "color": e.get("color"), "brand": e.get("brand"), "model": e.get("model"),
             "attributes": e.get("attributes", {}), "location": e["location"], "occurred_at": e["occurredAt"],
             "point_id": e.get("pointId"), "latitude": e.get("latitude"), "longitude": e.get("longitude"),
-            "image_url": e.get("imageUrl")})
+            "image_url": e.get("imageUrl"),
+            "is_demo": True})
         created_items.append({"id": row.id, "title": e["title"]})
         add_item_event(item_id=row.id, actor_id=owner_id, status="OPEN",
                        note="Registro de item perdido publicado." if e["type"] == "LOST" else "Registro de item encontrado publicado.")
