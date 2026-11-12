@@ -1,15 +1,3 @@
-"""US04 — validação de posse por detalhe oculto e pergunta-chave.
-
-Como funciona:
-  * quem publica um item ENCONTRADO pode guardar um detalhe confidencial e uma
-    pergunta-chave (item 27). O detalhe nunca é serializado; a pergunta só aparece
-    para quem se dispõe a reivindicar o item (item 28 e 29);
-  * ao reivindicar, o usuário responde à pergunta. A resposta é comparada com um
-    HMAC gravado no cadastro (item 30);
-  * cada usuário tem no máximo três tentativas por item, e o contador não é
-    reiniciado por acertos — respondida a pergunta, a posse é validada para sempre
-    (item 31). Isso impede adivinhação repetida sem punir quem acertou.
-"""
 import hashlib
 import hmac
 import logging
@@ -25,7 +13,7 @@ from application.domain import item_code
 from application.errors import ApiError, forbidden, not_found
 from application.models import CLAIM_BLOCKED, CLAIM_PENDING, CLAIM_VERIFIED, ItemClaim, ItemSecret, db, utcnow
 from application.repositories.engagement import add_item_event, create_notifications
-from application.repositories.items import find_item_by_id
+from application.repositories.items import find_item_by_id, is_seeded_item
 from application.repositories.users import find_user_by_id
 
 log = logging.getLogger("esqueceram.claim")
@@ -39,9 +27,14 @@ SECRET_QUESTION_MAX = 160
 SECRET_ANSWER_MIN = 2
 SECRET_ANSWER_MAX = 80
 
+_TRUTHY_FORM_VALUES = ("1", "true", "on", "sim")
+
 
 def _key() -> bytes:
-    return (os.getenv("CLAIM_HMAC_KEY") or os.getenv("SECRET_KEY") or "dev-secret").encode()
+    raw = os.getenv("CLAIM_HMAC_KEY") or os.getenv("SECRET_KEY")
+    if not raw and os.getenv("FLASK_ENV") == "production":
+        raise RuntimeError("HMAC key not set in production!")
+    return (raw or "dev-secret").encode()
 
 
 def normalize_answer(value: str) -> str:
@@ -71,15 +64,14 @@ def is_claimable(item: dict | None) -> bool:
     """Só item ENCONTRADO e ainda disponível pode receber pergunta-chave."""
     return bool(item and item["type"] == "FOUND" and item["status"] in ("OPEN", "RESERVED"))
 
+_is_claimable = is_claimable
 
 def _require_owner(user: dict, item: dict):
     if item["userId"] != user["id"] and user["role"] != "ADMIN":
         raise forbidden("Apenas quem registrou o item pode definir a pergunta-chave.")
 
-
 class _IncompleteSecret(Exception):
     pass
-
 
 def _read_secret(raw: dict) -> dict | None:
     """Bloco preenchido, ou ``None`` quando todos os campos vieram em branco."""
@@ -92,14 +84,9 @@ def _read_secret(raw: dict) -> dict | None:
         raise _IncompleteSecret
     return {"detail": detail, "question": question, "answer": answer}
 
-
-def save_secret(user: dict, item_id: int, form: dict) -> ItemSecret | None:
-    """Grava (ou atualiza) o detalhe confidencial. ``form`` é o formulário do item."""
-    item = find_item_by_id(item_id)
-    if not item:
-        raise not_found("Registro")
+def validate_secret(user: dict, item: dict, form: dict) -> dict | None:
+    """Valida o bloco confidencial *antes* de escrever qualquer coisa no banco de dados."""
     _require_owner(user, item)
-    current = db.get(ItemSecret, item_id)
     try:
         block = _read_secret(form)
     except _IncompleteSecret:
@@ -108,15 +95,32 @@ def save_secret(user: dict, item_id: int, form: dict) -> ItemSecret | None:
                        {"secretQuestion": ["Detalhe, pergunta e resposta são obrigatórios juntos."]})
     if block is not None and item["type"] != "FOUND":
         raise ApiError("Apenas itens encontrados podem ter detalhe oculto.", 422)
+    if block is not None and is_seeded_item(item):
+        raise ApiError("Os registros demonstrativos não usam pergunta-chave.", 422)
+    return block
+
+def save_secret(user: dict, item_id: int, form: dict, valid_block: dict | None = None) -> ItemSecret | None:
+    """Grava (ou atualiza) o detalhe confidencial a partir de um bloco já validado.
+
+    É seguro chamar `valid_block = validate_secret(...)` em outro módulo para garantir
+    que a API aborte sem gravar dados parciais em caso de erro na resposta secreta.
+    """
+    item = find_item_by_id(item_id)
+    if not item:
+        raise not_found("Registro")
+    block = valid_block or validate_secret(user, item, form)
+    current = db.get(ItemSecret, item_id)
+
     if block is None:
         # Só remove quando pedido de forma explícita: atualizações parciais do item
         # (por exemplo, mudar o status) não podem apagar a pergunta-chave sem aviso.
-        if current and str(form.get("secretClear") or "").lower() in ("1", "true", "on", "sim"):
+        if current and str(form.get("secretClear") or "").lower() in _TRUTHY_FORM_VALUES:
             db.delete(current)
             db.commit()
             add_item_event(item_id=item_id, actor_id=user["id"], status=item["status"],
                            note="Pergunta-chave removida do registro.")
         return None
+
     if current:
         current.detail, current.question = block["detail"], block["question"]
         current.answer_hash, current.updated_at = answer_hash(item_id, block["answer"]), utcnow()
@@ -129,7 +133,6 @@ def save_secret(user: dict, item_id: int, form: dict) -> ItemSecret | None:
     add_item_event(item_id=item_id, actor_id=user["id"], status=item["status"],
                    note="Pergunta-chave de validação de posse definida.")
     return row
-
 
 def get_secret(item_id: int) -> ItemSecret | None:
     return db.get(ItemSecret, item_id)

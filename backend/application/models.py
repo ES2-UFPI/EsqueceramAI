@@ -112,6 +112,7 @@ class Item(Base):
     longitude: Mapped[float | None] = mapped_column(Float, nullable=True)
     image_url: Mapped[str | None] = mapped_column(Text, nullable=True)
     storage_key: Mapped[str | None] = mapped_column(Text, nullable=True)
+    is_demo: Mapped[bool] = mapped_column(Boolean, default=False, server_default="0")
     created_at: Mapped[datetime] = mapped_column(UTCDateTime, default=utcnow)
     updated_at: Mapped[datetime] = mapped_column(UTCDateTime, default=utcnow)
 
@@ -172,11 +173,10 @@ class MatchNotification(Base):
 
 
 class ItemSecret(Base):
-    """US04: detalhe confidencial e pergunta-chave usados para validar a posse.
+    """US04 (#27): detalhe confidencial e pergunta-chave usados para validar a posse.
 
-    Tabela separada de propósito: nenhuma listagem ou serialização de item consulta
-    estes campos, então o detalhe nunca vaza por descuido. A resposta é guardada
-    apenas como HMAC (ver ``services.claim_service``).
+    Tabela separada de propósito: nenhuma listagem ou serialização de item consulta estes
+    campos, então o detalhe nunca vaza por descuido. A resposta é guardada apenas como HMAC.
     """
     __tablename__ = "item_secrets"
     item_id: Mapped[int] = mapped_column(ForeignKey("items.id", ondelete="CASCADE"), primary_key=True)
@@ -185,7 +185,6 @@ class ItemSecret(Base):
     answer_hash: Mapped[str] = mapped_column(String(64))
     created_at: Mapped[datetime] = mapped_column(UTCDateTime, default=utcnow)
     updated_at: Mapped[datetime] = mapped_column(UTCDateTime, default=utcnow)
-
 
 CLAIM_PENDING, CLAIM_VERIFIED, CLAIM_BLOCKED = "PENDING", "VERIFIED", "BLOCKED"
 CLAIM_STATUSES = (CLAIM_PENDING, CLAIM_VERIFIED, CLAIM_BLOCKED)
