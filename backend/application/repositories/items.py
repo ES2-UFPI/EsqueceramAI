@@ -20,6 +20,7 @@ def map_item(row) -> dict:
         "description": i.description, "color": i.color, "brand": i.brand, "model": i.model,
         "attributes": i.attributes or {}, "location": i.location, "occurredAt": i.occurred_at,
         "status": i.status, "pointId": i.point_id, "latitude": i.latitude, "longitude": i.longitude,
+        "isDemo": getattr(i, "is_demo", False),
         "imageSrc": i.image_url or (f"/api/images/{i.id}" if has_image else None),
         "createdAt": i.created_at, "updatedAt": i.updated_at,
         "ownerName": u.name, "ownerEmail": u.email, "ownerPhone": u.phone, "ownerRole": u.role,
@@ -37,16 +38,13 @@ def item_row_json(i: Item) -> dict:
             "imageUrl": i.image_url, "storageKey": i.storage_key, "createdAt": i.created_at,
             "updatedAt": i.updated_at}
 
-SEEDED_DESCRIPTION_PREFIX = "Registro demonstrativo"
-
-
-def is_seeded_item(i_found: dict) -> bool:
+def is_seeded_item(item: dict) -> bool:
     """Itens do dataset demonstrativo não recebem detalhe secreto.
 
     Eles existem em bancos de produção e as contas demo são públicas; sem esta trava,
     qualquer visitante poderia criar uma pergunta-chave num item de outra pessoa.
     """
-    return i_found["description"].startswith(SEEDED_DESCRIPTION_PREFIX)
+    return bool(item.get("isDemo"))
 
 
 def _aware(d):

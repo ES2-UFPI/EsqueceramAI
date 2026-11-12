@@ -35,7 +35,7 @@
 </div>
 <aside class="stack">
   <section class="card pad"><div class="flex between center"><p class="eyebrow">Situação</p>{{ status_badge(item.status) }}</div>
-  <p class="xs muted mt-s">{% if confirmed %}✓ Correspondência confirmada. Combine a retirada no ponto de coleta.{% elif item.status == 'RETURNED' %}Este item já foi devolvido ao responsável.{% elif item.status == 'ARCHIVED' %}Este registro está arquivado e não aparece na busca pública.{% elif item.status == 'RESERVED' %}O item está reservado para retirada.{% else %}O registro está em aberto e participando das sugestões automáticas.{% endif %}</p>
+  <p class="xs muted mt-s">{% if confirmed %}✓ Correspondência confirmada. Combine a retirada no ponto de coleta.{% elif item.status == 'RETURNED' %}Este item já foi devolvido ao responsável.{% elif item.status == 'DELIVERED' %}Este item foi entregue ao retirante no ponto de coleta, com termo de retirada.{% elif item.status == 'ARCHIVED' %}Este registro está arquivado e não aparece na busca pública.{% elif item.status == 'RESERVED' %}O item está reservado para retirada.{% else %}O registro está em aberto e participando das sugestões automáticas.{% endif %}</p>
   <div class="stack-s mt">
     {% if not user %}<a class="btn btn-primary btn-block" href="/entrar?next=/itens/{{ item.id }}">🔒 Entrar para ver contato</a>{% endif %}
     {% if is_owner and d.hasSecret %}<p class="alert xs">🔐 Este registro tem detalhe oculto e pergunta-chave. O detalhe nunca aparece na página; confira a resposta quando alguém reivindicar.</p>{% endif %}
@@ -54,11 +54,11 @@
         </form>
       </section>
       {% endif %}
-    {% elif user and not is_owner and item.status != 'RETURNED' and not d.hasSecret %}<p class="alert xs">ℹ️ Encontrou este item? Confirme a correspondência e combine a entrega com {{ item.ownerName|firstname }}.</p>{% endif %}
+    {% elif user and not is_owner and item.status not in ('RETURNED', 'DELIVERED') and not d.hasSecret %}<p class="alert xs">ℹ️ Encontrou este item? Confirme a correspondência e combine a entrega com {{ item.ownerName|firstname }}.</p>{% endif %}
     {% if user and user.role == 'OPERATOR_POST' and item.type == 'FOUND' and item.pointName and item.status in ('OPEN','RESERVED') %}<a class="btn btn-accent btn-block" href="/painel/entregas/nova?item={{ item.id }}">📝 Registrar entrega (CPF e documento)</a>{% endif %}
     {% if d.canManage %}
       <a class="btn btn-secondary btn-block" href="/painel/itens/{{ item.id }}/editar">✏️ Editar registro</a>
-      {% if item.status != 'RETURNED' %}{{ api_button('Marcar como devolvido' if item.type == 'FOUND' else 'Registrar recuperação', '/api/items/%d'|format(item.id), 'PATCH', {'status':'RETURNED'}, 'primary', success='Devolução registrada. Pontuação atualizada!', block=True, small=False) }}{% endif %}
+      {% if item.status not in ('RETURNED', 'DELIVERED') %}{{ api_button('Marcar como devolvido' if item.type == 'FOUND' else 'Registrar recuperação', '/api/items/%d'|format(item.id), 'PATCH', {'status':'RETURNED'}, 'primary', success='Devolução registrada. Pontuação atualizada!', block=True, small=False) }}{% endif %}
       {% if item.status != 'ARCHIVED' %}{{ api_button('Arquivar registro', '/api/items/%d'|format(item.id), 'PATCH', {'status':'ARCHIVED'}, confirm='Arquivar este registro? Ele deixará de aparecer nas buscas.', success='Registro arquivado.', block=True, small=False) }}
       {% else %}{{ api_button('Reabrir registro', '/api/items/%d'|format(item.id), 'PATCH', {'status':'OPEN'}, success='Registro reaberto.', block=True, small=False) }}{% endif %}
       {{ api_button('Excluir definitivamente', '/api/items/%d'|format(item.id), 'DELETE', None, 'danger', confirm='Excluir este registro definitivamente? Esta ação não pode ser desfeita.', success='Registro excluído.', redirect='/painel/itens', block=True, small=False) }}
