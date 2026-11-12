@@ -28,6 +28,12 @@ def _multipart(data):
     payload.setdefault("image", (io.BytesIO(b""), ""))
     return payload
 
+def _cleanup_item(item_id: int):
+    db.query(ItemSecret).filter(ItemSecret.item_id == item_id).delete(synchronize_session=False)
+    db.query(Item).filter(Item.id == item_id).delete(synchronize_session=False)
+    db.commit()
+
+
 @pytest.fixture()
 def creator(app):
     return persona_client(app, "carlos@ufpi.edu.br")
@@ -42,16 +48,16 @@ def created_item(creator):
     db.commit()
 
 @pytest.fixture()
-def created_demo_item(creator, app):
-    """Cria um item e o força como demonstrativo no banco."""
+def created_demo_item(creator):
+    """Cria um item isolado para o teste e o marca como demonstrativo no banco."""
     response = creator.post("/api/items", data=_multipart(item_form()), content_type="multipart/form-data")
+    assert response.status_code == 201, response.json
     item_id = response.json["item"]["id"]
     row = db.get(Item, item_id)
     row.is_demo = True
     db.commit()
     yield item_id
-    db.query(Item).filter(Item.id == item_id).delete(synchronize_session=False)
-    db.commit()
+    _cleanup_item(item_id)
 
 def test_owner_can_register_confidential_detail_and_question(created_item):
     secret = claim_service.get_secret(created_item)
