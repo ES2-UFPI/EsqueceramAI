@@ -36,8 +36,6 @@
 <aside class="stack">
   <section class="card pad"><div class="flex between center"><p class="eyebrow">Situação</p>{{ status_badge(item.status) }}</div>
   <p class="xs muted mt-s">{% if confirmed %}✓ Correspondência confirmada. Combine a retirada no ponto de coleta.{% elif item.status == 'RETURNED' %}Este item já foi devolvido ao responsável.{% elif item.status == 'ARCHIVED' %}Este registro está arquivado e não aparece na busca pública.{% elif item.status == 'RESERVED' %}O item está reservado para retirada.{% else %}O registro está em aberto e participando das sugestões automáticas.{% endif %}</p>
-  {% if item.type == 'FOUND' %}<p class="xs muted mt-s">🔐 Este registro exige resposta à pergunta-chave para confirmar a posse.</p>{% endif %}
-  {% if is_owner and d.hasSecret %}<p class="alert xs mt-s">🔐 O detalhe confidencial e a resposta esperada nunca aparecem nesta página. Confira a resposta quando alguém reivindicar o item; para alterar a pergunta, use “Editar registro”.</p>{% endif %}
   <div class="stack-s mt">
     {% if not user %}<a class="btn btn-primary btn-block" href="/entrar?next=/itens/{{ item.id }}">🔒 Entrar para ver contato</a>{% endif %}
     {% if is_owner and d.hasSecret %}<p class="alert xs">🔐 Este registro tem detalhe oculto e pergunta-chave. O detalhe nunca aparece na página; confira a resposta quando alguém reivindicar.</p>{% endif %}
