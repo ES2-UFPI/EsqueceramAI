@@ -1,13 +1,3 @@
-"""US04 — detalhe oculto e pergunta-chave (#27).
-
-Quem registra um item ENCONTRADO pode guardar um detalhe confidencial (marca de arranhão,
-cor da capa interna…) e uma pergunta-chave derivada dele. O detalhe nunca é serializado por
-nenhuma listagem: ele vive em ``item_secrets``, numa tabela própria que só este módulo lê.
-
-A resposta é gravada como HMAC (nunca em claro), então o banco não guarda o que basta para
-acertar a pergunta. Este módulo cuida só do **cadastro**; o fluxo de reivindicação em si
-(mostrar a pergunta, validar e bloquear tentativas) entra nos tickets seguintes.
-"""
 import hashlib
 import hmac
 import os

@@ -141,6 +141,12 @@ def items_challenge(item_id):
     if result is None:
         raise ApiError("Este item não usa pergunta de segurança.", 404)
     return jsonify(challenge=result)
+  
+@bp.post("/items/<int:item_id>/claim")
+@controller
+def items_claim(item_id):
+    payload = read_json()
+    return jsonify(claim_service.answer(item_id, api_user(), payload.get("answer", "")))
 
 
 # ---------------------------------------------------------------- matches
