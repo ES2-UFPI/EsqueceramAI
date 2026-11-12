@@ -180,6 +180,14 @@ def challenge(item_id: int, user: dict) -> dict | None:
             "verified": status == CLAIM_VERIFIED, "blocked": status == CLAIM_BLOCKED}
 
 
+def question_for(user: dict | None, item: dict) -> str | None:
+    """Pergunta exibida na página do item para quem pode reivindicá-lo."""
+    if not user or user["id"] == item["userId"] or not is_claimable(item):
+        return None
+    secret = get_secret(item["id"])
+    return secret.question if secret else None
+
+
 def _resolve_claim(item_id: int, user: dict) -> ItemClaim:
     claim = _load_claim(item_id, user)
     try:

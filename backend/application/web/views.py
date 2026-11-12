@@ -156,8 +156,7 @@ def item_detalhe(item_id):
     return render_template("item_detalhe.html", d=detail, item=detail["item"], pending=pending, confirmed=confirmed,
                            is_staff=bool(viewer and viewer["role"] in ("ADMIN", "OPERATOR_POST")),
                            is_owner=bool(viewer and viewer["id"] == detail["item"]["userId"]),
-                           challenge_question=_detail_challenge(viewer, detail["item"], detail),
-                           challenge_error=None)
+                           challenge_question=claim_service.question_for(viewer, detail["item"]))
 
 # ------------------------------------------------------------------- painel
 @bp.post("/itens/<int:item_id>/reivindicar")
