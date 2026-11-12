@@ -2,11 +2,11 @@
 from datetime import datetime, timedelta, timezone
 
 from application.auth import can_manage_item
-from application.domain import CATEGORIES, RECORD_TYPES, STATUSES
+from application.domain import CATEGORIES, FINAL_STATUSES, RECORD_TYPES, STATUSES
 from application.errors import ApiError, forbidden, not_found
 from application.repositories.engagement import (add_item_event, create_notifications, list_item_events, list_matches,
                                          list_matches_for_item)
-from application.repositories.items import (create_item, delete_item, find_item_by_id, is_seeded_item, list_items,
+from application.repositories.items import (create_item, delete_item, find_item_by_id, list_items,
                                             set_item_status, update_item)
 from application.repositories.points import find_point_by_id
 from application.repositories.users import add_user_score
@@ -67,8 +67,11 @@ def _assert_point(point_id):
 def create_item_from_form(user: dict, form, image=None) -> dict:
     data = parse_item_form(form)
     _assert_point(data["pointId"])
+    valid_secret = claim_service.validate_secret(
+        user, {"userId": user["id"], "type": data["type"], "isDemo": False}, form
+    )
     created = create_item(_to_values(data, user["id"]))
-    claim_service.save_secret(user, created.id, form)
+    claim_service.save_secret(user, created.id, form, valid_secret)
     if image is not None and getattr(image, "filename", ""):
         store_item_image(created.id, image)
     add_item_event(item_id=created.id, actor_id=user["id"], status="OPEN",
@@ -83,14 +86,15 @@ def update_item_from_form(user: dict, item_id: int, form, image=None):
         raise not_found("Registro")
     if not can_manage_item(user, current):
         raise forbidden("Você só pode editar os seus próprios registros.")
-    if current["status"] == "RETURNED":
-        raise ApiError("Itens já devolvidos não podem ser editados.", 409)
+    if current["status"] in FINAL_STATUSES:
+        raise ApiError("Itens já devolvidos ou entregues não podem ser editados.", 409)
     data = parse_item_form(form)
     _assert_point(data["pointId"])
     values = _to_values(data, current["userId"])
-    seeded = is_seeded_item(current)
+    # Valida o segredo ANTES de atualizar o item no banco (evita gravação parcial em caso de 422):
+    valid_secret = claim_service.validate_secret(user, {**current, "type": values["type"]}, form)
     updated = update_item(item_id, values)
-    claim_service.save_secret(user, item_id, form, seeded=seeded)
+    claim_service.save_secret(user, item_id, form, valid_secret)
     if not updated:
         raise ApiError("Não foi possível atualizar o registro.", 500)
     if image is not None and getattr(image, "filename", ""):
@@ -123,13 +127,16 @@ def change_item_status(user: dict, item_id: int, status: str, note: str | None =
         raise forbidden("Sem permissão para alterar o status.")
     if not is_owner and user["role"] == "OPERATOR_POST" and current["pointId"] is None:
         raise forbidden("Operadores gerenciam apenas itens entregues em pontos de coleta.")
+    if current["status"] == "DELIVERED" and status != "DELIVERED":
+        raise ApiError("Este item já foi entregue com termo de retirada e não pode mudar de status.", 409)
 
     set_item_status(item_id, status)
     notes = {"OPEN": note or "Registro reaberto.", "RESERVED": note or "Item reservado para retirada.",
-             "RETURNED": note or "Item devolvido ao responsável.", "ARCHIVED": note or "Registro arquivado."}
+             "RETURNED": note or "Item devolvido ao responsável.", "DELIVERED": note or "Item entregue ao retirante.",
+             "ARCHIVED": note or "Registro arquivado."}
     add_item_event(item_id=item_id, actor_id=user["id"], status=status, note=notes[status])
 
-    if status == "RETURNED":
+    if status in FINAL_STATUSES:
         _handle_recovery(current, user)
     elif status == "ARCHIVED":
         create_notifications([{"userId": current["userId"], "type": "UPDATE", "title": "Registro arquivado",
@@ -169,6 +176,7 @@ def get_item_detail(item_id: int, viewer: dict | None):
         return None
     return {"item": item, "matches": list_matches_for_item(item_id), "timeline": list_item_events(item_id),
             "canManage": bool(viewer and can_manage_item(viewer, item)),
+            "claim": claim_service.status_for(viewer, item),
             "hasSecret": claim_service.get_secret(item_id) is not None}
 
 

@@ -1,19 +1,18 @@
 """Modelo relacional (equivalente a src/db/schema.ts / Drizzle)."""
 import os
+from contextlib import contextmanager
 from datetime import datetime, timezone
 
 from sqlalchemy import (JSON, Boolean, DateTime, Enum, Float, ForeignKey, Index, Integer,
-                        LargeBinary, String, Text, UniqueConstraint, create_engine)
+                        LargeBinary, String, Text, UniqueConstraint, create_engine, text)
 from sqlalchemy.dialects.postgresql import JSONB
-from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, scoped_session, sessionmaker
+from sqlalchemy.orm import DeclarativeBase, Mapped, Session, mapped_column, scoped_session, sessionmaker
 from sqlalchemy.types import TypeDecorator
 
 from application import domain
 
-
 def utcnow():
     return datetime.now(timezone.utc)
-
 
 class UTCDateTime(TypeDecorator):
     """timestamptz no PostgreSQL; no SQLite garante datetimes com fuso (UTC)."""
@@ -32,13 +31,10 @@ class UTCDateTime(TypeDecorator):
             value = value.replace(tzinfo=timezone.utc)
         return value
 
-
 JSONType = JSON().with_variant(JSONB(), "postgresql")
-
 
 def _enum(values, name):
     return Enum(*values, name=name, native_enum=True, validate_strings=False)
-
 
 user_role = _enum(domain.ROLES, "user_role")
 record_type = _enum(domain.RECORD_TYPES, "record_type")
@@ -48,10 +44,8 @@ match_status = _enum(domain.MATCH_STATUSES, "match_status")
 notification_type = _enum(domain.NOTIFICATION_TYPES, "notification_type")
 storage_provider = _enum(("SUPABASE", "DATABASE"), "storage_provider")
 
-
 class Base(DeclarativeBase):
     pass
-
 
 class User(Base):
     __tablename__ = "users"
@@ -67,14 +61,12 @@ class User(Base):
     created_at: Mapped[datetime] = mapped_column(UTCDateTime, default=utcnow)
     updated_at: Mapped[datetime] = mapped_column(UTCDateTime, default=utcnow)
 
-
 class AuthSession(Base):
     __tablename__ = "sessions"
     token: Mapped[str] = mapped_column(Text, primary_key=True)
     user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
     expires_at: Mapped[datetime] = mapped_column(UTCDateTime)
     created_at: Mapped[datetime] = mapped_column(UTCDateTime, default=utcnow)
-
 
 class CollectionPoint(Base):
     __tablename__ = "collection_points"
@@ -88,7 +80,6 @@ class CollectionPoint(Base):
     longitude: Mapped[float | None] = mapped_column(Float, nullable=True)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
     created_at: Mapped[datetime] = mapped_column(UTCDateTime, default=utcnow)
-
 
 class Item(Base):
     __tablename__ = "items"
@@ -112,9 +103,9 @@ class Item(Base):
     longitude: Mapped[float | None] = mapped_column(Float, nullable=True)
     image_url: Mapped[str | None] = mapped_column(Text, nullable=True)
     storage_key: Mapped[str | None] = mapped_column(Text, nullable=True)
+    is_demo: Mapped[bool] = mapped_column(Boolean, default=False, server_default="0")
     created_at: Mapped[datetime] = mapped_column(UTCDateTime, default=utcnow)
     updated_at: Mapped[datetime] = mapped_column(UTCDateTime, default=utcnow)
-
 
 class ItemImage(Base):
     """Bytes privados da imagem (equivale ao bucket privado do Supabase)."""
@@ -127,7 +118,6 @@ class ItemImage(Base):
     size_bytes: Mapped[int] = mapped_column(Integer)
     data: Mapped[bytes | None] = mapped_column(LargeBinary, nullable=True)
     created_at: Mapped[datetime] = mapped_column(UTCDateTime, default=utcnow)
-
 
 class Match(Base):
     __tablename__ = "matches"
@@ -143,7 +133,6 @@ class Match(Base):
     resolved_at: Mapped[datetime | None] = mapped_column(UTCDateTime, nullable=True)
     created_at: Mapped[datetime] = mapped_column(UTCDateTime, default=utcnow)
 
-
 class Notification(Base):
     __tablename__ = "notifications"
     __table_args__ = (Index("notifications_user_idx", "user_id", "is_read"),)
@@ -155,7 +144,6 @@ class Notification(Base):
     link: Mapped[str | None] = mapped_column(Text, nullable=True)
     is_read: Mapped[bool] = mapped_column(Boolean, default=False)
     created_at: Mapped[datetime] = mapped_column(UTCDateTime, default=utcnow)
-
 
 class MatchNotification(Base):
     """Livro-razão de avisos externos (US09): a chave única por match/destinatário/canal garante idempotência."""
@@ -170,8 +158,12 @@ class MatchNotification(Base):
     created_at: Mapped[datetime] = mapped_column(UTCDateTime, default=utcnow)
     sent_at: Mapped[datetime | None] = mapped_column(UTCDateTime, nullable=True)
 
-
 class ItemSecret(Base):
+    """US04 (#27): detalhe confidencial e pergunta-chave usados para validar a posse.
+
+    Tabela separada de propósito: nenhuma listagem ou serialização de item consulta estes
+    campos, então o detalhe nunca vaza por descuido. A resposta é guardada apenas como HMAC.
+    """
     __tablename__ = "item_secrets"
     item_id: Mapped[int] = mapped_column(ForeignKey("items.id", ondelete="CASCADE"), primary_key=True)
     detail: Mapped[str] = mapped_column(Text)
@@ -180,6 +172,22 @@ class ItemSecret(Base):
     created_at: Mapped[datetime] = mapped_column(UTCDateTime, default=utcnow)
     updated_at: Mapped[datetime] = mapped_column(UTCDateTime, default=utcnow)
 
+CLAIM_PENDING, CLAIM_VERIFIED, CLAIM_BLOCKED = "PENDING", "VERIFIED", "BLOCKED"
+CLAIM_STATUSES = (CLAIM_PENDING, CLAIM_VERIFIED, CLAIM_BLOCKED)
+
+class ItemClaim(Base):
+    """US04: tentativa de um usuário provar que é o dono de um item encontrado."""
+    __tablename__ = "item_claims"
+    __table_args__ = (UniqueConstraint("item_id", "claimant_id", name="item_claims_unique"),)
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    item_id: Mapped[int] = mapped_column(ForeignKey("items.id", ondelete="CASCADE"), index=True)
+    claimant_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
+    status: Mapped[str] = mapped_column(String(12), default=CLAIM_PENDING)
+    attempts: Mapped[int] = mapped_column(Integer, default=0)
+    last_attempt_at: Mapped[datetime | None] = mapped_column(UTCDateTime, nullable=True)
+    verified_at: Mapped[datetime | None] = mapped_column(UTCDateTime, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(UTCDateTime, default=utcnow)
+    updated_at: Mapped[datetime] = mapped_column(UTCDateTime, default=utcnow)
 
 class ItemEvent(Base):
     __tablename__ = "item_events"
@@ -191,7 +199,6 @@ class ItemEvent(Base):
     note: Mapped[str] = mapped_column(Text)
     created_at: Mapped[datetime] = mapped_column(UTCDateTime, default=utcnow)
 
-
 # ------------------------------------------------------------------ engine/sessão
 def _database_url() -> str:
     url = os.getenv("DATABASE_URL") or "sqlite:///esqueceram.db"
@@ -200,7 +207,6 @@ def _database_url() -> str:
     # Algumas URLs do Supabase vêm explicitamente com o driver psycopg 3;
     # mantemos esse formato e o declaramos nas dependências do backend.
     return url
-
 
 engine = create_engine(_database_url(), pool_pre_ping=True,
                        connect_args={"check_same_thread": False} if _database_url().startswith("sqlite") else {})
@@ -211,9 +217,44 @@ if engine.dialect.name == "sqlite":
     def _fk_on(conn, _):  # SQLite precisa habilitar FKs (ON DELETE CASCADE)
         conn.execute("PRAGMA foreign_keys=ON")
 
-db = scoped_session(sessionmaker(bind=engine, expire_on_commit=False))
+class _AtomicSession(Session):
+    def commit(self):
+        if self.info.get("atomic_depth", 0) > 0:
+            self.flush()
+            return
+        super().commit()
 
+db = scoped_session(sessionmaker(bind=engine, class_=_AtomicSession, expire_on_commit=False))
+
+@contextmanager
+def atomic():
+    session = db()
+    depth = session.info.get("atomic_depth", 0)
+    session.info["atomic_depth"] = depth + 1
+    try:
+        yield
+    except BaseException:
+        session.info["atomic_depth"] = depth
+        if depth == 0:
+            session.rollback()
+        raise
+    session.info["atomic_depth"] = depth
+    if depth == 0:
+        session.commit()
+
+def _sync_item_status_enum():
+    if engine.dialect.name != "postgresql":
+        return
+    with engine.connect().execution_options(isolation_level="AUTOCOMMIT") as conn:
+        existing = {row[0] for row in conn.execute(text("SELECT unnest(enum_range(NULL::item_status))::text"))}
+        previous = None
+        for value in domain.STATUSES:
+            if value not in existing:
+                position = f" AFTER '{previous}'" if previous else ""  # mesma ordem de um banco novo
+                conn.execute(text(f"ALTER TYPE item_status ADD VALUE IF NOT EXISTS '{value}'{position}"))
+            previous = value
 
 def init_db():
     """Equivalente a `drizzle-kit push`: cria as tabelas que ainda não existem."""
     Base.metadata.create_all(engine)
+    _sync_item_status_enum()

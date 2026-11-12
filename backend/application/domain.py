@@ -1,11 +1,13 @@
 import math
 import re
+import unicodedata
 from datetime import datetime, timezone
 from zoneinfo import ZoneInfo
 
 RECORD_TYPES = ("LOST", "FOUND")
 CATEGORIES = ("ELECTRONIC", "DOCUMENT", "ACCESSORY")
-STATUSES = ("OPEN", "RESERVED", "RETURNED", "ARCHIVED")
+STATUSES = ("OPEN", "RESERVED", "RETURNED", "DELIVERED", "ARCHIVED")
+FINAL_STATUSES = ("RETURNED", "DELIVERED")
 MATCH_STATUSES = ("PENDING", "CONFIRMED", "REJECTED")
 ROLES = ("USER", "OPERATOR_POST", "ADMIN")
 NOTIFICATION_TYPES = ("MATCH", "UPDATE", "RECOVERY", "SYSTEM")
@@ -13,7 +15,8 @@ NOTIFICATION_TYPES = ("MATCH", "UPDATE", "RECOVERY", "SYSTEM")
 RECORD_TYPE_LABEL = {"LOST": "Perdido", "FOUND": "Encontrado"}
 CATEGORY_LABEL = {"ELECTRONIC": "Eletrônico", "DOCUMENT": "Documento", "ACCESSORY": "Acessório"}
 CATEGORY_PLURAL = {"ELECTRONIC": "Eletrônicos", "DOCUMENT": "Documentos", "ACCESSORY": "Acessórios"}
-STATUS_LABEL = {"OPEN": "Em aberto", "RESERVED": "Reservado", "RETURNED": "Devolvido", "ARCHIVED": "Arquivado"}
+STATUS_LABEL = {"OPEN": "Em aberto", "RESERVED": "Reservado", "RETURNED": "Devolvido", "DELIVERED": "Entregue",
+                "ARCHIVED": "Arquivado"}
 MATCH_STATUS_LABEL = {"PENDING": "Aguardando confirmação", "CONFIRMED": "Confirmado", "REJECTED": "Descartado"}
 ROLE_LABEL = {"USER": "Comunidade", "OPERATOR_POST": "Operador de ponto", "ADMIN": "Administrador"}
 
@@ -147,6 +150,20 @@ def bounding_box(lat, lng, radius_km):
     if lng_min < -180 or lng_max > 180:
         lng_min = lng_max = None
     return lat - d_lat, lat + d_lat, lng_min, lng_max
+
+def fold_text(value) -> str:
+    text = unicodedata.normalize("NFKD", str(value or "")).casefold()
+    return " ".join("".join(ch for ch in text if not unicodedata.combining(ch)).split())
+
+def matches_place(term, *fields) -> bool:
+    phrase = fold_text(term)
+    if not phrase:
+        return True
+    folded = [fold_text(f) for f in fields if f]
+    if any(phrase in f for f in folded):
+        return True
+    words = {w for f in folded for w in re.findall(r"\w+", f)}
+    return all(any(w.startswith(p) for w in words) for p in re.findall(r"\w+", phrase))
 
 def _blank(value) -> bool:
     return value is None or str(value).strip() == ""

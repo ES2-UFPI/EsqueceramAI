@@ -109,7 +109,10 @@ def items_patch(item_id):
         return jsonify(item=item_row_json(item))
     payload = read_json()
     if payload.get("status") not in STATUSES:
-        raise ApiError("Informe um status válido (OPEN, RESERVED, RETURNED ou ARCHIVED).", 422)
+        raise ApiError("Informe um status válido.", 422)
+    if payload["status"] == "DELIVERED":
+        raise ApiError("O status \"Entregue\" só é definido ao concluir uma entrega com termo de retirada "
+                       "(CPF, documento com foto e código de confirmação).", 409)
     enforce_checkout_policy(payload["status"], item_id)  # opcional (DELIVERY_REQUIRE_CHECKOUT)
     return jsonify(item_service.change_item_status(user, item_id, payload["status"], payload.get("note")))
 
@@ -141,7 +144,8 @@ def items_challenge(item_id):
     if result is None:
         raise ApiError("Este item não usa pergunta de segurança.", 404)
     return jsonify(challenge=result)
-  
+
+
 @bp.post("/items/<int:item_id>/claim")
 @controller
 def items_claim(item_id):
