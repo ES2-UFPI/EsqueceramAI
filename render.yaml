@@ -23,7 +23,7 @@ services:
       - key: MATCH_NOTIFY_THRESHOLD
         value: "75"
       - key: APP_BASE_URL
-        value: "https://esqueceram-ai-api.onrender.com"
+        value: "https://esqueceramai.onrender.com"
       - key: SMTP_HOST
         sync: false
       - key: SMTP_PORT

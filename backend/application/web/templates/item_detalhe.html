@@ -49,10 +49,11 @@
         <p class="bold sm">{{ challenge_question }}</p>
         <form method="post" action="/itens/{{ item.id }}/reivindicar" class="stack-s">
           <input class="input" name="answer" autocomplete="off" required placeholder="Sua resposta">
+          {% if challenge_error %}<p class="err">{{ challenge_error }}</p>{% endif %}
           <button class="btn btn-accent btn-block">Validar resposta</button>
         </form>
       </section>
-    {% elif user and not is_owner and item.status != 'RETURNED' %}<p class="alert xs">ℹ️ Encontrou este item? Confirme a correspondência e combine a entrega com {{ item.ownerName|firstname }}.</p>{% endif %}
+    {% elif user and not is_owner and item.status != 'RETURNED' and not d.hasSecret %}<p class="alert xs">ℹ️ Encontrou este item? Confirme a correspondência e combine a entrega com {{ item.ownerName|firstname }}.</p>{% endif %}
     {% if user and user.role == 'OPERATOR_POST' and item.type == 'FOUND' and item.pointName and item.status in ('OPEN','RESERVED') %}<a class="btn btn-accent btn-block" href="/painel/entregas/nova?item={{ item.id }}">📝 Registrar entrega (CPF e documento)</a>{% endif %}
     {% if d.canManage %}
       <a class="btn btn-secondary btn-block" href="/painel/itens/{{ item.id }}/editar">✏️ Editar registro</a>

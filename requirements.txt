@@ -1,0 +1,6 @@
+pytest>=8.0
+pypdf>=4.0
+pytest
+pytest-cov
+pypdf
+psycopg2-binary

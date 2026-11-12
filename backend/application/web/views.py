@@ -156,7 +156,8 @@ def item_detalhe(item_id):
     return render_template("item_detalhe.html", d=detail, item=detail["item"], pending=pending, confirmed=confirmed,
                            is_staff=bool(viewer and viewer["role"] in ("ADMIN", "OPERATOR_POST")),
                            is_owner=bool(viewer and viewer["id"] == detail["item"]["userId"]),
-                           challenge_question=claim_service.question_for(viewer, detail["item"]))
+                           challenge_question=_detail_challenge(viewer, detail["item"], detail),
+                           challenge_error=None)
 
 # ------------------------------------------------------------------- painel
 @bp.post("/itens/<int:item_id>/reivindicar")
@@ -173,6 +174,14 @@ def item_reivindicar(user, item_id):
     if message:
         flash(message, tone)
     return redirect(f"/itens/{item_id}")
+
+
+def _detail_challenge(user, item, detail):
+    """A pergunta exibida a quem vai reivindicar (nunca o detalhe oculto)."""
+    if not user or not detail["claim"].get("available"):
+        return None
+    secret = claim_service.get_secret(item["id"])
+    return secret.question if secret else None
 
 
 @bp.get("/correspondencias/<int:match_id>")

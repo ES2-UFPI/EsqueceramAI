@@ -1,12 +1,14 @@
-"""US04 — detalhe oculto e pergunta-chave (#27).
+"""US04 — validação de posse por detalhe oculto e pergunta-chave (#27–#31).
 
-Quem registra um item ENCONTRADO pode guardar um detalhe confidencial (marca de arranhão,
-cor da capa interna…) e uma pergunta-chave derivada dele. O detalhe nunca é serializado por
-nenhuma listagem: ele vive em ``item_secrets``, numa tabela própria que só este módulo lê.
-
-A resposta é gravada como HMAC (nunca em claro), então o banco não guarda o que basta para
-acertar a pergunta. Este módulo cuida só do **cadastro**; o fluxo de reivindicação em si
-(mostrar a pergunta, validar e bloquear tentativas) entra nos tickets seguintes.
+Como funciona:
+  * quem publica um item ENCONTRADO pode guardar um detalhe confidencial e uma
+    pergunta-chave (#27). O detalhe nunca é serializado; a pergunta só aparece
+    para quem se dispõe a reivindicar o item (#28 e #29);
+  * ao reivindicar, o usuário responde à pergunta. A resposta é comparada com um
+    HMAC gravado no cadastro (#30);
+  * cada usuário tem no máximo três tentativas por item, e o contador não é
+    reiniciado por acertos — respondida a pergunta, a posse é validada para sempre
+    (#31). Isso impede adivinhação repetida sem punir quem acertou.
 """
 import hashlib
 import hmac
@@ -27,6 +29,8 @@ from application.repositories.items import find_item_by_id, is_seeded_item
 from application.repositories.users import find_user_by_id
 
 log = logging.getLogger("esqueceram.claim")
+
+MAX_FAILED_ATTEMPTS = 3
 
 SECRET_DETAIL_MIN = 3
 SECRET_DETAIL_MAX = 200
@@ -50,8 +54,32 @@ def normalize_answer(value: str) -> str:
     return " ".join(s.split())
 
 
-def answer_hash(item_id: int, answer: str) -> str:
+def _mac(item_id: int, answer: str) -> str:
     return hmac.new(_key(), f"claim:{item_id}:{normalize_answer(answer)}".encode(), hashlib.sha256).hexdigest()
+
+
+def answer_hash(item_id: int, answer: str) -> str:
+    return _mac(item_id, answer)
+
+
+def _check_answer(item_id: int, answer: str, stored_hash: str | None) -> bool:
+    if not stored_hash or not normalize_answer(answer):
+        return False
+    return hmac.compare_digest(_mac(item_id, answer), stored_hash)
+
+
+# ------------------------------------------------------------------ cadastro
+def is_claimable(item: dict | None) -> bool:
+    """Só item ENCONTRADO e ainda disponível pode receber pergunta-chave."""
+    return bool(item and item["type"] == "FOUND" and item["status"] in ("OPEN", "RESERVED"))
+
+
+_is_claimable = is_claimable
+
+
+def _require_owner(user: dict, item: dict):
+    if item["userId"] != user["id"] and user["role"] != "ADMIN":
+        raise forbidden("Apenas quem registrou o item pode definir a pergunta-chave.")
 
 
 class _IncompleteSecret(Exception):
@@ -68,11 +96,6 @@ def _read_secret(raw: dict) -> dict | None:
     if len(detail) < SECRET_DETAIL_MIN or len(question) < SECRET_QUESTION_MIN or len(answer) < SECRET_ANSWER_MIN:
         raise _IncompleteSecret
     return {"detail": detail, "question": question, "answer": answer}
-
-
-def _require_owner(user: dict, item: dict):
-    if item["userId"] != user["id"] and user["role"] != "ADMIN":
-        raise forbidden("Apenas quem registrou o item pode definir a pergunta-chave.")
 
 
 def save_secret(user: dict, item_id: int, form: dict, *, seeded=None) -> ItemSecret | None:
@@ -133,6 +156,15 @@ def remove_secret_for_item(item_id: int):
 
 
 # ------------------------------------------------------------- #29 reivindicação
+def _load_claim(item_id: int, claimant: dict) -> ItemClaim | None:
+    return db.execute(select(ItemClaim).where(ItemClaim.item_id == item_id,
+                                              ItemClaim.claimant_id == claimant["id"])).scalar_one_or_none()
+
+
+def _attempts_left(attempts: int) -> int:
+    return max(MAX_FAILED_ATTEMPTS - attempts, 0)
+
+
 def _require_claimable_item(item: dict) -> None:
     if item["type"] != "FOUND":
         raise ApiError("Apenas itens encontrados podem ser reivindicados.", 422)
@@ -141,7 +173,7 @@ def _require_claimable_item(item: dict) -> None:
 
 
 def challenge(item_id: int, user: dict) -> dict | None:
-    """Mostra a pergunta-chave a quem vai reivindicar — o detalhe nunca sai daqui."""
+    """Retorna apenas a pergunta (nunca o detalhe) para quem vai reivindicar o item."""
     item = find_item_by_id(item_id)
     if not item:
         raise not_found("Registro")
@@ -151,40 +183,22 @@ def challenge(item_id: int, user: dict) -> dict | None:
         return None
     if user["id"] == item["userId"]:
         raise ApiError("Você registrou este item; não é possível reivindicá-lo.", 409)
-    return {"itemId": item_id, "question": secret.question}
+    claim = _load_claim(item_id, user)
+    status = claim.status if claim else CLAIM_PENDING
+    return {"itemId": item_id, "question": secret.question, "status": status,
+            "attemptsLeft": _attempts_left(claim.attempts if claim else 0),
+            "verified": status == CLAIM_VERIFIED, "blocked": status == CLAIM_BLOCKED}
 
 
 def question_for(user: dict | None, item: dict) -> str | None:
     """Pergunta exibida na página do item para quem pode reivindicá-lo."""
-    if not user or user["id"] == item["userId"] or not _is_claimable(item):
+    if not user or user["id"] == item["userId"] or not is_claimable(item):
         return None
     secret = get_secret(item["id"])
     return secret.question if secret else None
 
 
-def _is_claimable(item: dict | None) -> bool:
-    return bool(item and item["type"] == "FOUND" and item["status"] in ("OPEN", "RESERVED"))
-
-
 # ------------------------------------------- #30 validação / #31 limite de tentativas
-MAX_FAILED_ATTEMPTS = 3
-
-
-def _attempts_left(attempts: int) -> int:
-    return max(MAX_FAILED_ATTEMPTS - attempts, 0)
-
-
-def _check_answer(item_id: int, answer: str, stored_hash: str | None) -> bool:
-    if not stored_hash or not normalize_answer(answer):
-        return False
-    return hmac.compare_digest(answer_hash(item_id, answer), stored_hash)
-
-
-def _load_claim(item_id: int, claimant: dict) -> ItemClaim | None:
-    return db.execute(select(ItemClaim).where(ItemClaim.item_id == item_id,
-                                              ItemClaim.claimant_id == claimant["id"])).scalar_one_or_none()
-
-
 def _resolve_claim(item_id: int, user: dict) -> ItemClaim:
     claim = _load_claim(item_id, user)
     try:
@@ -215,6 +229,7 @@ def answer(item_id: int, user: dict, response: str) -> dict:
                        {"answer": ["Limite de tentativas atingido."]})
     if claim.status == CLAIM_VERIFIED:
         return {"verified": True, "attemptsLeft": _attempts_left(claim.attempts), "blocked": False}
+
     if not normalize_answer(response):
         raise ApiError("Informe a resposta da pergunta.", 422, {"answer": ["Campo obrigatório."]})
 
@@ -273,7 +288,7 @@ def status_for(user: dict | None, item: dict) -> dict:
     secret = get_secret(item["id"])
     if not secret:
         return {"available": False, "reason": "no-question"}
-    if not _is_claimable(item):
+    if not is_claimable(item):
         return {"available": False, "reason": "unavailable"}
     claim = _load_claim(item["id"], user)
     return {"available": True, "reason": None,

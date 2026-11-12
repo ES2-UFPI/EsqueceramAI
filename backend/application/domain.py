@@ -1,5 +1,6 @@
 import math
 import re
+import unicodedata
 from datetime import datetime, timezone
 from zoneinfo import ZoneInfo
 
@@ -147,6 +148,20 @@ def bounding_box(lat, lng, radius_km):
     if lng_min < -180 or lng_max > 180:
         lng_min = lng_max = None
     return lat - d_lat, lat + d_lat, lng_min, lng_max
+
+def fold_text(value) -> str:
+    text = unicodedata.normalize("NFKD", str(value or "")).casefold()
+    return " ".join("".join(ch for ch in text if not unicodedata.combining(ch)).split())
+
+def matches_place(term, *fields) -> bool:
+    phrase = fold_text(term)
+    if not phrase:
+        return True
+    folded = [fold_text(f) for f in fields if f]
+    if any(phrase in f for f in folded):
+        return True
+    words = {w for f in folded for w in re.findall(r"\w+", f)}
+    return all(any(w.startswith(p) for w in words) for p in re.findall(r"\w+", phrase))
 
 def _blank(value) -> bool:
     return value is None or str(value).strip() == ""
