@@ -12,7 +12,7 @@ from application.repositories.engagement import (count_unread_notifications, lis
 from application.repositories.items import item_row_json
 from application.repositories.points import create_point, list_points, point_json, update_point
 from application.repositories.users import list_users, set_user_active, set_user_role
-from application.services import auth_service, item_service
+from application.services import auth_service, claim_service, item_service
 from application.services.matching_service import decide_match
 from application.services.seed_service import DEMO_PASSWORD_HINT, ensure_seeded, find_demo_persona
 from application.services.storage_service import resolve_item_image
@@ -131,6 +131,24 @@ def images_get(item_id):
         return redirect(image[1], 302)
     _, mime, data = image
     return Response(data, mimetype=mime, headers={"Cache-Control": "private, max-age=120", "Content-Length": str(len(data))})
+
+# ---------------------------------------------------------------- posse (US04)
+@bp.get("/items/<int:item_id>/challenge")
+@controller
+def items_challenge(item_id):
+    """A pergunta-chave para o reclamante responder — o detalhe oculto nunca sai daqui."""
+    result = claim_service.challenge(item_id, api_user())
+    if result is None:
+        raise ApiError("Este item não usa pergunta de segurança.", 404)
+    return jsonify(challenge=result)
+
+
+@bp.post("/items/<int:item_id>/claim")
+@controller
+def items_claim(item_id):
+    payload = read_json()
+    return jsonify(claim_service.answer(item_id, api_user(), payload.get("answer", "")))
+
 
 # ---------------------------------------------------------------- matches
 @bp.get("/matches")
