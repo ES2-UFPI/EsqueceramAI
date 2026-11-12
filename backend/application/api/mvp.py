@@ -8,7 +8,7 @@ bp = Blueprint("mvp", __name__, url_prefix="/api")
 
 _TYPES = {"PERDIDO": "LOST", "ENCONTRADO": "FOUND"}
 _CATEGORIES = {"ELETRONICO": "ELECTRONIC", "DOCUMENTO": "DOCUMENT", "ACESSORIO": "ACCESSORY"}
-_STATUSES = {"ABERTO": "OPEN", "RESERVADO": "RESERVED", "DEVOLVIDO": "RETURNED", "ARQUIVADO": "ARCHIVED"}
+_STATUSES = {"ABERTO": "OPEN", "RESERVADO": "RESERVED", "DEVOLVIDO": "RETURNED", "ENTREGUE": "DELIVERED", "ARQUIVADO": "ARCHIVED"}
 
 def _error(message, status=400):
     return jsonify(erro=message), status

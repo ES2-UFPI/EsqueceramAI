@@ -5,7 +5,7 @@ import os
 import re
 import unicodedata
 
-from application.domain import CATEGORY_LABEL
+from application.domain import CATEGORY_LABEL, FINAL_STATUSES
 from application.delivery.email_service import EmailError, send_match_notification
 from application.errors import ApiError, forbidden, not_found
 from application.repositories.engagement import (add_item_event, claim_match_notification, create_notifications,
@@ -128,7 +128,7 @@ def score_pair(lost: dict, found: dict) -> dict:
 def generate_matches_for_item(item_id: int) -> int:
     """Gera/atualiza sugestões de um item e notifica os dois responsáveis."""
     item = find_item_by_id(item_id)
-    if not item or item["status"] in ("ARCHIVED", "RETURNED"):
+    if not item or item["status"] == "ARCHIVED" or item["status"] in FINAL_STATUSES:
         return 0
     opposite = list_open_by_type("FOUND" if item["type"] == "LOST" else "LOST")
     candidates = [c for c in opposite if c["userId"] != item["userId"] and c["category"] == item["category"]]
