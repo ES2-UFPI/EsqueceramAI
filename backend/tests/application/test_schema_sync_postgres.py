@@ -9,9 +9,10 @@ import uuid
 import pytest
 from sqlalchemy import create_engine, inspect, text
 from sqlalchemy.engine import make_url
+from sqlalchemy.orm import Session
 
 from application import models
-from application.models import Base
+from application.models import Base, Item, User, utcnow
 
 ADMIN_URL = os.getenv("MIGRATION_TEST_DATABASE_URL")
 pytestmark = pytest.mark.skipif(not ADMIN_URL, reason="defina MIGRATION_TEST_DATABASE_URL para testar no PostgreSQL")
@@ -25,13 +26,15 @@ def test_missing_boolean_column_is_added_with_a_working_default(monkeypatch):
     target = create_engine(make_url(ADMIN_URL).set(database=name))
     try:
         models.Base.metadata.create_all(target)
-        with target.begin() as conn:  # tabela de antes do campo existir
+        with Session(target) as s:  # linha antiga, gravada antes da coluna existir
+            dono = User(name="Dono", email="dono@ufpi.edu.br", password_hash="x", role="USER")
+            s.add(dono)
+            s.flush()
+            s.add(Item(user_id=dono.id, type="FOUND", category="ELECTRONIC", title="Achado",
+                       description="com detalhe", location="Biblioteca", occurred_at=utcnow(), status="OPEN"))
+            s.commit()
+        with target.begin() as conn:  # tabela como estava em produção
             conn.execute(text("ALTER TABLE items DROP COLUMN is_demo"))
-            conn.execute(text("INSERT INTO users (name, email, password_hash, role) "
-                              "VALUES ('Dono', 'dono@ufpi.edu.br', 'x', 'USUARIO')"))
-            conn.execute(text("INSERT INTO items (user_id, type, category, title, description, attributes, "
-                              "location, occurred_at, status) VALUES (1, 'FOUND', 'ELECTRONIC', 'Achado', "
-                              "'com detalhe', '{}', 'Biblioteca', now(), 'OPEN')"))
         monkeypatch.setattr(models, "engine", target)
 
         models.init_db()
