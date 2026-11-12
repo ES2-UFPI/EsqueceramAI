@@ -19,6 +19,10 @@ class EmailError(Exception):
     """Falha no envio (SMTP indisponível, credenciais inválidas...)."""
 
 
+# O Render bloqueia 25/465/587 nas instâncias gratuitas; a 2525 passa.
+PORTAS_SMTP_BLOQUEADAS_NO_RENDER = {25, 465, 587}
+
+
 def _flag(name: str, default: bool) -> bool:
     value = os.getenv(name)
     return default if value is None else value.strip().lower() in ("1", "true", "yes", "sim")
@@ -74,6 +78,10 @@ def send_email(to: str, subject: str, body: str, html_body: str | None = None) -
             server.send_message(msg)
     except (smtplib.SMTPException, OSError) as exc:
         log.error("Falha ao enviar e-mail para %s: %s", mask_email(to), exc)
+        if port in PORTAS_SMTP_BLOQUEADAS_NO_RENDER and "Network is unreachable" in str(exc):
+            log.error(
+                "A porta %s é bloqueada para saída nas instâncias gratuitas do Render. "
+                "Use SMTP_PORT=2525 (Brevo, Mailgun e Mailjet aceitam) ou um provedor por HTTP.", port)
         raise EmailError(str(exc)) from exc
     return "smtp"
 
