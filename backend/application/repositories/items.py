@@ -2,7 +2,7 @@ import math
 import re
 from datetime import datetime, timezone
 from sqlalchemy import case, exists, func, or_, select
-from application.domain import CAMPUS_CENTER, bounding_box, haversine_km
+from application.domain import CAMPUS_CENTER, bounding_box, haversine_km, matches_place
 from application.models import CollectionPoint, Item, ItemImage, User, db, utcnow
 from application.validation import parse_iso
 
@@ -20,6 +20,7 @@ def map_item(row) -> dict:
         "description": i.description, "color": i.color, "brand": i.brand, "model": i.model,
         "attributes": i.attributes or {}, "location": i.location, "occurredAt": i.occurred_at,
         "status": i.status, "pointId": i.point_id, "latitude": i.latitude, "longitude": i.longitude,
+        "isDemo": getattr(i, "is_demo", False),
         "imageSrc": i.image_url or (f"/api/images/{i.id}" if has_image else None),
         "createdAt": i.created_at, "updatedAt": i.updated_at,
         "ownerName": u.name, "ownerEmail": u.email, "ownerPhone": u.phone, "ownerRole": u.role,
@@ -37,16 +38,13 @@ def item_row_json(i: Item) -> dict:
             "imageUrl": i.image_url, "storageKey": i.storage_key, "createdAt": i.created_at,
             "updatedAt": i.updated_at}
 
-SEEDED_DESCRIPTION_PREFIX = "Registro demonstrativo"
-
-
-def is_seeded_item(i_found: dict) -> bool:
+def is_seeded_item(item: dict) -> bool:
     """Itens do dataset demonstrativo não recebem detalhe secreto.
 
     Eles existem em bancos de produção e as contas demo são públicas; sem esta trava,
     qualquer visitante poderia criar uma pergunta-chave num item de outra pessoa.
     """
-    return i_found["description"].startswith(SEEDED_DESCRIPTION_PREFIX)
+    return bool(item.get("isDemo"))
 
 
 def _aware(d):
@@ -58,7 +56,7 @@ def _conditions(f: dict) -> list:
     if f.get("category"): c.append(Item.category == f["category"])
     if f.get("status"): c.append(Item.status == f["status"])
     elif not f.get("includeArchived"): c.append(Item.status != "ARCHIVED")
-    for key, col in (("location", Item.location), ("color", Item.color), ("brand", Item.brand), ("model", Item.model)):
+    for key, col in (("color", Item.color), ("brand", Item.brand), ("model", Item.model)):
         if f.get(key): c.append(col.ilike(f"%{f[key]}%"))
     if f.get("ownerId"): c.append(Item.user_id == f["ownerId"])
     if f.get("pointId"): c.append(Item.point_id == f["pointId"])
@@ -89,14 +87,16 @@ def _attach_distance(items: list[dict], geo: dict) -> None:
         if it["latitude"] is not None and it["longitude"] is not None:
             it["distanceKm"] = round(haversine_km(geo["lat"], geo["lng"], it["latitude"], it["longitude"]), 3)
 
-
-def _list_near(where, order, geo, sort, page, page_size) -> dict:
+def _list_in_python(where, order, geo, place, sort, page, page_size) -> dict:
     items = [map_item(r) for r in db.execute(_base().where(*where).order_by(*order))]
-    _attach_distance(items, geo)
-    if geo.get("radiusKm") is not None:
-        items = [it for it in items if it["distanceKm"] is not None and it["distanceKm"] <= geo["radiusKm"]]
-    if sort == "proximity":  # sort estável: empates mantêm a ordem por data
-        items.sort(key=lambda it: (it["distanceKm"] is None, it["distanceKm"] or 0))
+    if place:
+        items = [it for it in items if matches_place(place, it["location"], it["pointName"], it["pointBuilding"])]
+    if geo:
+        _attach_distance(items, geo)
+        if geo.get("radiusKm") is not None:
+            items = [it for it in items if it["distanceKm"] is not None and it["distanceKm"] <= geo["radiusKm"]]
+        if sort == "proximity": 
+            items.sort(key=lambda it: (it["distanceKm"] is None, it["distanceKm"] or 0))
     total = len(items)
     start = (page - 1) * page_size
     return {"items": items[start:start + page_size], "total": total, "page": page, "pageSize": page_size,
@@ -106,6 +106,7 @@ def list_items(f: dict) -> dict:
     page_size = min(f.get("pageSize") or 9, 50)
     page = max(f.get("page") or 1, 1)
     geo = f.get("geo")
+    place = (f.get("location") or "").strip()
     where = _conditions(f) + _geo_conditions(geo)
     order = []
     q = (f.get("q") or "").strip()
@@ -116,8 +117,8 @@ def list_items(f: dict) -> dict:
         term = f"%{q}%"
         order.append(case((Item.title.ilike(term), 0), (Item.description.ilike(term), 1), else_=2).asc())
     order += [Item.occurred_at.desc(), Item.id.desc()]
-    if geo and (geo.get("radiusKm") is not None or f.get("sort") == "proximity"):
-        return _list_near(where, order, geo, f.get("sort"), page, page_size)
+    if place or (geo and (geo.get("radiusKm") is not None or f.get("sort") == "proximity")):
+        return _list_in_python(where, order, geo, place, f.get("sort"), page, page_size)
     rows = db.execute(_base().where(*where).order_by(*order).limit(page_size).offset((page - 1) * page_size))
     total = db.scalar(select(func.count()).select_from(Item).where(*where)) or 0
     items = [map_item(r) for r in rows]

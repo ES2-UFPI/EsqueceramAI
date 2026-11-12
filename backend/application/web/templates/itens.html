@@ -1,19 +1,19 @@
 {% extends "base.html" %}{% from "_ui.html" import item_card, pager, empty %}{% block title %}Explorar itens · Esqueceram AI{% endblock %}
 {% block content %}
 <h1 class="display" style="font-size:2rem">Explorar itens</h1>
-<p class="sm muted">{{ result.total }} registro(s) encontrado(s){% if geo and geo.radiusKm %} em até {{ D.format_distance(geo.radiusKm) }} do ponto de referência{% endif %}.</p>
+<p class="sm muted">{{ result.total }} registro(s) encontrado(s){% if f.get('local','').strip() %} para “{{ f.get('local','').strip() }}”{% endif %}{% if geo and geo.radiusKm %} em até {{ D.format_distance(geo.radiusKm) }} do ponto de referência{% endif %}.</p>
 {% if geo_error %}<div class="alert error mt">{{ geo_error }} A busca foi feita sem o filtro de localização.</div>{% endif %}
 {% if geo and geo.radiusKm %}<p class="xs muted">Itens sem coordenadas não aparecem na busca por raio.</p>{% endif %}
 <form class="card pad mt" method="get">
   <div class="flex gap wrap"><input class="input grow" name="q" value="{{ f.get('q','') }}" placeholder="Busque por título, descrição, local, marca ou código ESQ-00001">
+  <input class="input" name="local" value="{{ f.get('local','') }}" list="locs" maxlength="120" style="width:15rem" placeholder="Cidade, bairro ou local" aria-label="Cidade, bairro ou local">
   <select class="select" name="ordem" style="width:auto">{% for v, l in D.SORT_OPTIONS %}<option value="{{ v }}" {{ 'selected' if f.get('ordem') == v }}>{{ l }}</option>{% endfor %}</select>
   <button class="btn btn-primary">Buscar</button></div>
-  <details class="filters mt-s" {{ 'open' if f.get('tipo') or f.get('categoria') or f.get('status') or f.get('cor') or f.get('marca') or f.get('local') or f.get('raio') or f.get('lat') }}><summary>Filtros avançados</summary>
+  <details class="filters mt-s" {{ 'open' if f.get('tipo') or f.get('categoria') or f.get('status') or f.get('cor') or f.get('marca') or f.get('raio') or f.get('lat') }}><summary>Filtros avançados</summary>
   <div class="grid g4 mt-s">
     <label class="field"><span>Tipo</span><select class="select" name="tipo"><option value="">Todos</option>{% for t in D.RECORD_TYPES %}<option value="{{ t }}" {{ 'selected' if f.get('tipo') == t }}>{{ D.RECORD_TYPE_LABEL[t] }}</option>{% endfor %}</select></label>
     <label class="field"><span>Categoria</span><select class="select" name="categoria"><option value="">Todas</option>{% for c in D.CATEGORIES %}<option value="{{ c }}" {{ 'selected' if f.get('categoria') == c }}>{{ D.CATEGORY_LABEL[c] }}</option>{% endfor %}</select></label>
     <label class="field"><span>Status</span><select class="select" name="status"><option value="">Ativos</option>{% for s in D.STATUSES %}<option value="{{ s }}" {{ 'selected' if f.get('status') == s }}>{{ D.STATUS_LABEL[s] }}</option>{% endfor %}</select></label>
-    <label class="field"><span>Local</span><input class="input" name="local" value="{{ f.get('local','') }}" list="locs"></label>
     <label class="field"><span>Raio de busca</span><select class="select" name="raio"><option value="">Sem limite</option>{% for r in D.RADIUS_OPTIONS %}<option value="{{ r }}" {{ 'selected' if f.get('raio') == r|string }}>até {{ D.format_distance(r) }}</option>{% endfor %}</select></label>
     <div class="field" data-geo-box><span>Perto de</span>
       <select class="select" data-geo-point><option value="">Escolher um ponto de coleta…</option>{% for p in points if p.latitude is not none and p.longitude is not none %}<option value="{{ p.id }}" data-lat="{{ p.latitude }}" data-lng="{{ p.longitude }}">{{ p.name }}</option>{% endfor %}</select>
@@ -26,7 +26,8 @@
     <label class="field"><span>Modelo</span><input class="input" name="modelo" value="{{ f.get('modelo','') }}"></label>
     <label class="field"><span>De</span><input class="input" type="date" name="de" value="{{ f.get('de','') }}"></label>
     <label class="field"><span>Até</span><input class="input" type="date" name="ate" value="{{ f.get('ate','') }}"></label>
-  </div><datalist id="locs">{% for l in D.CAMPUS_LOCATIONS %}<option value="{{ l }}">{% endfor %}</datalist></details>
+  </div></details>
+  <datalist id="locs">{% for l in D.CAMPUS_LOCATIONS %}<option value="{{ l }}">{% endfor %}{% for p in points %}<option value="{{ p.name }}">{% endfor %}</datalist>
 </form>
 {% if result["items"] %}<div class="grid g3 mt">{% for i in result["items"] %}{{ item_card(i) }}{% endfor %}</div>{{ pager(result, base) }}
 {% else %}<div class="card mt">{{ empty('Nenhum item encontrado','Ajuste os filtros ou registre o seu item.','/painel/itens/novo','Registrar item') }}</div>{% endif %}

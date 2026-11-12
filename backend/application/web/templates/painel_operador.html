@@ -1,8 +1,8 @@
 {% extends "app_base.html" %}{% from "_ui.html" import stat, type_badge, status_badge, api_button, thumb, empty %}{% block title %}Painel do ponto · Esqueceram AI{% endblock %}
 {% block content %}
-{% set awaiting = items|selectattr('status','in',['OPEN','RESERVED'])|list %}{% set returned = items|selectattr('status','equalto','RETURNED')|list %}
+{% set awaiting = items|selectattr('status','in',['OPEN','RESERVED'])|list %}{% set returned = items|selectattr('status','in',['RETURNED','DELIVERED'])|list %}
 <p class="eyebrow">Equipe</p><h1 class="display" style="font-size:2rem">Painel do ponto</h1>
-<div class="grid g4 mt">{{ stat('Itens em pontos', items|length) }}{{ stat('Aguardando retirada', awaiting|length) }}{{ stat('Devoluções concluídas', returned|length) }}{{ stat('Pontos ativos', points|selectattr('isActive')|list|length, '/painel/pontos') }}</div>
+<div class="grid g4 mt">{{ stat('Itens em pontos', items|length) }}{{ stat('Aguardando retirada', awaiting|length) }}{{ stat('Devoluções e entregas concluídas', returned|length) }}{{ stat('Pontos ativos', points|selectattr('isActive')|list|length, '/painel/pontos') }}</div>
 <section class="card pad mt-l"><div class="flex between center"><h2 class="display" style="font-size:1.2rem">Itens sob responsabilidade da equipe</h2><a class="btn btn-secondary btn-sm" href="/itens">Explorar todos</a></div>
 {% if items %}<ul class="stack mt">{% for i in items %}<li class="flex gap wrap center">{{ thumb(i.imageSrc, h='64px') }}<div class="grow"><div class="flex gap-s">{{ type_badge(i.type) }}{{ status_badge(i.status) }}</div>
 <a class="bold sm" href="/itens/{{ i.id }}">{{ i.title }}</a><p class="xs muted">📍 {{ i.pointName }} · {{ i.ownerName }} · atualizado {{ i.updatedAt|ago }}</p></div>
