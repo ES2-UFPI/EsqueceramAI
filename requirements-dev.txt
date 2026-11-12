@@ -1,2 +1,0 @@
-pytest>=8.0
-pypdf>=4.0

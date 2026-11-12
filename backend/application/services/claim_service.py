@@ -106,7 +106,7 @@ def save_secret(user: dict, item_id: int, form: dict, *, seeded=None) -> ItemSec
             add_item_event(item_id=item_id, actor_id=user["id"], status=item["status"],
                            note="Pergunta-chave removida do registro.")
         return None
-
+      
     if current:
         current.detail, current.question = block["detail"], block["question"]
         current.answer_hash, current.updated_at = answer_hash(item_id, block["answer"]), utcnow()
