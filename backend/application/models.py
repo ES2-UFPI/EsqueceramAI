@@ -6,6 +6,7 @@ from datetime import datetime, timezone
 from sqlalchemy import (JSON, Boolean, DateTime, Enum, Float, ForeignKey, Index, Integer,
                         LargeBinary, String, Text, UniqueConstraint, create_engine, inspect, text)
 from sqlalchemy.dialects.postgresql import JSONB
+from sqlalchemy.engine import make_url
 from sqlalchemy.orm import DeclarativeBase, Mapped, Session, mapped_column, scoped_session, sessionmaker
 from sqlalchemy.types import TypeDecorator
 
@@ -208,8 +209,22 @@ def _database_url() -> str:
     # mantemos esse formato e o declaramos nas dependências do backend.
     return url
 
-engine = create_engine(_database_url(), pool_pre_ping=True,
-                       connect_args={"check_same_thread": False} if _database_url().startswith("sqlite") else {})
+_URL = _database_url()
+_PSYCOPG3 = make_url(_URL).get_backend_name() == "postgresql" and make_url(_URL).drivername in (
+    "postgresql", "postgresql+psycopg")
+
+# O psycopg 3 prepara um statement após ser executado 5 vezes na mesma conexão e o
+# pooler do Supabase (PgBouncer) reaproveita a sessão entre conexões lógicas. Assim o
+# nome "_pg3_0" já existe quando outro worker prepara o mesmo statement, e o worker
+# morre no boot com DuplicatePreparedStatement. Desligar o preparo resolve na origem.
+if _PSYCOPG3:
+    _CONNECT_ARGS = {"prepare_threshold": None}
+elif _URL.startswith("sqlite"):
+    _CONNECT_ARGS = {"check_same_thread": False}
+else:
+    _CONNECT_ARGS = {}
+
+engine = create_engine(_URL, pool_pre_ping=True, connect_args=_CONNECT_ARGS)
 if engine.dialect.name == "sqlite":
     from sqlalchemy import event
 
