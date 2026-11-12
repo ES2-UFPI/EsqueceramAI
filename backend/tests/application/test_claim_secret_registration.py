@@ -138,12 +138,6 @@ def test_only_the_owner_can_set_the_question(created_item, app):
                            content_type="multipart/form-data")
     assert response.status_code == 403
 
-
-def test_form_only_offers_secret_box_for_found_items(creator):
-    form = creator.get("/painel/itens/novo").get_data(as_text=True)
-    assert "secretQuestion" in form
-    assert "data-secret-box" in form
-
 def test_new_item_form_renders_secret_box(creator):
     form = creator.get("/painel/itens/novo").get_data(as_text=True)
     assert "secretQuestion" in form
