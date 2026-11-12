@@ -11,12 +11,9 @@ from application.delivery.email_service import EmailError
 from application.delivery.mailer import send_ownership_confirmed
 from application.domain import item_code
 from application.errors import ApiError, forbidden, not_found
-from application.models import ItemSecret, db, utcnow
-from application.repositories.engagement import add_item_event
-from application.repositories.items import find_item_by_id, is_seeded_item
 from application.models import CLAIM_BLOCKED, CLAIM_PENDING, CLAIM_VERIFIED, ItemClaim, ItemSecret, db, utcnow
 from application.repositories.engagement import add_item_event, create_notifications
-from application.repositories.items import find_item_by_id
+from application.repositories.items import find_item_by_id, is_seeded_item
 from application.repositories.users import find_user_by_id
 
 log = logging.getLogger("esqueceram.claim")
@@ -50,7 +47,6 @@ def _mac(item_id: int, answer: str) -> str:
 
 
 def answer_hash(item_id: int, answer: str) -> str:
-    return hmac.new(_key(), f"claim:{item_id}:{normalize_answer(answer)}".encode(), hashlib.sha256).hexdigest()
     return _mac(item_id, answer)
 
 
@@ -87,11 +83,6 @@ def _read_secret(raw: dict) -> dict | None:
     return {"detail": detail, "question": question, "answer": answer}
 
 
-def _require_owner(user: dict, item: dict):
-    if item["userId"] != user["id"] and user["role"] != "ADMIN":
-        raise forbidden("Apenas quem registrou o item pode definir a pergunta-chave.")
-
-
 def save_secret(user: dict, item_id: int, form: dict, *, seeded=None) -> ItemSecret | None:
     item = find_item_by_id(item_id)
     if not item:
@@ -112,7 +103,7 @@ def save_secret(user: dict, item_id: int, form: dict, *, seeded=None) -> ItemSec
     if block is None:
         # Só remove quando pedido de forma explícita: atualizações parciais do item
         # (por exemplo, mudar o status) não podem apagar a pergunta-chave sem aviso.
-        if current and str(form.get("secretClear") or "").lower() in ("1", "true", "on", "sim"):
+        if current and str(form.get("secretClear") or "").lower() in _TRUE:
             db.delete(current)
             db.commit()
             add_item_event(item_id=item_id, actor_id=user["id"], status=item["status"],
