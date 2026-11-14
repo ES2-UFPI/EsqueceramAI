@@ -1,4 +1,3 @@
-"""Correspondência explicável entre perdidos e encontrados (src/server/services/matching-service.ts)."""
 import logging
 import math
 import os
@@ -17,7 +16,6 @@ from application.repositories.users import add_user_score, find_user_by_id
 log = logging.getLogger("esqueceram.matching")
 
 MATCH_THRESHOLD = 55
-# US09: só dispara a notificação externa quando a similaridade é alta, para não incomodar o usuário.
 NOTIFICATION_THRESHOLD = int(os.getenv("MATCH_NOTIFY_THRESHOLD", "75"))
 
 STOPWORDS = {"de", "da", "do", "das", "dos", "com", "para", "por", "que", "uma", "um", "na", "no", "nas",
@@ -159,12 +157,6 @@ def generate_matches_for_item(item_id: int) -> int:
 
 
 def notify_match(match_id: int, lost: dict, found: dict, result: dict) -> int:
-    """Avisa por e-mail quem perdeu o item quando a similaridade é alta (>= NOTIFICATION_THRESHOLD).
-
-    A reserva é feita par a par no ``match_notifications`` (chave única por match/destinatário):
-    se a geração rodar duas vezes, o segundo disparo sai sem enviar. Uma falha de SMTP libera a
-    reserva para que um próximo registro possa tentar de novo.
-    """
     recipient = find_user_by_id(lost["userId"])
     if not recipient or not recipient.email:
         return 0

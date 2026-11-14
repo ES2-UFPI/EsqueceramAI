@@ -1,8 +1,3 @@
-"""Termo digital de entrega em PDF (reportlab).
-
-Conteúdo: carimbo de data/hora, CPF mascarado, identificador do item e matrícula do atendente
-responsável, além de hash SHA-256 da imagem do documento e de um código de verificação (HMAC).
-"""
 import io
 from dataclasses import dataclass
 from datetime import datetime, timezone

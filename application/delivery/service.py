@@ -1,9 +1,3 @@
-"""Regras de negócio da entrega com respaldo legal.
-
-Fluxo:  start_delivery (CPF + documento + e-mail)  →  código enviado ao retirante
-        →  confirm_delivery (atendente digita o código)  →  termo em PDF + item com status final "Entregue".
-
-"""
 import re
 from datetime import timedelta
 
@@ -25,7 +19,6 @@ ABANDON_AFTER_HOURS = 24
 REGISTRATION_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]{3,19}$")
 
 
-# ------------------------------------------------------------------ permissões
 def _require_attendant(user: dict):
     if user["role"] != "OPERATOR_POST":
         raise forbidden("Apenas atendentes de posto de coleta podem registrar entregas.")
@@ -55,7 +48,6 @@ def _load_for_attendant(user: dict, delivery_id: int) -> m.Delivery:
     return d
 
 
-# ------------------------------------------------------------------- matrícula
 def get_registration(user: dict) -> str | None:
     return repo.get_registration(user["id"])
 
@@ -74,7 +66,6 @@ def set_registration(user: dict, number: str) -> str:
     return number
 
 
-# ------------------------------------------------------------- itens elegíveis
 def deliverable_items() -> list[dict]:
     """Itens encontrados, em ponto de coleta, ainda aguardando retirada."""
     return [i for i in items_at_points() if i["type"] == "FOUND" and i["status"] in ("OPEN", "RESERVED")]
@@ -106,7 +97,6 @@ def _check_no_conflicting_delivery(item_id: int):
         raise ApiError(f"Já existe uma entrega em andamento (#{other.id}) para este item. Conclua ou cancele-a antes de iniciar outra.", 409)
 
 
-# ------------------------------------------------------------- e-mail com código
 def _dispatch_code(d: m.Delivery, code: str) -> dict:
     d.code_sent_at = utcnow()
     try:
@@ -132,7 +122,6 @@ def _issue_code(d: m.Delivery) -> str:
     return code
 
 
-# ------------------------------------------------------------------ 1) iniciar
 def start_delivery(user: dict, form: dict, document_file) -> dict:
     _require_attendant(user)
     registration = repo.get_registration(user["id"])
@@ -175,7 +164,6 @@ def start_delivery(user: dict, form: dict, document_file) -> dict:
     return {"delivery": d, "email": _dispatch_code(d, code)}
 
 
-# ----------------------------------------------------------------- 2) reenviar
 def resend_code(user: dict, delivery_id: int) -> dict:
     d = _load_for_attendant(user, delivery_id)
     _ensure_pending(d)
@@ -199,7 +187,6 @@ def _ensure_pending(d: m.Delivery):
         raise ApiError("Esta entrega foi cancelada ou expirou. Inicie uma nova.", 409)
 
 
-# ----------------------------------------------------------------- 3) confirmar
 def _receipt_data(d: m.Delivery, document_sha256: str, confirmed_at) -> ReceiptData:
     return ReceiptData(delivery_id=d.id, created_at=d.created_at, confirmed_at=confirmed_at, item_code=d.item_code,
                        item_title=d.item_title, point_name=d.point_name, recipient_name=d.recipient_name,
@@ -230,7 +217,6 @@ def confirm_delivery(user: dict, delivery_id: int, code: str) -> m.Delivery:
         repo.add_event(d.id, "CODE_WRONG", f"Código incorreto ({d.code_attempts}/{sec.MAX_ATTEMPTS})")
         raise ApiError(f"Código incorreto. Restam {left} tentativa(s).", 422, {"code": [f"Código incorreto. Restam {left}."]})
 
-    # código correto: valida o item, gera o termo (sem efeitos colaterais) e só então devolve o item
     item = find_item_by_id(d.item_id) if d.item_id else None
     if not item or item["status"] not in ("OPEN", "RESERVED"):
         raise ApiError("O item não está mais disponível para entrega (foi removido, devolvido ou arquivado).", 409)
@@ -240,7 +226,7 @@ def confirm_delivery(user: dict, delivery_id: int, code: str) -> m.Delivery:
     pdf, vcode = build_receipt_pdf(receipt)
 
     number = receipt_number(d.id, d.created_at)
-    with atomic():  # tudo ou nada: item "Entregue", entrega concluída, termo e auditoria juntos
+    with atomic():
         change_item_status(user, d.item_id, "DELIVERED", note=f"Entrega registrada no termo {number}.")
         d.status, d.confirmed_at, d.code_hash = m.COMPLETED, confirmed_at, None
         repo.save(d)
@@ -249,7 +235,6 @@ def confirm_delivery(user: dict, delivery_id: int, code: str) -> m.Delivery:
     return d
 
 
-# ------------------------------------------------------------------ cancelar
 def cancel_delivery(user: dict, delivery_id: int) -> m.Delivery:
     d = _load_for_attendant(user, delivery_id)
     _ensure_pending(d)
@@ -259,7 +244,6 @@ def cancel_delivery(user: dict, delivery_id: int) -> m.Delivery:
     return d
 
 
-# ----------------------------------------------------------------- consultas
 def list_for_user(user: dict) -> list[m.Delivery]:
     if user["role"] == "ADMIN":
         return repo.list_deliveries()
@@ -307,7 +291,6 @@ def verify_delivery(user: dict, delivery_id: int, cpf: str | None = None) -> dic
     return out
 
 
-# ------------------------------------------------------------- serialização
 def delivery_dict(d: m.Delivery, *, detail: bool = False) -> dict:
     now = utcnow()
     out = {

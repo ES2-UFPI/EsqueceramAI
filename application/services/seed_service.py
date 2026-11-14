@@ -1,7 +1,3 @@
-"""Dataset demonstrativo idempotente (src/server/services/seed-service.ts).
-
-Roda uma vez em banco vazio e nunca sobrescreve dados reais.
-"""
 import threading
 from contextlib import contextmanager
 from datetime import datetime, timedelta, timezone
@@ -38,7 +34,6 @@ def _days_ago(days, hours=10):
 
 @contextmanager
 def _quiet_match_emails():
-    """O dataset demonstrativo não deve disparar e-mails reais: as sugestões continuam no painel."""
     from application.services import matching_service
     previous = matching_service.NOTIFICATION_THRESHOLD
     matching_service.NOTIFICATION_THRESHOLD = 100  # acima do placar máximo (99)
@@ -102,11 +97,6 @@ def _item(owner, type_, category, title, description, location, occurred, **kw):
 
 
 def _only_demo_data() -> bool:
-    """True quando o banco só tem as contas demo (nenhum dado real): é seguro popular o dataset demonstrativo.
-
-    Antes, qualquer usuário existente impedia o seed; assim, o login demo em banco vazio criava as contas
-    primeiro e o seed nunca rodava (sem itens nem pontos).
-    """
     demo_emails = {p["email"] for p in DEMO_PEOPLE}
     real_user = db.execute(select(User.id).where(User.email.notin_(demo_emails)).limit(1)).first()
     return not (real_user or count_items() or count_points())

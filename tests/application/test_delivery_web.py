@@ -144,7 +144,6 @@ def test_entry_points_in_existing_pages(app, attendant, make_item):
 
 @pytest.mark.parametrize("persona", ["ana@ufpi.edu.br", "carlos@ufpi.edu.br", "operador@ufpi.edu.br", "admin@ufpi.edu.br"])
 def test_existing_pages_still_work(app, persona):
-    """Regressão: nenhuma página/API anterior foi afetada pelo módulo novo."""
     c = persona_client(app, persona)
     for path in ("/", "/itens", "/itens/1", "/painel", "/painel/itens", "/painel/itens/novo", "/painel/matches",
                  "/painel/notificacoes", "/painel/perfil", "/painel/pontos", "/api/items", "/api/matches",

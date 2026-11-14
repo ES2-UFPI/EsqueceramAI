@@ -1,9 +1,3 @@
-"""Sessões, scrypt e permissões (src/server/auth.ts).
-
-O hash segue o mesmo formato do original (`scrypt:<salt>:<hex>`, N=16384, r=8, p=1,
-64 bytes; o salt hexadecimal entra como string), portanto contas criadas pela versão
-TypeScript continuam válidas.
-"""
 import hashlib
 import hmac
 import secrets

@@ -1,10 +1,3 @@
-"""Envio de e-mails do Esqueceram AI (código de confirmação e avisos de correspondência).
-
-- SMTP: defina SMTP_HOST (+ SMTP_PORT, SMTP_USER, SMTP_PASSWORD, SMTP_FROM, SMTP_STARTTLS, SMTP_SSL).
-- Sem SMTP_HOST (ou com EMAIL_BACKEND=console): modo desenvolvimento, a mensagem é impressa no console
-  do servidor. Nunca exibimos o código na tela, para não anular a verificação.
-- APP_BASE_URL é a raiz dos links enviados (o backend também serve as páginas web).
-"""
 import html
 import logging
 import os
@@ -17,6 +10,9 @@ log = logging.getLogger("esqueceram.email")
 
 class EmailError(Exception):
     """Falha no envio (SMTP indisponível, credenciais inválidas...)."""
+
+
+PORTAS_SMTP_BLOQUEADAS_NO_RENDER = {25, 465, 587}
 
 
 def _flag(name: str, default: bool) -> bool:
@@ -74,6 +70,10 @@ def send_email(to: str, subject: str, body: str, html_body: str | None = None) -
             server.send_message(msg)
     except (smtplib.SMTPException, OSError) as exc:
         log.error("Falha ao enviar e-mail para %s: %s", mask_email(to), exc)
+        if port in PORTAS_SMTP_BLOQUEADAS_NO_RENDER and "Network is unreachable" in str(exc):
+            log.error(
+                "A porta %s é bloqueada para saída nas instâncias gratuitas do Render. "
+                "Use SMTP_PORT=2525 (Brevo, Mailgun e Mailjet aceitam) ou um provedor por HTTP.", port)
         raise EmailError(str(exc)) from exc
     return "smtp"
 
@@ -105,7 +105,6 @@ def _match_card(item: dict, label: str) -> str:
 
 def send_match_notification(*, to: str, name: str, lost: dict, found: dict, score: int, reasons: list[str],
                             match_id: int) -> str:
-    """Avisa quem perdeu o item que uma correspondência forte foi publicada (US09)."""
     card = public_url(f"/correspondencias/{match_id}")
     painel = public_url("/painel/matches")
     reasons_text = "".join(f"  - {r}\n" for r in reasons) or "  - Características compatíveis\n"

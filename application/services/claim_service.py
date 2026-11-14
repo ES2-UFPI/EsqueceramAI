@@ -59,15 +59,11 @@ def _check_answer(item_id: int, answer: str, stored_hash: str | None) -> bool:
     return hmac.compare_digest(_mac(item_id, answer), stored_hash)
 
 
-# ------------------------------------------------------------------ cadastro
 def is_claimable(item: dict | None) -> bool:
     """Só item ENCONTRADO e ainda disponível pode receber pergunta-chave."""
     return bool(item and item["type"] == "FOUND" and item["status"] in ("OPEN", "RESERVED"))
 
 _is_claimable = is_claimable
-
-_is_claimable = is_claimable
-
 
 def _require_owner(user: dict, item: dict):
     if item["userId"] != user["id"] and user["role"] != "ADMIN":
@@ -103,11 +99,6 @@ def validate_secret(user: dict, item: dict, form: dict) -> dict | None:
     return block
 
 def save_secret(user: dict, item_id: int, form: dict, valid_block: dict | None = None) -> ItemSecret | None:
-    """Grava (ou atualiza) o detalhe confidencial a partir de um bloco já validado.
-
-    É seguro chamar `valid_block = validate_secret(...)` em outro módulo para garantir
-    que a API aborte sem gravar dados parciais em caso de erro na resposta secreta.
-    """
     item = find_item_by_id(item_id)
     if not item:
         raise not_found("Registro")
@@ -115,8 +106,6 @@ def save_secret(user: dict, item_id: int, form: dict, valid_block: dict | None =
     current = db.get(ItemSecret, item_id)
 
     if block is None:
-        # Só remove quando pedido de forma explícita: atualizações parciais do item
-        # (por exemplo, mudar o status) não podem apagar a pergunta-chave sem aviso.
         if current and str(form.get("secretClear") or "").lower() in _TRUTHY_FORM_VALUES:
             db.delete(current)
             db.commit()
@@ -148,7 +137,6 @@ def remove_secret_for_item(item_id: int):
         db.commit()
 
 
-# ------------------------------------------------------------------ reivindicação
 def _load_claim(item_id: int, claimant: dict) -> ItemClaim | None:
     return db.execute(select(ItemClaim).where(ItemClaim.item_id == item_id,
                                               ItemClaim.claimant_id == claimant["id"])).scalar_one_or_none()
@@ -191,7 +179,6 @@ def question_for(user: dict | None, item: dict) -> str | None:
     return secret.question if secret else None
 
 
-# ------------------------------------------- #30 validação / #31 limite de tentativas
 def _resolve_claim(item_id: int, user: dict) -> ItemClaim:
     claim = _load_claim(item_id, user)
     try:

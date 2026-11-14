@@ -27,7 +27,7 @@ def map_item(row) -> dict:
         "ownerAvatar": u.avatar_url,
         "pointName": p.name if p else None, "pointBuilding": p.building if p else None,
         "pointHours": p.opening_hours if p else None,
-        "distanceKm": None,  # preenchido por list_items quando há ponto de referência (filtro geográfico)
+        "distanceKm": None,
     }
 
 def item_row_json(i: Item) -> dict:
@@ -39,11 +39,6 @@ def item_row_json(i: Item) -> dict:
             "updatedAt": i.updated_at}
 
 def is_seeded_item(item: dict) -> bool:
-    """Itens do dataset demonstrativo não recebem detalhe secreto.
-
-    Eles existem em bancos de produção e as contas demo são públicas; sem esta trava,
-    qualquer visitante poderia criar uma pergunta-chave num item de outra pessoa.
-    """
     return bool(item.get("isDemo"))
 
 
@@ -122,7 +117,7 @@ def list_items(f: dict) -> dict:
     rows = db.execute(_base().where(*where).order_by(*order).limit(page_size).offset((page - 1) * page_size))
     total = db.scalar(select(func.count()).select_from(Item).where(*where)) or 0
     items = [map_item(r) for r in rows]
-    if geo:  # só informa a distância dos itens da página; a ordem segue a escolhida
+    if geo:
         _attach_distance(items, geo)
     return {"items": items, "total": total, "page": page, "pageSize": page_size,
             "totalPages": max(math.ceil(total / page_size), 1)}

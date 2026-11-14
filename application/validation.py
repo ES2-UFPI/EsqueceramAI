@@ -1,4 +1,4 @@
-"""Pequeno validador (substitui o Zod). Acumula erros por campo e levanta ValidationFailed."""
+"""Validador de formulários e payloads. Acumula erros por campo e levanta ValidationFailed."""
 import math 
 import re
 from datetime import datetime

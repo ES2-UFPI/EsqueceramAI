@@ -1,8 +1,3 @@
-"""Armazenamento privado de imagens (src/server/services/storage-service.ts).
-
-Com SUPABASE_URL + SUPABASE_SERVICE_ROLE_KEY usa o bucket privado `item-images`
-(URLs assinadas de 5 min). Sem credenciais, o mesmo contrato é atendido pelo banco.
-"""
 import json
 import os
 import urllib.error

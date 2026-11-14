@@ -1,4 +1,3 @@
-"""US04 #29 - a pergunta-chave é exibida a quem vai reivindicar o item."""
 import io
 from datetime import datetime, timezone
 

@@ -1,7 +1,3 @@
-"""Imagem do documento com foto do retirante (upload de arquivo ou captura pela câmera).
-
-Valida o conteúdo real (assinatura do arquivo) e não só o Content-Type enviado pelo navegador.
-"""
 from dataclasses import dataclass
 
 from application.delivery.security import sha256_hex

@@ -32,7 +32,7 @@
     try { await call("/api/admin/users", "PATCH", { userId: +s.dataset.roleUser, role: s.value }); toast("Permissão atualizada", "Novo papel: " + s.value); }
     catch (e) { toast("Não foi possível alterar", e.message, true); location.reload(); }
   });
-  // Localização (US10): preenche latitude/longitude pelo GPS ou por um ponto de coleta
+  // Preenche latitude/longitude pelo GPS ou por um ponto de coleta
   function geoBox(el) { const box = el.closest("[data-geo-box]"); return { form: el.closest("form"), status: box && box.querySelector("[data-geo-status]") }; }
   function geoSay(el, text) { const { status } = geoBox(el); if (status) status.textContent = text; }
   function geoApply(el, lat, lng) {
@@ -74,7 +74,7 @@
     });
     cat.addEventListener("change", sync); sync();
   }
-  // US04: validação de posse só existe para itens encontrados
+  // Validação de posse só existe para itens encontrados
   const secretBox = document.querySelector("[data-secret-box]");
   if (secretBox) {
     const syncSecret = () => {

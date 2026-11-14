@@ -1,4 +1,3 @@
-"""Cadastro, login, recuperação de senha e perfil (src/server/services/auth-service.ts)."""
 import os
 import re
 
@@ -35,7 +34,6 @@ def login_user(raw: dict) -> dict:
     f.raw_text("password", min=1, min_msg="Informe sua senha.")
     data = f.finish()
 
-    # Contas de demonstração são criadas sob demanda, mantendo as credenciais documentadas válidas.
     user = find_user_by_email(data["email"])
     if not user:
         try:

@@ -1,4 +1,3 @@
-"""Matches, notificações e histórico de eventos (src/server/repositories/engagement.ts)."""
 from sqlalchemy import and_, exists, func, or_, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import aliased
@@ -90,12 +89,7 @@ def find_match_pairs_for_item(item_id: int) -> list[Match]:
     return list(db.scalars(select(Match).where(or_(Match.lost_item_id == item_id, Match.found_item_id == item_id))))
 
 
-# ------------------------------------------------- avisos externos do match (US09)
 def claim_match_notification(*, match_id: int, user_id: int, channel: str = "EMAIL") -> bool:
-    """Reserva o envio só uma vez; True quando este chamador deve notificar.
-
-    Uma linha anterior FAILED (falha de SMTP) é reaberta para uma nova tentativa.
-    """
     existing = db.execute(select(MatchNotification).where(
         MatchNotification.match_id == match_id, MatchNotification.user_id == user_id,
         MatchNotification.channel == channel)).scalar_one_or_none()
@@ -132,7 +126,6 @@ def match_notifications(match_id: int) -> list[dict]:
              "error": n.error, "createdAt": n.created_at, "sentAt": n.sent_at} for n in rows]
 
 
-# ------------------------------------------------------------- notificações
 def create_notifications(values: list[dict]):
     if not values:
         return
@@ -171,7 +164,6 @@ def mark_all_notifications_read(user_id: int):
     db.commit()
 
 
-# ------------------------------------------------------------ eventos do item
 def add_item_event(*, item_id, actor_id, status, note):
     db.add(ItemEvent(item_id=item_id, actor_id=actor_id, status=status, note=note))
     db.commit()

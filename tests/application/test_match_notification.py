@@ -1,4 +1,3 @@
-"""US09 - notificação automática de correspondência (score mínimo, template, idempotência e decisão)."""
 from datetime import datetime, timedelta, timezone
 
 import pytest
@@ -60,7 +59,6 @@ def _match(lost_id, found_id):
                                           Match.found_item_id == found_id)).scalar_one()
 
 
-# ------------------------------------------------------------------ gatilho
 def test_score_alto_envia_email_com_link_do_card(make_pair, _capture_emails):
     lost_id, found_id = _make_pair(make_pair)
     matching_service.generate_matches_for_item(found_id)
@@ -92,7 +90,6 @@ def test_descricao_diferente_nao_alcanca_o_limiar_padrao(make_pair, _capture_ema
     assert not [e for e in _capture_emails if "Mochila Nike encontrada" in e["body"]]
 
 
-# ------------------------------------------------------------- idempotência
 def test_reprocessar_nao_duplica_o_email(make_pair, _capture_emails):
     _, found_id = _make_pair(make_pair)
     matching_service.generate_matches_for_item(found_id)
@@ -134,7 +131,6 @@ def test_falha_de_smtp_fica_registrada_e_pode_ser_reenviada(make_pair, monkeypat
     assert state["attempts"] == 2
 
 
-# ------------------------------------------------------------- decisão do usuário
 def test_pagina_do_aviso_permite_confirmar(app, make_pair):
     lost_id, found_id = _make_pair(make_pair)
     match = matching_service.upsert_match(lost_item_id=lost_id, found_item_id=found_id, score=90, reasons=["Mesma cor"])
