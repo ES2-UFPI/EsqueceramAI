@@ -4,8 +4,8 @@ import tempfile
 import sys
 from pathlib import Path
 
-# Os testes vivem dentro de ``backend/tests``; disponibiliza o pacote do
-# backend sem depender do diretório em que o pytest foi chamado.
+# Os testes vivem dentro de ``tests``; disponibiliza o pacote da
+# aplicação sem depender do diretório em que o pytest foi chamado.
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
 _tmp = tempfile.mkdtemp(prefix="esqueceram-test-")

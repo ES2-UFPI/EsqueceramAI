@@ -21,3 +21,5 @@ __pycache__/
 .env
 esqueceram.db
 .venv/
+*.zip
+.claude/
