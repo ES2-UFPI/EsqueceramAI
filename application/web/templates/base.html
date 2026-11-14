@@ -6,7 +6,7 @@
 <header class="header"><div class="container">
   <a href="/" class="brandmark"><i>🔎</i> Esqueceram AI</a>
   <nav><a class="btn btn-ghost btn-sm" href="/itens">Explorar</a><a class="btn btn-ghost btn-sm" href="/itens?tipo=FOUND">Achados</a><a class="btn btn-ghost btn-sm" href="/#pontos">Pontos de coleta</a></nav>
-  <div class="flex gap-s">{% if user %}<a class="btn btn-primary btn-sm" href="/painel">Ir para o painel →</a>{% else %}
+  <div class="flex gap-s header-actions">{% if user %}<a class="btn btn-primary btn-sm" href="/painel">Ir para o painel →</a>{% else %}
   <a class="btn btn-secondary btn-sm" href="/entrar">Entrar</a><a class="btn btn-primary btn-sm" href="/cadastrar">Criar conta</a>{% endif %}</div>
 </div></header>
 <div class="container" style="padding-top:24px">{% block content %}{% endblock %}</div>

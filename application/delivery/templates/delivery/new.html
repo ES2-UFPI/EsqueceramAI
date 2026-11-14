@@ -33,7 +33,7 @@
     <img id="doc-preview" hidden alt="Pré-visualização do documento" style="max-width:260px;border-radius:12px;border:1px solid var(--line);margin-top:10px">
     {% if error %}<p class="xs muted mt-s">Por segurança do navegador, selecione o documento novamente.</p>{% endif %}</div>
   <div class="alert xs">🔒 O CPF completo não é armazenado: o sistema guarda apenas a versão mascarada e um código de conferência. O termo em PDF exibirá o CPF mascarado.</div>
-  <div class="flex gap"><button class="btn btn-primary btn-lg">Enviar código ao retirante →</button><a class="btn btn-ghost btn-lg" href="{{ url_for('delivery_web.lista') }}">Cancelar</a></div>
+  <div class="flex gap wrap"><button class="btn btn-primary btn-lg">Enviar código ao retirante →</button><a class="btn btn-ghost btn-lg" href="{{ url_for('delivery_web.lista') }}">Cancelar</a></div>
 </form>
 <script src="{{ url_for('delivery_web.static', filename='delivery.js') }}"></script>
 {% endif %}

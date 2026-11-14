@@ -9,7 +9,7 @@
 <section class="card pad"><h2 class="display" style="font-size:1.1rem">Perfis de acesso</h2>{{ bars(o.roleBreakdown, D.ROLE_LABEL) }}</section></div>
 <section class="card pad mt"><h2 class="display" style="font-size:1.1rem">Maiores colaboradores</h2><ol class="stack-s mt">{% for c in o.contributors %}<li class="flex between"><span class="sm"><b>{{ loop.index }}.</b> {{ c.name }} <span class="xs muted">({{ D.ROLE_LABEL[c.role] }} · {{ c.returned }} devolução(ões))</span></span><span class="badge brand">{{ c.score }} pts</span></li>{% endfor %}</ol></section>
 <section class="card pad mt"><div class="flex between center wrap gap"><h2 class="display" style="font-size:1.2rem">Gestão de usuários</h2>
-<form class="flex gap-s" method="get"><input class="input" name="q" value="{{ q }}" placeholder="Buscar por nome ou e-mail"><button class="btn btn-secondary">Buscar</button></form></div>
+<form class="flex gap-s wrap" method="get"><input class="input grow" name="q" value="{{ q }}" placeholder="Buscar por nome ou e-mail"><button class="btn btn-secondary">Buscar</button></form></div>
 <div class="tablewrap mt"><table class="t"><thead><tr><th>Usuário</th><th>Papel</th><th>Registros</th><th>Pontos</th><th>Status</th><th></th></tr></thead><tbody>
 {% for u in o.users %}<tr><td><b>{{ u.name }}</b><br><span class="xs muted">{{ u.email }}</span></td>
 <td><select class="select" style="max-width:170px;padding:6px 10px;font-size:12px" data-role-user="{{ u.id }}" {{ 'disabled' if u.id == me.id }}>{% for r in D.ROLES %}<option value="{{ r }}" {{ 'selected' if u.role == r }}>{{ D.ROLE_LABEL[r] }}</option>{% endfor %}</select></td>
