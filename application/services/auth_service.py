@@ -1,4 +1,4 @@
-"""Cadastro, login, recuperação de senha e perfil (src/server/services/auth-service.ts)."""
+"""Cadastro, login, recuperação de senha e perfil."""
 import os
 import re
 

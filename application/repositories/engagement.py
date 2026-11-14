@@ -1,4 +1,4 @@
-"""Matches, notificações e histórico de eventos (src/server/repositories/engagement.ts)."""
+"""Matches, notificações e histórico de eventos."""
 from sqlalchemy import and_, exists, func, or_, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import aliased

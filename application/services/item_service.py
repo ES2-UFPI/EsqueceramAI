@@ -1,4 +1,4 @@
-"""Regras de negócio de itens (src/server/services/item-service.ts)."""
+"""Regras de negócio de itens."""
 from datetime import datetime, timedelta, timezone
 
 from application.auth import can_manage_item

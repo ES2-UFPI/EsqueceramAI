@@ -1,4 +1,4 @@
-"""Esqueceram AI — aplicação Flask (porta do projeto Next.js + Drizzle)."""
+"""Esqueceram AI — aplicação Flask."""
 import os
 
 from dotenv import load_dotenv
@@ -27,7 +27,7 @@ def create_app() -> Flask:
     from application import delivery
     delivery.init_app(app)  # módulo de entrega com respaldo legal (tabelas/rotas próprias)
 
-    init_db()  # equivale a `drizzle-kit push` (cria apenas o que falta)
+    init_db()  # cria tabelas ainda inexistentes e sincroniza enums
 
     from application.api.routes import bp as api_bp
     from application.api.mvp import bp as mvp_bp

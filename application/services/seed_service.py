@@ -1,4 +1,4 @@
-"""Dataset demonstrativo idempotente (src/server/services/seed-service.ts).
+"""Dataset demonstrativo idempotente.
 
 Roda uma vez em banco vazio e nunca sobrescreve dados reais.
 """

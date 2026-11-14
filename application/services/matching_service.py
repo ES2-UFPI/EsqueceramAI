@@ -1,4 +1,4 @@
-"""Correspondência explicável entre perdidos e encontrados (src/server/services/matching-service.ts)."""
+"""Correspondência explicável entre perdidos e encontrados."""
 import logging
 import math
 import os

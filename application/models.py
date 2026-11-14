@@ -1,4 +1,4 @@
-"""Modelo relacional (equivalente a src/db/schema.ts / Drizzle)."""
+"""Modelo relacional da aplicação."""
 import os
 from contextlib import contextmanager
 from datetime import datetime, timezone
@@ -255,6 +255,6 @@ def _sync_item_status_enum():
             previous = value
 
 def init_db():
-    """Equivalente a `drizzle-kit push`: cria as tabelas que ainda não existem."""
+    """Cria as tabelas que ainda não existem e sincroniza o enum de status."""
     Base.metadata.create_all(engine)
     _sync_item_status_enum()

@@ -1,4 +1,4 @@
-"""Pontos de coleta (src/server/repositories/points.ts)."""
+"""Pontos de coleta."""
 from sqlalchemy import func, select
 
 from application.models import CollectionPoint as P, Item, db
