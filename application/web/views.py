@@ -1,6 +1,7 @@
+from datetime import datetime, timezone
 from functools import wraps
 from urllib.parse import urlencode
-from flask import (Blueprint, flash, g, redirect, render_template, request, make_response, url_for)
+from flask import (Blueprint, Response, flash, g, redirect, render_template, request, make_response, url_for)
 from application import domain as D
 from application.auth import SESSION_COOKIE, can_manage_item, cookie_token, destroy_session, get_current_user
 from application.errors import ApiError
@@ -8,7 +9,7 @@ from application.repositories.engagement import (count_pending_matches, count_un
                                          list_notifications, list_recent_events, mark_all_notifications_read)
 from application.repositories.items import items_at_points
 from application.repositories.points import create_point, list_points, list_recent_point_activity
-from application.services import auth_service, claim_service, item_service, matching_service
+from application.services import auth_service, claim_service, item_service, matching_service, retention_service
 from application.services.seed_service import DEMO_PASSWORD_HINT, DEMO_PERSONAS, ensure_seeded
 from application.services.stats_service import get_admin_overview, get_dashboard, get_public_home
 from application.validation import Form
@@ -170,7 +171,6 @@ def item_reivindicar(user, item_id):
         flash(message, tone)
     return redirect(f"/itens/{item_id}")
 
-
 @bp.get("/correspondencias/<int:match_id>")
 def correspondencia(match_id):
     """Página do link enviado por e-mail: o usuário confirma o match ou descarta o falso positivo."""
@@ -182,7 +182,6 @@ def correspondencia(match_id):
     is_staff = bool(viewer and viewer["role"] in ("ADMIN", "OPERATOR_POST"))
     return render_template("match_decisao.html", m=match, can=is_owner or is_staff,
                            needs_login=viewer is None and match["status"] == "PENDING")
-
 
 @bp.get("/painel")
 @login_required()
@@ -315,6 +314,36 @@ def painel_operador(user):
     items = items_at_points()
     return render_template("painel_operador.html", points=list_points(), items=items, activity=list_recent_point_activity(6),
                            **shell_ctx(user), active="/painel/operador")
+
+def _disposal_filters(args):
+    def number(key):
+        value = args.get(key, "")
+        return int(value) if value.isdigit() and 0 < int(value) < 10**6 else None
+    points = {p["id"] for p in list_points()}
+    point_id = number("ponto")
+    return {"q": (args.get("q") or "").strip()[:120] or None, "pointId": point_id if point_id in points else None,
+            "category": args.get("categoria") if args.get("categoria") in D.CATEGORIES else None,
+            "minDays": number("dias") if number("dias") in retention_service.day_options() else None,
+            "sort": args.get("ordem") if args.get("ordem") in dict(retention_service.DISPOSAL_SORTS) else None}
+
+@bp.get("/painel/descarte")
+@login_required("OPERATOR_POST", "ADMIN")
+def painel_descarte(user):
+    filters = _disposal_filters(request.args)
+    result = retention_service.search_disposal_candidates(filters, D.clamp_page(request.args.get("pagina")))
+    base = {"q": request.args.get("q"), "ponto": filters["pointId"], "categoria": filters["category"],
+            "dias": filters["minDays"], "ordem": filters["sort"]}
+    return render_template("painel_descarte.html", result=result, f=filters, base=base, points=list_points(),
+                           day_options=retention_service.day_options(), sorts=retention_service.DISPOSAL_SORTS,
+                           **shell_ctx(user), active="/painel/descarte")
+
+@bp.get("/painel/descarte.csv")
+@login_required("OPERATOR_POST", "ADMIN")
+def painel_descarte_csv(user):
+    items = retention_service.filter_disposal_candidates(_disposal_filters(request.args))
+    name = f"itens-elegiveis-{datetime.now(timezone.utc):%Y-%m-%d}.csv"
+    return Response(retention_service.disposal_csv(items), mimetype="text/csv",
+                    headers={"Content-Disposition": f'attachment; filename="{name}"'})
 
 @bp.get("/painel/admin")
 @login_required("ADMIN")
