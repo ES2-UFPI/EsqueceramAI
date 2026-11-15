@@ -24,9 +24,9 @@
   </div>
   {{ field('E-mail do retirante (receberá o código de confirmação)','email',values,errors,'email','retirante@exemplo.com',True) }}
   <div><label class="field"><span>Documento com foto do retirante (RG, CNH, passaporte…)</span>
-    <input class="input" type="file" id="document" name="document" accept="image/jpeg,image/png,image/webp" required></label>
+    <input class="input" type="file" id="document" name="document" accept="image/jpeg,image/png,image/webp,application/pdf" required></label>
     <input type="file" id="document-capture" accept="image/*" capture="environment" hidden>
-    <div class="flex gap-s wrap center mt-s"><button type="button" class="btn btn-secondary btn-sm" id="cam-open">📷 Capturar com a câmera</button><span class="xs muted">JPG, PNG ou WebP, até 5 MB. A imagem fica em armazenamento restrito.</span></div>
+    <div class="flex gap-s wrap center mt-s"><button type="button" class="btn btn-secondary btn-sm" id="cam-open">📷 Capturar com a câmera</button><span class="xs muted">JPG, PNG, WebP ou PDF, até 5 MB. O arquivo fica em armazenamento restrito.</span></div>
     {{ err(errors,'document') }}
     <div id="cam-box" hidden class="mt-s"><video id="cam-video" autoplay playsinline muted style="width:100%;max-width:440px;border-radius:12px;background:#000"></video>
       <div class="flex gap-s mt-s"><button type="button" class="btn btn-primary btn-sm" id="cam-shot">Capturar foto</button><button type="button" class="btn btn-ghost btn-sm" id="cam-close">Fechar câmera</button></div></div>
