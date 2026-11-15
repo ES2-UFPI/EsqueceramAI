@@ -174,6 +174,16 @@ def list_open_by_type(record_type: str) -> list[dict]:
              "location": i.location, "occurredAt": i.occurred_at, "attributes": i.attributes or {}}
             for i in rows]
 
+def list_stored_entered_before(cutoff, statuses) -> list[dict]:
+    stmt = (select(Item, CollectionPoint)
+            .join(CollectionPoint, CollectionPoint.id == Item.point_id)
+            .where(Item.type == "FOUND", Item.status.in_(tuple(statuses)),
+                   Item.is_demo.is_(False), Item.created_at < cutoff)
+            .order_by(Item.created_at.asc(), Item.id.asc()))
+    return [{"id": i.id, "title": i.title, "status": i.status, "ownerId": i.user_id,
+             "pointId": p.id, "pointName": p.name, "enteredAt": i.created_at}
+            for i, p in db.execute(stmt)]
+
 def recent_items(limit=6, owner_id=None) -> list[dict]:
     cond = Item.user_id == owner_id if owner_id else Item.status != "ARCHIVED"
     return [map_item(r) for r in db.execute(_base().where(cond).order_by(Item.created_at.desc()).limit(limit))]
