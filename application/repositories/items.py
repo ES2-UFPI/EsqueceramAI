@@ -1,9 +1,9 @@
 import math
 import re
 from datetime import datetime, timezone
-from sqlalchemy import case, exists, func, or_, select
+from sqlalchemy import case, exists, func, or_, select, update
 from application.domain import CAMPUS_CENTER, bounding_box, haversine_km, matches_place
-from application.models import CollectionPoint, Item, ItemImage, User, db, utcnow
+from application.models import CLAIM_BLOCKED, CollectionPoint, Item, ItemClaim, ItemImage, User, db, utcnow
 from application.validation import parse_iso
 
 _has_image = exists().where(ItemImage.item_id == Item.id).correlate(Item).label("has_image")
@@ -148,6 +148,12 @@ def set_item_status(item_id: int, status: str):
         db.commit()
     return row
 
+def transition_item_status(item_id: int, from_status: str, to_status: str) -> bool:
+    result = db.execute(update(Item).where(Item.id == item_id, Item.status == from_status)
+                        .values(status=to_status, updated_at=utcnow()))
+    db.commit()
+    return result.rowcount == 1
+
 def delete_item(item_id: int):
     row = db.get(Item, item_id)
     if row:
@@ -174,10 +180,13 @@ def list_open_by_type(record_type: str) -> list[dict]:
             for i in rows]
 
 def list_stored_entered_before(cutoff, statuses) -> list[dict]:
+    # "sem reivindicação": quem já tentou (PENDING) ou comprovou a posse (VERIFIED) segura o item;
+    # reivindicações BLOCKED (3 respostas erradas) não contam.
+    claimed = (exists().where(ItemClaim.item_id == Item.id, ItemClaim.status != CLAIM_BLOCKED).correlate(Item))
     stmt = (select(Item, CollectionPoint, _has_image)
             .join(CollectionPoint, CollectionPoint.id == Item.point_id)
             .where(Item.type == "FOUND", Item.status.in_(tuple(statuses)),
-                   Item.is_demo.is_(False), Item.created_at < cutoff)
+                   Item.is_demo.is_(False), Item.created_at < cutoff, ~claimed)
             .order_by(Item.created_at.asc(), Item.id.asc()))
     return [{"id": i.id, "title": i.title, "status": i.status, "ownerId": i.user_id,
              "category": i.category, "location": i.location, "color": i.color, "brand": i.brand,
