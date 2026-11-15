@@ -114,7 +114,7 @@ def test_parametros_invalidos_retornam_422(client, params):
     resp = client.get("/api/items", query_string=params)
     assert resp.status_code == 422 and resp.json["error"]
 
-# ------------------------------------------------------------------ API em português (frontend estático)
+# ------------------------------------------------------------------ API
 def _mvp(client, **params):
     resp = client.get("/api/itens", query_string={"q": "GEOTESTE", **params})
     return resp, [i["descricao"] for i in resp.json] if resp.status_code == 200 else None

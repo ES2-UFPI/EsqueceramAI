@@ -1,10 +1,3 @@
-"""Tabelas novas da entrega com respaldo legal.
-
-Só cria tabelas (nenhuma coluna é adicionada às existentes), então `create_all` basta —
-bancos já em uso não precisam de migração. Os dados do item, do ponto e do atendente são
-copiados (snapshot) para a entrega: o termo continua íntegro mesmo se o item for excluído
-ou o atendente trocar de matrícula.
-"""
 from datetime import datetime
 
 from sqlalchemy import Boolean, ForeignKey, Index, Integer, LargeBinary, String, Text
@@ -39,12 +32,10 @@ class Delivery(Base):
     attendant_id: Mapped[int | None] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
     attendant_name: Mapped[str] = mapped_column(Text)
     attendant_registration: Mapped[str] = mapped_column(String(20))
-    # retirante: o CPF completo NÃO é guardado, só o HMAC (para conferir em contestações) e a máscara
     recipient_name: Mapped[str] = mapped_column(Text)
     recipient_cpf_hash: Mapped[str] = mapped_column(String(64))
     recipient_cpf_masked: Mapped[str] = mapped_column(String(20))
     recipient_email: Mapped[str] = mapped_column(Text)
-    # confirmação por código enviado ao e-mail (só o HMAC do código é guardado)
     status: Mapped[str] = mapped_column(String(12), default=PENDING)
     code_hash: Mapped[str | None] = mapped_column(String(64), nullable=True)
     code_sent_at: Mapped[datetime | None] = mapped_column(UTCDateTime, nullable=True)

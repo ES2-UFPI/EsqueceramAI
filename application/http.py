@@ -1,4 +1,3 @@
-"""Infraestrutura HTTP compartilhada: CORS, JSON, erros e wrappers de autenticação (src/server/http.ts)."""
 import os
 from datetime import date, datetime, timezone
 from functools import wraps
@@ -27,12 +26,6 @@ class JSONProvider(DefaultJSONProvider):
 
 
 def cors_headers() -> dict:
-    """Monta CORS para uma origem permitida, nunca uma lista no cabeçalho.
-
-    ``Access-Control-Allow-Origin`` aceita apenas um valor. Em produção a
-    origem vem de ``FRONTEND_ORIGIN`` (GitHub Pages); localhost permanece
-    disponível apenas para desenvolvimento.
-    """
     configured = os.getenv("CORS_ORIGINS") or os.getenv("FRONTEND_ORIGIN", "")
     allowed = {origin.strip().rstrip("/") for origin in configured.split(",") if origin.strip()}
     allowed.update({"http://localhost:5500", "http://127.0.0.1:5500"})
@@ -71,7 +64,6 @@ def api_user(required=True):
 
 
 def controller(fn):
-    """Equivale ao wrapper `controller()`: captura erros de domínio/validação."""
     @wraps(fn)
     def wrapper(*a, **kw):
         try:

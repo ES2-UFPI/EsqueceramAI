@@ -1,4 +1,3 @@
-"""US04 - Validação de propriedade por pergunta-chave / detalhe oculto (#26, #27, #28, #29, #30, #31)."""
 import io
 from datetime import datetime, timedelta, timezone
 
@@ -53,7 +52,6 @@ def created_item(creator):
     db.commit()
 
 
-# ------------------------------------------------------- #27 cadastro do detalhe
 def test_owner_can_register_confidential_detail_and_question(created_item):
     secret = claim_service.get_secret(created_item)
     assert secret is not None
@@ -76,7 +74,6 @@ def test_lost_item_cannot_have_hidden_detail(creator):
     assert "encontrados" in response.json["error"]
 
 
-# ------------------------------------------------- #28 nada vaza nas visualizações
 def test_secret_never_appears_in_listing_or_detail(created_item, app):
     anonymous = app.test_client()
     listing = anonymous.get("/api/items?tipo=ENCONTRADO").get_json()
@@ -90,7 +87,6 @@ def test_secret_never_appears_in_listing_or_detail(created_item, app):
         assert SECRET["secretQuestion"] not in text
 
 
-# ------------------------------------------------------ #29 pergunta para o reclamante
 def test_challenge_returns_question_but_not_detail(created_item, claimant):
     response = claimant.get(f"/api/items/{created_item}/challenge")
     assert response.status_code == 200
@@ -105,7 +101,6 @@ def test_owner_cannot_claim_own_item(created_item, creator):
     assert response.status_code == 409
 
 
-# ------------------------------------------------------ #30 valida a resposta
 def test_correct_answer_validates_ownership(created_item, claimant):
     response = claimant.post(f"/api/items/{created_item}/claim", json={"answer": "adesivo do sport club do recife!"})
     assert response.status_code == 200
@@ -120,7 +115,6 @@ def test_wrong_answer_is_rejected_with_remaining_attempts(created_item, claimant
     assert response.json["details"]["answer"] == ["Resposta incorreta. Restam 2 tentativa(s)."]
 
 
-# --------------------------------- #30 só valida a posse depois da resposta certa
 def test_confirmation_email_only_after_correct_answer(created_item, claimant, _capture_emails):
     claimant.post(f"/api/items/{created_item}/claim", json={"answer": "chute"})
     assert not [m for m in _capture_emails if "Posse validada" in m["subject"]]
@@ -132,7 +126,6 @@ def test_confirmation_email_only_after_correct_answer(created_item, claimant, _c
     assert "Ana Beatriz Lima" in sent[0]["body"]
 
 
-# ------------------------------------------------- #31 bloqueio após três erros
 def test_three_wrong_answers_block_further_attempts(created_item, claimant):
     for expected_left in (2, 1):
         response = claimant.post(f"/api/items/{created_item}/claim", json={"answer": "chute errado"})
@@ -176,7 +169,6 @@ def test_edit_can_add_secret_later_and_remove_it(creator):
         assert edited.status_code == 200
         assert claim_service.get_secret(item_id) is not None
 
-        # atualizar o item sem os campos da pergunta não pode apagar o detalhe oculto
         kept = creator.patch(f"/api/items/{item_id}", data=_multipart(item_form(title="Mochila preta com adesivo")),
                              content_type="multipart/form-data")
         assert kept.status_code == 200

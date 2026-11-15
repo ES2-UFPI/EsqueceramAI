@@ -1,4 +1,3 @@
-"""US04 #31 - bloqueio de novas tentativas após três respostas incorretas."""
 import io
 from datetime import datetime, timezone
 
@@ -81,7 +80,6 @@ def test_page_shows_the_lock_state(item_with_secret, claimant):
 def test_a_different_user_is_not_affected_by_someone_elses_block(item_with_secret, claimant, app):
     for _ in range(3):
         claimant.post(f"/api/items/{item_with_secret}/claim", json={"answer": "chute"})
-    # maria/joao/lucas não são personas de login: cadastra um usuário de verdade
     other = app.test_client()
     assert other.post("/api/auth/register", json={"name": "Maria Teste", "email": "maria.blocked@ufpi.edu.br",
                                                   "password": "senha-segura-123"}).status_code == 201

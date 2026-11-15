@@ -37,7 +37,7 @@ def run(scenario):
 
 def test_demo_login_on_empty_database_populates_items_and_points():
     users, items, points = run("demo_first")
-    assert users == 7 and items == 18 and points == 4        # regressão: antes ficava 7, 0, 0
+    assert users == 7 and items == 18 and points == 4
 
 
 def test_home_first_unchanged():

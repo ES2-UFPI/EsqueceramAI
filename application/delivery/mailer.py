@@ -1,9 +1,3 @@
-"""E-mail de confirmação enviado ao dono depois que a posse é validada (US04).
-
-Separado de ``email_service`` de propósito: aquele módulo é do fluxo de entrega e cobre
-códigos/segurança. Aqui só reutilizamos o transporte (``send_email``) e o mesmo backend
-SMTP/console configurado por ``EMAIL_BACKEND``.
-"""
 from application.delivery import email_service
 from application.delivery.email_service import EmailError, mask_email
 

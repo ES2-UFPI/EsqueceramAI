@@ -1,4 +1,3 @@
-"""Indicadores de dashboard, home pública e administração."""
 from application.domain import FINAL_STATUSES
 from application.models import Item
 from application.repositories.engagement import (count_matches, count_pending_matches, count_unread_notifications, list_matches)

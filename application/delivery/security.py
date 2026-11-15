@@ -1,8 +1,3 @@
-"""Código de confirmação e hashes com HMAC.
-
-Chave: DELIVERY_HMAC_KEY (ou SECRET_KEY). Em produção defina uma chave forte e estável: se ela mudar,
-os códigos pendentes e as conferências de CPF de entregas antigas deixam de funcionar.
-"""
 import hashlib
 import hmac
 import os

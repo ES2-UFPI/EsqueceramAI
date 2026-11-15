@@ -1,10 +1,3 @@
-"""Política opcional: itens em ponto de coleta só saem pelo formulário de entrega.
-
-Desligada por padrão (o botão "Devolvido" existente continua funcionando). Ative com
-DELIVERY_REQUIRE_CHECKOUT=true para que a devolução de itens encontrados em pontos de coleta exija CPF,
-documento com foto e código — o único caminho que gera o termo com respaldo legal.
-A entrega em si usa o serviço diretamente, portanto não é afetada pela política.
-"""
 import os
 
 from application.errors import ApiError

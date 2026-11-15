@@ -1,4 +1,3 @@
-"""Regras de negócio de itens."""
 from datetime import datetime, timedelta, timezone
 
 from application.auth import can_manage_item
@@ -16,7 +15,7 @@ from application.services.storage_service import store_item_image
 from application.validation import Form, parse_iso
 
 def parse_item_form(form) -> dict:
-    """`form` aceita campos planos e `attributes.<chave>` (como no multipart original)."""
+    """Aceita campos planos e `attributes.<chave>`."""
     raw = {k: v for k, v in form.items() if not k.startswith("attributes.")}
     attributes = {}
     for k, v in form.items():
@@ -91,7 +90,6 @@ def update_item_from_form(user: dict, item_id: int, form, image=None):
     data = parse_item_form(form)
     _assert_point(data["pointId"])
     values = _to_values(data, current["userId"])
-    # Valida o segredo ANTES de atualizar o item no banco (evita gravação parcial em caso de 422):
     valid_secret = claim_service.validate_secret(user, {**current, "type": values["type"]}, form)
     updated = update_item(item_id, values)
     claim_service.save_secret(user, item_id, form, valid_secret)

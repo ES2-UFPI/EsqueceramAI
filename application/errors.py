@@ -17,6 +17,5 @@ def unauthorized(message="Faça login para continuar."):
 
 
 class ValidationFailed(ApiError):
-    """Equivale ao ZodError: 422 com `details` por campo."""
     def __init__(self, details: dict):
         super().__init__("Confira os campos do formulário.", 422, details)

@@ -1,4 +1,3 @@
-"""Acesso a dados de usuários."""
 from sqlalchemy import func, or_, select
 from application.domain import FINAL_STATUSES
 from application.models import Item, User, db, utcnow

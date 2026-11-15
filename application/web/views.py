@@ -18,7 +18,6 @@ bp = Blueprint("web", __name__)
 ITEM_FILTER_KEYS = ["q", "tipo", "categoria", "status", "local", "cor", "marca", "modelo", "de", "ate", "ordem",
                     "lat", "lng", "raio"]
 
-# ------------------------------------------------------------------ helpers
 @bp.app_template_filter("date")
 def _date(v): return D.format_date(v)
 @bp.app_template_filter("datetime")
@@ -68,7 +67,6 @@ def render_not_found():
 def _form_error(exc: ApiError):
     return {"error": exc.message, "errors": exc.details or {}}
 
-# ------------------------------------------------------------- páginas públicas
 @bp.get("/")
 def home():
     ensure_seeded()
@@ -139,7 +137,7 @@ def itens():
     filters = request.args.to_dict()
     geo, geo_error = D.parse_geo_params(filters.get("lat"), filters.get("lng"), filters.get("raio"))
     query = _clean(_item_filters(request.args))
-    query["geo"] = geo  # filtro inválido não derruba a página: avisamos e listamos sem ele
+    query["geo"] = geo
     result = item_service.search_items(query)
     base = {k: filters.get(k) for k in ITEM_FILTER_KEYS}
     return render_template("itens.html", result=result, f=filters, base=base, points=list_points(True),
@@ -158,11 +156,9 @@ def item_detalhe(item_id):
                            is_owner=bool(viewer and viewer["id"] == detail["item"]["userId"]),
                            challenge_question=claim_service.question_for(viewer, detail["item"]))
 
-# ------------------------------------------------------------------- painel
 @bp.post("/itens/<int:item_id>/reivindicar")
 @login_required()
 def item_reivindicar(user, item_id):
-    """US04: valida a resposta da pergunta-chave e volta ao detalhe com o resultado."""
     message, tone = None, "error"
     try:
         result = claim_service.answer(item_id, user, request.form.get("answer", ""))
