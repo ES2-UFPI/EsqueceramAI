@@ -8,6 +8,8 @@ RECORD_TYPES = ("LOST", "FOUND")
 CATEGORIES = ("ELECTRONIC", "DOCUMENT", "ACCESSORY")
 STATUSES = ("OPEN", "RESERVED", "RETURNED", "DELIVERED", "ARCHIVED")
 FINAL_STATUSES = ("RETURNED", "DELIVERED")
+STORED_STATUSES = ("OPEN",)
+DEFAULT_RETENTION_DAYS = 90
 MATCH_STATUSES = ("PENDING", "CONFIRMED", "REJECTED")
 ROLES = ("USER", "OPERATOR_POST", "ADMIN")
 NOTIFICATION_TYPES = ("MATCH", "UPDATE", "RECOVERY", "SYSTEM")
@@ -66,6 +68,17 @@ PAGE_SIZE = 9
 
 _TZ = ZoneInfo("America/Fortaleza")
 _MONTHS = ["jan", "fev", "mar", "abr", "mai", "jun", "jul", "ago", "set", "out", "nov", "dez"]
+
+def parse_retention_days(value) -> int:
+    if value is None or str(value).strip() == "":
+        return DEFAULT_RETENTION_DAYS
+    try:
+        days = int(str(value).strip())
+    except ValueError:
+        raise ValueError(f"Prazo de guarda inválido: {value!r}. Use um número inteiro de dias.") from None
+    if days < 1:
+        raise ValueError(f"Prazo de guarda inválido: {days}. Use ao menos 1 dia.")
+    return days
 
 def item_code(item_id: int) -> str:
     return f"ESQ-{int(item_id):05d}"

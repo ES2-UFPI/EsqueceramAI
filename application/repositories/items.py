@@ -41,7 +41,6 @@ def item_row_json(i: Item) -> dict:
 def is_seeded_item(item: dict) -> bool:
     return bool(item.get("isDemo"))
 
-
 def _aware(d):
     return d if d.tzinfo else d.replace(tzinfo=timezone.utc)
 
@@ -173,6 +172,18 @@ def list_open_by_type(record_type: str) -> list[dict]:
              "description": i.description, "color": i.color, "brand": i.brand, "model": i.model,
              "location": i.location, "occurredAt": i.occurred_at, "attributes": i.attributes or {}}
             for i in rows]
+
+def list_stored_entered_before(cutoff, statuses) -> list[dict]:
+    stmt = (select(Item, CollectionPoint, _has_image)
+            .join(CollectionPoint, CollectionPoint.id == Item.point_id)
+            .where(Item.type == "FOUND", Item.status.in_(tuple(statuses)),
+                   Item.is_demo.is_(False), Item.created_at < cutoff)
+            .order_by(Item.created_at.asc(), Item.id.asc()))
+    return [{"id": i.id, "title": i.title, "status": i.status, "ownerId": i.user_id,
+             "category": i.category, "location": i.location, "color": i.color, "brand": i.brand,
+             "imageSrc": i.image_url or (f"/api/images/{i.id}" if has_image else None),
+             "pointId": p.id, "pointName": p.name, "enteredAt": i.created_at}
+            for i, p, has_image in db.execute(stmt)]
 
 def recent_items(limit=6, owner_id=None) -> list[dict]:
     cond = Item.user_id == owner_id if owner_id else Item.status != "ARCHIVED"
