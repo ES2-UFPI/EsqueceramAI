@@ -1,0 +1,22 @@
+{% extends "app_base.html" %}{% block title %}Etiqueta {{ label.code }} · Esqueceram AI{% endblock %}
+{% block content %}
+<style>@media print { .no-print, header, nav, aside { display:none !important; } .label-sheet { border:2px solid #000 !important; box-shadow:none !important; } }</style>
+<div class="flex between center wrap gap no-print">
+  <div><p class="eyebrow">Etiquetagem física</p><h1 class="display" style="font-size:1.8rem">Etiqueta do pacote</h1></div>
+  <div class="flex gap-s"><button class="btn btn-primary" type="button" onclick="window.print()">🖨️ Imprimir etiqueta</button><a class="btn btn-ghost" href="/itens/{{ label.id }}">Voltar ao item</a></div>
+</div>
+<article class="card pad mt label-sheet" style="max-width:460px;border:2px dashed var(--line)">
+  <div class="flex between center">
+    <span class="eyebrow">Esqueceram AI · Posto de Coleta</span>
+    <span class="badge brand">{{ label.inventoryStatusLabel }}</span>
+  </div>
+  <p class="display bold mt-s" style="font-size:2.4rem;letter-spacing:.06em;line-height:1.1">{{ label.code }}</p>
+  <p class="bold mt-s">{{ label.title }}</p>
+  <p class="xs muted">{{ label.category }}{% if label.occurredAt %} · {{ label.occurredAt|date }}{% endif %}</p>
+  <div class="card pad mt-s" style="box-shadow:none">
+    <p class="xs muted">Localização física interna</p>
+    <p class="bold" style="font-size:1.15rem">📦 {{ label.storageLocation }}</p>
+    <p class="xs soft mt-s">📍 {{ label.pointName }}{% if label.pointBuilding %} — {{ label.pointBuilding }}{% endif %}</p>
+  </div>
+</article>
+{% endblock %}
