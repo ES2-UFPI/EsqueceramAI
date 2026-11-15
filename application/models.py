@@ -99,6 +99,8 @@ class Item(Base):
     occurred_at: Mapped[datetime] = mapped_column(UTCDateTime)
     status: Mapped[str] = mapped_column(item_status, default="OPEN")
     point_id: Mapped[int | None] = mapped_column(ForeignKey("collection_points.id", ondelete="SET NULL"), nullable=True)
+    storage_location: Mapped[str | None] = mapped_column(Text, nullable=True)
+    inventory_status: Mapped[str | None] = mapped_column(Text, nullable=True)
     latitude: Mapped[float | None] = mapped_column(Float, nullable=True)
     longitude: Mapped[float | None] = mapped_column(Float, nullable=True)
     image_url: Mapped[str | None] = mapped_column(Text, nullable=True)
