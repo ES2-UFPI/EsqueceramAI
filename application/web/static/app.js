@@ -86,4 +86,23 @@
     document.querySelectorAll("[data-record-type]").forEach(r => r.addEventListener("change", syncSecret));
     syncSecret();
   }
+  // Menu retrátil no mobile (drawer do painel e menu do cabeçalho público)
+  const drawer = document.querySelector("[data-drawer]"), backdrop = document.querySelector("[data-drawer-backdrop]");
+  const setDrawer = (open) => {
+    if (!drawer) return;
+    drawer.classList.toggle("open", open);
+    drawer.setAttribute("aria-hidden", open ? "false" : "true");
+    if (backdrop) backdrop.classList.toggle("open", open);
+    document.querySelectorAll("[data-drawer-toggle]").forEach(b => b.setAttribute("aria-expanded", open ? "true" : "false"));
+  };
+  document.addEventListener("click", (ev) => {
+    if (ev.target.closest("[data-drawer-toggle]")) { setDrawer(!drawer.classList.contains("open")); return; }
+    if (ev.target.closest("[data-drawer-close]") || (drawer && drawer.classList.contains("open") && ev.target.closest("[data-drawer] a.nav"))) { setDrawer(false); }
+    const pubBtn = ev.target.closest("[data-public-nav-toggle]");
+    if (pubBtn) {
+      const nav = document.querySelector("[data-public-nav]");
+      if (nav) { const open = nav.classList.toggle("open"); pubBtn.setAttribute("aria-expanded", open ? "true" : "false"); }
+    }
+  });
+  document.addEventListener("keydown", (ev) => { if (ev.key === "Escape") setDrawer(false); });
 })();

@@ -4,7 +4,7 @@
 <div class="flex between center wrap gap"><div><h1 class="display" style="font-size:2rem">Itens elegíveis para descarte ou doação</h1>
 <p class="sm muted">Itens encontrados, sob guarda de um ponto de coleta e ainda sem desfecho, armazenados há mais de {{ result.retentionDays }} dias.</p></div>
 <a class="btn btn-secondary" href="/painel/descarte.csv?{{ qs(base) }}">⬇ Baixar CSV</a></div>
-<div class="grid g3 mt">{{ stat('Itens elegíveis', result.eligible) }}{{ stat('Pontos com itens vencidos', result.points) }}{{ stat('Mais antigo (dias)', result.oldestDays) }}</div>
+<div class="grid g3 stats-grid mt">{{ stat('Itens elegíveis', result.eligible) }}{{ stat('Pontos com itens vencidos', result.points) }}{{ stat('Mais antigo (dias)', result.oldestDays) }}</div>
 <form class="card pad mt" method="get">
   <div class="flex gap wrap"><input class="input grow" name="q" value="{{ f.q or '' }}" maxlength="120" placeholder="Buscar por título, código ESQ-00001, local, marca ou cor">
   <button class="btn btn-primary">Filtrar</button>{% if base.values()|select|list %}<a class="btn btn-ghost" href="/painel/descarte">Limpar</a>{% endif %}</div>
