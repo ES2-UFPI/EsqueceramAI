@@ -30,4 +30,9 @@ jobs:
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
           STORAGE_RETENTION_DAYS: "90"
-        run: python -m application.jobs.stale_items
+        run: |
+          if [ -z "$DATABASE_URL" ]; then
+            echo "Erro: secret DATABASE_URL não configurado." >&2
+            exit 1
+          fi
+          python -m application.jobs.stale_items

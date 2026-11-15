@@ -130,3 +130,7 @@ def test_cli_exits_with_1_when_the_check_fails(monkeypatch):
         raise RuntimeError("banco indisponível")
     monkeypatch.setattr(stale_items, "run_daily_check", boom)
     assert stale_items.main([]) == 1
+
+def test_cli_argparse_errors_exit_with_1_and_help_with_0():
+    assert stale_items.main(["--days", "abc"]) == 1
+    assert stale_items.main(["--help"]) == 0

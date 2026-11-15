@@ -19,7 +19,10 @@ def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="Verifica itens armazenados além do prazo de guarda.")
     parser.add_argument("--days", type=int, default=None, help="prazo de guarda em dias (padrão: 90)")
     parser.add_argument("--json", action="store_true", help="imprime o relatório em JSON")
-    args = parser.parse_args(argv)
+    try:
+        args = parser.parse_args(argv)
+    except SystemExit as exc:
+        return int(exc.code != 0)
 
     logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
     try:
