@@ -19,7 +19,8 @@ def map_item(row) -> dict:
         "id": i.id, "userId": i.user_id, "type": i.type, "category": i.category, "title": i.title,
         "description": i.description, "color": i.color, "brand": i.brand, "model": i.model,
         "attributes": i.attributes or {}, "location": i.location, "occurredAt": i.occurred_at,
-        "status": i.status, "pointId": i.point_id, "latitude": i.latitude, "longitude": i.longitude,
+        "status": i.status, "pointId": i.point_id, "storageLocation": i.storage_location,
+        "inventoryStatus": i.inventory_status, "latitude": i.latitude, "longitude": i.longitude,
         "isDemo": getattr(i, "is_demo", False),
         "imageSrc": i.image_url or (f"/api/images/{i.id}" if has_image else None),
         "createdAt": i.created_at, "updatedAt": i.updated_at,
@@ -30,13 +31,17 @@ def map_item(row) -> dict:
         "distanceKm": None,
     }
 
-def item_row_json(i: Item) -> dict:
-    return {"id": i.id, "userId": i.user_id, "type": i.type, "category": i.category, "title": i.title,
+def item_row_json(i: Item, include_internal: bool = False) -> dict:
+    data = {"id": i.id, "userId": i.user_id, "type": i.type, "category": i.category, "title": i.title,
             "description": i.description, "color": i.color, "brand": i.brand, "model": i.model,
             "attributes": i.attributes or {}, "location": i.location, "occurredAt": i.occurred_at,
-            "status": i.status, "pointId": i.point_id, "latitude": i.latitude, "longitude": i.longitude,
+            "status": i.status, "pointId": i.point_id, "inventoryStatus": i.inventory_status,
+            "latitude": i.latitude, "longitude": i.longitude,
             "imageUrl": i.image_url, "storageKey": i.storage_key, "createdAt": i.created_at,
             "updatedAt": i.updated_at}
+    if include_internal:
+        data["storageLocation"] = i.storage_location
+    return data
 
 def is_seeded_item(item: dict) -> bool:
     return bool(item.get("isDemo"))
@@ -223,9 +228,19 @@ def monthly_series(months=6) -> list[dict]:
         counts[key] = counts.get(key, 0) + 1
     return [{"month": mo, "type": t, "total": n} for (mo, t), n in sorted(counts.items())]
 
-def items_at_points(point_id=None) -> list[dict]:
+def items_at_points(point_id=None, q: str | None = None, inventory_status: str | None = None) -> list[dict]:
     stmt = (select(Item, User, CollectionPoint, _has_image).join(User, User.id == Item.user_id)
-            .join(CollectionPoint, CollectionPoint.id == Item.point_id).order_by(Item.updated_at.desc()).limit(40))
+            .join(CollectionPoint, CollectionPoint.id == Item.point_id).order_by(Item.updated_at.desc()).limit(60))
     if point_id:
         stmt = stmt.where(Item.point_id == point_id)
+    if inventory_status:
+        stmt = stmt.where(Item.inventory_status == inventory_status)
+    term_raw = (q or "").strip()
+    if term_raw:
+        term = f"%{term_raw}%"
+        parts = [Item.storage_location.ilike(term), Item.title.ilike(term),
+                 Item.location.ilike(term), CollectionPoint.name.ilike(term)]
+        if m := re.match(r"^esq-?0*(\d+)$", term_raw, re.I):
+            parts.append(Item.id == int(m.group(1)))
+        stmt = stmt.where(or_(*parts))
     return [map_item(r) for r in db.execute(stmt)]
