@@ -5,7 +5,7 @@
 <span class="badge {{ STATUS[d.status][1] }}" style="font-size:13px">{{ STATUS[d.status][0] }}</span></div>
 <div class="grid split mt">
 <div class="stack">
-  <section class="card pad"><dl class="dl" style="grid-template-columns:repeat(2,1fr)">
+  <section class="card pad"><dl class="dl dl-2">
     <div><dt>Item</dt><dd>{{ d.itemCode }} — {{ d.itemTitle }}</dd></div><div><dt>Ponto de coleta</dt><dd>{{ d.pointName or '—' }}</dd></div>
     <div><dt>Retirante</dt><dd>{{ d.recipientName }}</dd></div><div><dt>CPF (mascarado)</dt><dd>{{ d.cpfMasked }}</dd></div>
     <div><dt>E-mail de confirmação</dt><dd>{{ d.emailMasked }}</dd></div><div><dt>Atendente responsável</dt><dd>{{ d.attendantName }} · mat. {{ d.attendantRegistration }}</dd></div>
