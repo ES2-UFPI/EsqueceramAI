@@ -3,7 +3,7 @@
 <nav class="xs muted mb"><a href="/">Início</a> › <a href="/itens">Explorar</a> › <a href="/itens?tipo={{ item.type }}">{{ D.RECORD_TYPE_LABEL[item.type] }}</a> › <b class="soft">{{ item.title }}</b></nav>
 <div class="grid split">
 <div class="stack">
-  <article class="card" style="overflow:hidden">{{ thumb(item.imageSrc, h='320px', icon='📦') }}
+  <article class="card" style="overflow:hidden">{{ thumb(item.imageSrc, cls='item-hero-thumb', h='320px', icon='📦') }}
   <div style="padding:22px">
     <div class="flex gap-s wrap center">{{ type_badge(item.type) }}{{ status_badge(item.status) }}<span class="badge">{{ D.CATEGORY_LABEL[item.category] }}</span><span class="xs muted bold" style="margin-left:auto">{{ item.id|code }}</span></div>
     <h1 class="display mt-s" style="font-size:2rem;line-height:1.15">{{ item.title }}</h1>
@@ -26,7 +26,7 @@
     <a href="/itens/{{ other.id }}" class="flex gap grow">{{ thumb(other.imageSrc, h='64px', icon='🔍') }}<div class="grow"><p class="eyebrow">{{ 'Item encontrado' if item.type == 'LOST' else 'Item perdido' }} correspondente</p><p class="bold sm">{{ other.title }}</p><p class="xs muted">{{ other.location }} · {{ other.occurredAt|date }} · por {{ other.ownerName }}</p></div></a>
     <div style="text-align:right">{{ score(m.score) }}<br>{{ match_badge(m.status) }}</div></div>
     {% if m.reasons %}<ul class="reasons">{% for r in m.reasons %}<li>{{ r }}</li>{% endfor %}</ul>{% endif %}
-    {% if can %}<div class="flex gap-s mt-s">{{ api_button('✓ Confirmar correspondência', '/api/matches/%d'|format(m.id), 'PATCH', {'action':'confirm'}, 'primary', success='Correspondência confirmada! Os itens foram reservados.') }}{{ api_button('Descartar', '/api/matches/%d'|format(m.id), 'PATCH', {'action':'reject'}, success='Sugestão descartada.') }}</div>
+    {% if can %}<div class="flex gap-s wrap mt-s">{{ api_button('✓ Confirmar correspondência', '/api/matches/%d'|format(m.id), 'PATCH', {'action':'confirm'}, 'primary', success='Correspondência confirmada! Os itens foram reservados.') }}{{ api_button('Descartar', '/api/matches/%d'|format(m.id), 'PATCH', {'action':'reject'}, success='Sugestão descartada.') }}</div>
     {% elif not user and m.status == 'PENDING' %}<p class="xs muted mt-s"><a class="brand bold" href="/entrar">Entre na plataforma</a> para confirmar ou descartar esta correspondência.</p>{% endif %}
   </li>{% endfor %}</ul>{% endif %}</section>
 
