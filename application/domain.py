@@ -6,9 +6,11 @@ from zoneinfo import ZoneInfo
 
 RECORD_TYPES = ("LOST", "FOUND")
 CATEGORIES = ("ELECTRONIC", "DOCUMENT", "ACCESSORY")
-STATUSES = ("OPEN", "RESERVED", "RETURNED", "DELIVERED", "ARCHIVED")
+STATUSES = ("OPEN", "RESERVED", "RETURNED", "DELIVERED", "ARCHIVED", "AVAILABLE_FOR_DISPOSAL")
 FINAL_STATUSES = ("RETURNED", "DELIVERED")
 STORED_STATUSES = ("OPEN",)
+DISPOSAL_STATUS = "AVAILABLE_FOR_DISPOSAL"
+DISPOSAL_CANDIDATE_STATUSES = STORED_STATUSES + (DISPOSAL_STATUS,)
 DEFAULT_RETENTION_DAYS = 90
 MATCH_STATUSES = ("PENDING", "CONFIRMED", "REJECTED")
 ROLES = ("USER", "OPERATOR_POST", "ADMIN")
@@ -18,7 +20,7 @@ RECORD_TYPE_LABEL = {"LOST": "Perdido", "FOUND": "Encontrado"}
 CATEGORY_LABEL = {"ELECTRONIC": "Eletrônico", "DOCUMENT": "Documento", "ACCESSORY": "Acessório"}
 CATEGORY_PLURAL = {"ELECTRONIC": "Eletrônicos", "DOCUMENT": "Documentos", "ACCESSORY": "Acessórios"}
 STATUS_LABEL = {"OPEN": "Em aberto", "RESERVED": "Reservado", "RETURNED": "Devolvido", "DELIVERED": "Entregue",
-                "ARCHIVED": "Arquivado"}
+                "ARCHIVED": "Arquivado", "AVAILABLE_FOR_DISPOSAL": "Disponível para doação/descarte"}
 MATCH_STATUS_LABEL = {"PENDING": "Aguardando confirmação", "CONFIRMED": "Confirmado", "REJECTED": "Descartado"}
 ROLE_LABEL = {"USER": "Comunidade", "OPERATOR_POST": "Operador de ponto", "ADMIN": "Administrador"}
 

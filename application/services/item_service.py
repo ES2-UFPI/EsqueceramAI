@@ -131,7 +131,8 @@ def change_item_status(user: dict, item_id: int, status: str, note: str | None =
     set_item_status(item_id, status)
     notes = {"OPEN": note or "Registro reaberto.", "RESERVED": note or "Item reservado para retirada.",
              "RETURNED": note or "Item devolvido ao responsável.", "DELIVERED": note or "Item entregue ao retirante.",
-             "ARCHIVED": note or "Registro arquivado."}
+             "ARCHIVED": note or "Registro arquivado.",
+             "AVAILABLE_FOR_DISPOSAL": note or "Item marcado como disponível para doação/descarte."}
     add_item_event(item_id=item_id, actor_id=user["id"], status=status, note=notes[status])
 
     if status in FINAL_STATUSES:

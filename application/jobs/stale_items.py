@@ -12,18 +12,24 @@ def _serializable(report: dict) -> dict:
         "checkedAt": report["checkedAt"].isoformat(),
         "retentionDays": report["retentionDays"],
         "total": report["total"],
+        "applied": report["applied"],
+        "updated": report["updated"],
+        "skipped": report["skipped"],
+        "failed": report["failed"],
         "items": [{**it, "enteredAt": it["enteredAt"].isoformat()} for it in report["items"]],
     }
 
 def main(argv: list[str] | None = None) -> int:
-    parser = argparse.ArgumentParser(description="Verifica itens armazenados além do prazo de guarda.")
+    parser = argparse.ArgumentParser(description="Verifica itens armazenados além do prazo de guarda e atualiza o status.")
     parser.add_argument("--days", type=int, default=None, help="prazo de guarda em dias (padrão: 90)")
     parser.add_argument("--json", action="store_true", help="imprime o relatório em JSON")
+    parser.add_argument("--dry-run", action="store_true",
+                        help="só lista os itens vencidos: não altera status nem registra auditoria")
     args = parser.parse_args(argv)
 
     logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
     try:
-        report = run_daily_check(days=args.days)
+        report = run_daily_check(days=args.days, apply=not args.dry_run)
     except Exception:
         log.exception("Falha na verificação diária de itens armazenados.")
         return 1
@@ -31,7 +37,7 @@ def main(argv: list[str] | None = None) -> int:
         db.remove()
     if args.json:
         print(json.dumps(_serializable(report), ensure_ascii=False, indent=2))
-    return 0
+    return 1 if report["failed"] else 0
 
 if __name__ == "__main__":
     sys.exit(main())
