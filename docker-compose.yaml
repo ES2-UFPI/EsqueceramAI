@@ -1,12 +1,11 @@
 services:
   api:
     build:
-      context: ./backend
+      context: .
       dockerfile: Dockerfile
     environment:
       PORT: "10000"
       DATABASE_URL: postgresql://esqueceram_ai:esqueceram_ai@db:5432/esqueceram_ai
-      FRONTEND_ORIGIN: http://localhost:8080
     ports:
       - "10000:10000"
     depends_on:
@@ -34,17 +33,6 @@ services:
       interval: 5s
       timeout: 5s
       retries: 10
-    restart: unless-stopped
-
-  frontend:
-    build:
-      context: ./frontend
-      dockerfile: Dockerfile
-    ports:
-      - "8080:80"
-    depends_on:
-      api:
-        condition: service_started
     restart: unless-stopped
 
 networks:
