@@ -315,26 +315,30 @@ def painel_operador(user):
     return render_template("painel_operador.html", points=list_points(), items=items, activity=list_recent_point_activity(6),
                            **shell_ctx(user), active="/painel/operador")
 
-def _disposal_filters(args):
+def _disposal_filters(args, points=None, day_opts=None):
     def number(key):
         value = args.get(key, "")
         return int(value) if value.isdigit() and 0 < int(value) < 10**6 else None
-    points = {p["id"] for p in list_points()}
+    point_ids = {p["id"] for p in (points if points is not None else list_points())}
     point_id = number("ponto")
-    return {"q": (args.get("q") or "").strip()[:120] or None, "pointId": point_id if point_id in points else None,
+    min_days = number("dias")
+    allowed_days = day_opts if day_opts is not None else retention_service.day_options()
+    return {"q": (args.get("q") or "").strip()[:120] or None, "pointId": point_id if point_id in point_ids else None,
             "category": args.get("categoria") if args.get("categoria") in D.CATEGORIES else None,
-            "minDays": number("dias") if number("dias") in retention_service.day_options() else None,
+            "minDays": min_days if min_days in allowed_days else None,
             "sort": args.get("ordem") if args.get("ordem") in dict(retention_service.DISPOSAL_SORTS) else None}
 
 @bp.get("/painel/descarte")
 @login_required("OPERATOR_POST", "ADMIN")
 def painel_descarte(user):
-    filters = _disposal_filters(request.args)
+    points = list_points()
+    day_opts = retention_service.day_options()
+    filters = _disposal_filters(request.args, points=points, day_opts=day_opts)
     result = retention_service.search_disposal_candidates(filters, D.clamp_page(request.args.get("pagina")))
     base = {"q": request.args.get("q"), "ponto": filters["pointId"], "categoria": filters["category"],
             "dias": filters["minDays"], "ordem": filters["sort"]}
-    return render_template("painel_descarte.html", result=result, f=filters, base=base, points=list_points(),
-                           day_options=retention_service.day_options(), sorts=retention_service.DISPOSAL_SORTS,
+    return render_template("painel_descarte.html", result=result, f=filters, base=base, points=points,
+                           day_options=day_opts, sorts=retention_service.DISPOSAL_SORTS,
                            **shell_ctx(user), active="/painel/descarte")
 
 @bp.get("/painel/descarte.csv")
