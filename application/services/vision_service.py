@@ -9,8 +9,9 @@ from application.domain import CATEGORIES, COLORS
 
 log = logging.getLogger("esqueceram.vision")
 
-DEFAULT_GEMINI_MODEL = "gemini-3.8-flash"
-FALLBACK_MODELS = ("gemini-3.8-flash", "gemini-2.5-flash", "gemini-2.0-flash")
+DEFAULT_GEMINI_MODEL = "gemini-3.8-flash-lite"
+FALLBACK_MODELS = ("gemini-3.8-flash-lite", "gemini-3.8-flash", "gemini-2.5-flash-lite", "gemini-2.5-flash")
+RETRYABLE_HTTP_CODES = {404, 429, 500, 502, 503, 504}
 SUPPORTED_MIMES = ("image/jpeg", "image/png", "image/webp")
 
 _PROMPT = (
@@ -82,23 +83,24 @@ def _candidate_models() -> list[str]:
 
 def _call_gemini(endpoint: str, raw_payload: bytes) -> dict:
     req = urllib.request.Request(endpoint, data=raw_payload, method="POST", headers={"Content-Type": "application/json"})
-    with urllib.request.urlopen(req, timeout=15) as resp:
+    with urllib.request.urlopen(req, timeout=8) as resp:
         return json.loads(resp.read().decode("utf-8"))
 
 
-def _discover_flash_model(api_key: str, already_tried: set[str]) -> str | None:
+def _discover_flash_models(api_key: str, already_tried: set[str]) -> list[str]:
     try:
         with urllib.request.urlopen(f"https://generativelanguage.googleapis.com/v1beta/models?key={api_key}", timeout=10) as resp:
             models = json.loads(resp.read().decode("utf-8")).get("models") or []
     except (urllib.error.URLError, OSError, ValueError):
-        return None
+        return []
+    found = []
     for m in models:
         if "generateContent" not in (m.get("supportedGenerationMethods") or []):
             continue
         name = str(m.get("name") or "").removeprefix("models/")
-        if "flash" in name and name not in already_tried:
-            return name
-    return None
+        if ("flash" in name or "lite" in name) and name not in already_tried and name not in found:
+            found.append(name)
+    return found
 
 
 def analyze_item_image(image_bytes: bytes, mime_type: str) -> dict | None:
@@ -106,20 +108,30 @@ def analyze_item_image(image_bytes: bytes, mime_type: str) -> dict | None:
     api_key = os.getenv("GEMINI_API_KEY", "").strip()
     if not api_key or not image_bytes or mime_type not in SUPPORTED_MIMES:
         return None
-    payload = json.dumps({
+    payload_dict = {
         "contents": [{
             "parts": [
                 {"text": _PROMPT},
                 {"inline_data": {"mime_type": mime_type, "data": base64.b64encode(image_bytes).decode("ascii")}},
             ]
         }],
-        "generationConfig": {"responseMimeType": "application/json", "temperature": 0.2},
-    }).encode("utf-8")
+        "generationConfig": {
+            "responseMimeType": "application/json",
+            "temperature": 0.2,
+            "maxOutputTokens": 300,
+            "thinkingConfig": {"thinkingBudget": 0},
+        },
+    }
+    payload = json.dumps(payload_dict).encode("utf-8")
 
     body = None
     tried: set[str] = set()
-    candidates = _candidate_models()
-    for model in candidates:
+    candidates = _candidate_models()[:3]
+    discovered_loaded = False
+    idx = 0
+    while idx < len(candidates) and len(tried) < 3:
+        model = candidates[idx]
+        idx += 1
         tried.add(model)
         endpoint = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={api_key}"
         try:
@@ -128,22 +140,20 @@ def analyze_item_image(image_bytes: bytes, mime_type: str) -> dict | None:
         except urllib.error.HTTPError as exc:
             detail = exc.read().decode("utf-8", errors="ignore")[:240]
             log.warning("Falha ao analisar imagem com IA (modelo %s, HTTP %s): %s", model, exc.code, detail or exc)
-            if exc.code == 404:
-                continue
-            return None
-        except (urllib.error.URLError, OSError, ValueError) as exc:
-            log.warning("Falha ao analisar imagem com IA: %s", exc)
-            return None
-    if not body:
-        if discovered := _discover_flash_model(api_key, tried):
-            try:
-                body = _call_gemini(
-                    f"https://generativelanguage.googleapis.com/v1beta/models/{discovered}:generateContent?key={api_key}",
-                    payload,
-                )
-            except (urllib.error.URLError, OSError, ValueError) as exc:
-                log.warning("Falha ao analisar imagem com IA (modelo descoberto %s): %s", discovered, exc)
+            if exc.code == 400 and "thinking" in detail.lower():
+                no_think = {**payload_dict, "generationConfig": {"responseMimeType": "application/json", "temperature": 0.2, "maxOutputTokens": 300}}
+                try:
+                    body = _call_gemini(endpoint, json.dumps(no_think).encode("utf-8"))
+                    break
+                except (urllib.error.URLError, TimeoutError, OSError, ValueError):
+                    pass
+            if exc.code not in RETRYABLE_HTTP_CODES:
                 return None
+        except (urllib.error.URLError, TimeoutError, OSError, ValueError) as exc:
+            log.warning("Falha ao analisar imagem com IA (modelo %s): %s", model, exc)
+        if idx == len(candidates) and not discovered_loaded and len(tried) < 3:
+            discovered_loaded = True
+            candidates.extend(_discover_flash_models(api_key, tried))
     if not body:
         return None
     try:
