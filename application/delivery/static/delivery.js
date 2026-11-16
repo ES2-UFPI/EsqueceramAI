@@ -7,10 +7,43 @@
   });
 
   const input = document.getElementById("document");
+  const previewBox = document.getElementById("doc-preview-box");
   const preview = document.getElementById("doc-preview");
+  const previewPdf = document.getElementById("doc-preview-pdf");
+  const previewMeta = document.getElementById("doc-preview-meta");
+  const previewOpen = document.getElementById("doc-preview-open");
+  let previewUrl = null;
+  function clearPreview() {
+    if (previewUrl) { URL.revokeObjectURL(previewUrl); previewUrl = null; }
+    if (preview) { preview.hidden = true; preview.removeAttribute("src"); }
+    if (previewPdf) { previewPdf.hidden = true; previewPdf.removeAttribute("src"); }
+    if (previewOpen) { previewOpen.hidden = true; previewOpen.removeAttribute("href"); }
+    if (previewMeta) previewMeta.textContent = "";
+    if (previewBox) previewBox.hidden = true;
+  }
+  function formatSize(bytes) {
+    if (!bytes) return "";
+    return bytes >= 1024 * 1024 ? `${(bytes / (1024 * 1024)).toFixed(1)} MB` : `${Math.max(1, Math.round(bytes / 1024))} KB`;
+  }
   function show(file) {
-    if (!preview || !file) return;
-    preview.src = URL.createObjectURL(file); preview.hidden = false;
+    if (!previewBox) return;
+    clearPreview();
+    if (!file) return;
+    previewUrl = URL.createObjectURL(file);
+    if (previewMeta) {
+      const size = formatSize(file.size);
+      previewMeta.textContent = size ? `${file.name || "documento"} · ${size}` : (file.name || "documento");
+    }
+    const isPdf = file.type === "application/pdf" || /\.pdf$/i.test(file.name || "");
+    if (isPdf && previewPdf) {
+      previewPdf.src = previewUrl;
+      previewPdf.hidden = false;
+      if (previewOpen) { previewOpen.href = previewUrl; previewOpen.hidden = false; }
+    } else if (preview) {
+      preview.src = previewUrl;
+      preview.hidden = false;
+    }
+    previewBox.hidden = false;
   }
   function setFile(file) {
     const dt = new DataTransfer(); dt.items.add(file); input.files = dt.files; show(file);
