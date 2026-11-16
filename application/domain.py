@@ -11,6 +11,13 @@ FINAL_STATUSES = ("RETURNED", "DELIVERED")
 STORED_STATUSES = ("OPEN",)
 DISPOSAL_STATUS = "AVAILABLE_FOR_DISPOSAL"
 DISPOSAL_CANDIDATE_STATUSES = STORED_STATUSES + (DISPOSAL_STATUS,)
+INVENTORY_STATUSES = ("AWAITING_DROP_OFF", "STORED", "DELIVERED", "DISPOSED")
+INVENTORY_TRANSITIONS = {
+    "AWAITING_DROP_OFF": ("STORED",),
+    "STORED": ("DELIVERED", "DISPOSED"),
+    "DELIVERED": (),
+    "DISPOSED": (),
+}
 DEFAULT_RETENTION_DAYS = 90
 MATCH_STATUSES = ("PENDING", "CONFIRMED", "REJECTED")
 ROLES = ("USER", "OPERATOR_POST", "ADMIN")
@@ -21,6 +28,12 @@ CATEGORY_LABEL = {"ELECTRONIC": "Eletrônico", "DOCUMENT": "Documento", "ACCESSO
 CATEGORY_PLURAL = {"ELECTRONIC": "Eletrônicos", "DOCUMENT": "Documentos", "ACCESSORY": "Acessórios"}
 STATUS_LABEL = {"OPEN": "Em aberto", "RESERVED": "Reservado", "RETURNED": "Devolvido", "DELIVERED": "Entregue",
                 "ARCHIVED": "Arquivado", "AVAILABLE_FOR_DISPOSAL": "Disponível para doação/descarte"}
+INVENTORY_STATUS_LABEL = {
+    "AWAITING_DROP_OFF": "Aguardando entrega no posto",
+    "STORED": "Armazenado",
+    "DELIVERED": "Entregue",
+    "DISPOSED": "Descartado/Doado",
+}
 MATCH_STATUS_LABEL = {"PENDING": "Aguardando confirmação", "CONFIRMED": "Confirmado", "REJECTED": "Descartado"}
 ROLE_LABEL = {"USER": "Comunidade", "OPERATOR_POST": "Operador de ponto", "ADMIN": "Administrador"}
 

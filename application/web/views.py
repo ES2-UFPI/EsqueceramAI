@@ -9,7 +9,8 @@ from application.repositories.engagement import (count_pending_matches, count_un
                                          list_notifications, list_recent_events, mark_all_notifications_read)
 from application.repositories.items import items_at_points
 from application.repositories.points import create_point, list_points, list_recent_point_activity
-from application.services import auth_service, claim_service, item_service, matching_service, retention_service
+from application.services import (auth_service, claim_service, inventory_service, item_service, matching_service,
+                                  retention_service)
 from application.services.seed_service import DEMO_PASSWORD_HINT, DEMO_PERSONAS, ensure_seeded
 from application.services.stats_service import get_admin_overview, get_dashboard, get_public_home
 from application.validation import Form
@@ -239,6 +240,8 @@ def item_editar(user, item_id):
             return render_template("item_form.html", mode="edit", **_item_form_context(user, request.form, exc.message, exc.details, item))
     values = {k: item[k] if item[k] is not None else "" for k in ("type", "category", "title", "description", "color",
                                                                     "brand", "model", "location", "pointId", "latitude", "longitude")}
+    if inventory_service.is_staff(user):
+        values["storageLocation"] = item.get("storageLocation") or ""
     values["occurredAt"] = D.to_input_date(item["occurredAt"])
     for k, v in item["attributes"].items():
         values[f"attributes.{k}"] = v
@@ -311,8 +314,51 @@ def painel_pontos(user):
 @bp.get("/painel/operador")
 @login_required("OPERATOR_POST", "ADMIN")
 def painel_operador(user):
-    items = items_at_points()
-    return render_template("painel_operador.html", points=list_points(), items=items, activity=list_recent_point_activity(6),
+    q = (request.args.get("q") or "").strip()[:80] or None
+    point_raw = request.args.get("ponto", "")
+    point_id = int(point_raw) if point_raw.isdigit() else None
+    inv_status = request.args.get("estado") if request.args.get("estado") in D.INVENTORY_STATUSES else None
+    items = items_at_points(point_id=point_id, q=q, inventory_status=inv_status)
+    for it in items:
+        it["inventoryStatus"] = inventory_service.effective_inventory_status(it)
+        it["allowedNextInventory"] = inventory_service.allowed_next_statuses(it)
+    return render_template("painel_operador.html", points=list_points(), items=items,
+                           activity=list_recent_point_activity(6),
+                           f={"q": q or "", "ponto": point_id, "estado": inv_status or ""},
+                           **shell_ctx(user), active="/painel/operador")
+
+
+@bp.post("/painel/itens/<int:item_id>/inventario")
+@login_required("OPERATOR_POST", "ADMIN")
+def item_inventario(user, item_id):
+    next_url = request.form.get("next") or f"/itens/{item_id}"
+    if not next_url.startswith("/"):
+        next_url = f"/itens/{item_id}"
+    action = (request.form.get("action") or "").strip()
+    storage_location = request.form.get("storageLocation")
+    try:
+        if action in D.INVENTORY_STATUSES:
+            res = inventory_service.transition_inventory_status(
+                user, item_id, action, storage_location=storage_location,
+            )
+            flash(f"Estado atualizado para \"{res['inventoryStatusLabel']}\".", "ok")
+        else:
+            res = inventory_service.set_storage_location(user, item_id, storage_location)
+            msg = f"Localização física atualizada: {res['storageLocation']}." if res["storageLocation"] else "Localização física removida."
+            flash(msg, "ok")
+    except ApiError as exc:
+        flash(exc.message, "error")
+    return redirect(next_url)
+
+
+@bp.get("/painel/itens/<int:item_id>/etiqueta")
+@login_required("OPERATOR_POST", "ADMIN")
+def item_etiqueta(user, item_id):
+    detail = item_service.get_item_detail(item_id, user)
+    if not detail:
+        return render_not_found()
+    label = inventory_service.build_item_label(detail["item"])
+    return render_template("item_etiqueta.html", label=label, item=detail["item"],
                            **shell_ctx(user), active="/painel/operador")
 
 def _disposal_filters(args, points=None, day_opts=None):

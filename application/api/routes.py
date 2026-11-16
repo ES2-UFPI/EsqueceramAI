@@ -2,17 +2,17 @@ from flask import Blueprint, Response, g, jsonify, redirect, request
 from sqlalchemy import func, select, text
 from application.auth import SESSION_COOKIE, cookie_token, destroy_session
 from application.delivery.policy import enforce_checkout_policy
-from application.domain import (CATEGORIES, MATCH_STATUSES, RECORD_TYPES, ROLES, SORT_OPTIONS, STATUSES, clamp_page,
-                                parse_geo_params)
+from application.domain import (CATEGORIES, INVENTORY_STATUSES, MATCH_STATUSES, RECORD_TYPES, ROLES, SORT_OPTIONS,
+                                STATUSES, clamp_page, parse_geo_params)
 from application.errors import ApiError, forbidden, not_found, unauthorized
 from application.http import api_user, controller, cors_headers, read_json
 from application.models import User, db
 from application.repositories.engagement import (count_unread_notifications, list_matches, list_notifications,
                                          mark_all_notifications_read, mark_notification_read)
-from application.repositories.items import item_row_json
+from application.repositories.items import item_row_json, items_at_points
 from application.repositories.points import create_point, list_points, point_json, update_point
 from application.repositories.users import list_users, set_user_active, set_user_role
-from application.services import auth_service, claim_service, item_service
+from application.services import auth_service, claim_service, inventory_service, item_service
 from application.services.matching_service import decide_match
 from application.services.seed_service import DEMO_PASSWORD_HINT, ensure_seeded, find_demo_persona
 from application.services.storage_service import resolve_item_image
@@ -81,6 +81,9 @@ def items_list():
         "from": a.get("de") or None, "to": a.get("ate") or None,
         "sort": _one_of(a.get("ordem"), [v for v, _ in SORT_OPTIONS]), "geo": geo,
         "page": clamp_page(a.get("pagina")), "pageSize": 9})
+    if not inventory_service.is_staff(api_user(required=False)):
+        for it in result["items"]:
+            it["storageLocation"] = None
     return jsonify(result)
 
 @bp.post("/items")
@@ -90,7 +93,8 @@ def items_create():
     if "multipart/form-data" not in (request.content_type or ""):
         raise ApiError("Envie os dados do item como multipart/form-data.", 415)
     result = item_service.create_item_from_form(user, request.form.to_dict(), request.files.get("image"))
-    return jsonify(item=item_row_json(result["item"]), matches=result["matches"]), 201
+    return jsonify(item=item_row_json(result["item"], include_internal=inventory_service.is_staff(user)),
+                   matches=result["matches"]), 201
 
 @bp.get("/items/<int:item_id>")
 @controller
@@ -106,7 +110,7 @@ def items_patch(item_id):
     user = api_user()
     if "multipart/form-data" in (request.content_type or ""):
         item = item_service.update_item_from_form(user, item_id, request.form.to_dict(), request.files.get("image"))
-        return jsonify(item=item_row_json(item))
+        return jsonify(item=item_row_json(item, include_internal=inventory_service.is_staff(user)))
     payload = read_json()
     if payload.get("status") not in STATUSES:
         raise ApiError("Informe um status válido.", 422)
@@ -115,6 +119,33 @@ def items_patch(item_id):
                        "(CPF, documento com foto e código de confirmação).", 409)
     enforce_checkout_policy(payload["status"], item_id)  # opcional (DELIVERY_REQUIRE_CHECKOUT)
     return jsonify(item_service.change_item_status(user, item_id, payload["status"], payload.get("note")))
+
+
+@bp.patch("/items/<int:item_id>/inventory")
+@controller
+def items_inventory_patch(item_id):
+    user = api_user()
+    payload = read_json()
+    if "inventoryStatus" in payload and payload["inventoryStatus"] is not None:
+        return jsonify(inventory_service.transition_inventory_status(
+            user, item_id, payload["inventoryStatus"],
+            storage_location=payload.get("storageLocation"), note=payload.get("note"),
+        ))
+    if "storageLocation" in payload:
+        return jsonify(inventory_service.set_storage_location(user, item_id, payload.get("storageLocation")))
+    raise ApiError("Informe storageLocation ou inventoryStatus.", 422)
+
+
+@bp.get("/operador/inventario")
+@controller
+def operator_inventory_search():
+    user = api_user()
+    inventory_service.require_staff(user)
+    a = request.args
+    point_id = int(a["ponto"]) if (a.get("ponto") or "").isdigit() else None
+    inv_status = _one_of(a.get("estado"), INVENTORY_STATUSES)
+    q = (a.get("q") or "").strip()[:80] or None
+    return jsonify(items=items_at_points(point_id=point_id, q=q, inventory_status=inv_status))
 
 @bp.delete("/items/<int:item_id>")
 @controller
