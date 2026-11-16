@@ -29,6 +29,7 @@
   {% endif %}
   <div class="flex gap center wrap" data-geo-box><button type="button" class="btn btn-ghost btn-sm" data-geo-locate data-geo-lat-name="latitude" data-geo-lng-name="longitude">📍 Usar minha localização atual</button><span class="xs muted" data-geo-status>Com as coordenadas, o registro aparece nas buscas por proximidade.</span></div>
   <label class="field"><span>Foto (JPG, PNG ou WebP, até 3 MB){% if item and item.imageSrc %} — enviar outra substitui a atual{% endif %}</span><input class="input" type="file" name="image" accept="image/jpeg,image/png,image/webp">{{ err(errors,'image') }}</label>
+  <div class="flex gap wrap center"><button type="button" class="btn btn-secondary btn-sm" data-vision-analyze>✨ Preencher campos com IA pela foto</button><span class="xs muted" data-vision-status>Opcional: analisa a foto e sugere categoria, título, descrição, cor e marca.</span></div>
   <fieldset class="card pad stack" style="box-shadow:none" data-secret-box {{ 'hidden' if values.get('type') != 'FOUND' }}>
     <legend class="eyebrow">🔐 Validação de posse (opcional)</legend>
     <p class="xs muted">Guarde um detalhe que só o verdadeiro dono conhece e crie uma pergunta-chave. O detalhe nunca é exibido: só serve para você conferir a resposta de quem reivindicar o item.</p>

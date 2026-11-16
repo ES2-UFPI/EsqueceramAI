@@ -12,10 +12,10 @@ from application.repositories.engagement import (count_unread_notifications, lis
 from application.repositories.items import item_row_json, items_at_points
 from application.repositories.points import create_point, list_points, point_json, update_point
 from application.repositories.users import list_users, set_user_active, set_user_role
-from application.services import auth_service, claim_service, inventory_service, item_service
+from application.services import auth_service, claim_service, inventory_service, item_service, vision_service
 from application.services.matching_service import decide_match
 from application.services.seed_service import DEMO_PASSWORD_HINT, ensure_seeded, find_demo_persona
-from application.services.storage_service import resolve_item_image
+from application.services.storage_service import resolve_item_image, validate_image
 from application.validation import Form
 
 bp = Blueprint("api", __name__, url_prefix="/api")
@@ -165,6 +165,24 @@ def images_get(item_id):
         return redirect(image[1], 302)
     _, mime, data = image
     return Response(data, mimetype=mime, headers={"Cache-Control": "private, max-age=120", "Content-Length": str(len(data))})
+
+
+@bp.post("/vision/analyze")
+@controller
+def vision_analyze():
+    api_user()
+    if not vision_service.is_vision_enabled():
+        raise ApiError("Análise por IA indisponível: configure GEMINI_API_KEY no servidor.", 503)
+    file = request.files.get("image")
+    if file is None or not getattr(file, "filename", ""):
+        raise ApiError("Selecione uma foto JPG, PNG ou WebP para analisar.", 422)
+    data = file.read()
+    mime = file.mimetype or ""
+    validate_image(mime, len(data))
+    analysis = vision_service.analyze_item_image(data, mime)
+    if not analysis:
+        raise ApiError("Não foi possível analisar a imagem agora. Preencha os campos manualmente.", 502)
+    return jsonify(enabled=True, analysis=analysis)
 
 # ---------------------------------------------------------------- posse (US04)
 @bp.get("/items/<int:item_id>/challenge")

@@ -10,6 +10,7 @@
     <p class="xs soft mt-s">📍 {{ item.location }}{% if item.latitude is not none and item.longitude is not none %} (<a href="https://www.openstreetmap.org/?mlat={{ item.latitude }}&amp;mlon={{ item.longitude }}#map=18/{{ item.latitude }}/{{ item.longitude }}" target="_blank" rel="noopener noreferrer">ver no mapa</a>){% endif %} · 📅 {{ item.occurredAt|date }} · 🕒 publicado {{ item.createdAt|ago }}</p>
     <h2 class="bold sm mt" style="border-top:1px solid var(--line);padding-top:16px">Descrição do registro</h2>
     <p class="sm soft mt-s" style="white-space:pre-line">{{ item.description }}</p>
+    {% if item.aiVisual and item.aiVisual.visualSummary %}<p class="alert xs mt-s">✨ <b>Análise visual por IA:</b> {{ item.aiVisual.visualSummary }}</p>{% endif %}
     <dl class="dl mt">
       {% for label, val in [('Cor', item.color), ('Marca', item.brand), ('Modelo', item.model)] %}{% if val %}<div><dt>{{ label }}</dt><dd>{{ val }}</dd></div>{% endif %}{% endfor %}
       {% for k, v in item.attributes.items() %}{% if v %}<div><dt>{{ k|humanize_key }}</dt><dd>{{ v }}</dd></div>{% endif %}{% endfor %}

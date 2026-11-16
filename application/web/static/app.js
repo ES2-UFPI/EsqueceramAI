@@ -105,4 +105,41 @@
     }
   });
   document.addEventListener("keydown", (ev) => { if (ev.key === "Escape") setDrawer(false); });
+
+  const visionBtn = document.querySelector("[data-vision-analyze]");
+  if (visionBtn) {
+    const statusEl = document.querySelector("[data-vision-status]");
+    const fileInput = document.querySelector("input[name=image]");
+    visionBtn.addEventListener("click", async () => {
+      const file = fileInput && fileInput.files && fileInput.files[0];
+      if (!file) { if (statusEl) statusEl.textContent = "Selecione uma foto antes de analisar com a IA."; return; }
+      visionBtn.disabled = true;
+      if (statusEl) statusEl.textContent = "Analisando foto com IA...";
+      try {
+        const fd = new FormData();
+        fd.append("image", file);
+        const r = await fetch("/api/vision/analyze", { method: "POST", body: fd });
+        const d = await r.json().catch(() => ({}));
+        if (!r.ok || !d.analysis) throw new Error(d.error || "Não foi possível analisar a foto.");
+        const a = d.analysis;
+        const setVal = (sel, val) => { const el = document.querySelector(sel); if (el && val && !el.value.trim()) el.value = val; };
+        if (a.category) {
+          const catEl = document.querySelector("[data-category-select]");
+          if (catEl) { catEl.value = a.category; catEl.dispatchEvent(new Event("change")); }
+        }
+        setVal("input[name=title]", a.title);
+        setVal("textarea[name=description]", a.description);
+        if (a.color) { const cEl = document.querySelector("select[name=color]"); if (cEl && !cEl.value) cEl.value = a.color; }
+        setVal("input[name=brand]", a.brand);
+        setVal("input[name=model]", a.model);
+        if (statusEl) statusEl.textContent = a.visualSummary ? `IA: ${a.visualSummary}` : "Campos sugeridos preenchidos!";
+        toast("Campos sugeridos pela IA a partir da foto.");
+      } catch (e) {
+        if (statusEl) statusEl.textContent = e.message;
+        toast(e.message, true);
+      } finally {
+        visionBtn.disabled = false;
+      }
+    });
+  }
 })();
