@@ -41,15 +41,8 @@ A branch `dev` é a nossa branch principal de integração. **SEMPRE** crie suas
 # Baixa as informações e histórico mais recentes do repositório remoto
 git fetch origin
 
-# Atualiza a sua branch atual puxando as últimas alterações da branch dev
-git pull origin dev
-```
-
-```bash
-# Mudar para a branch de desenvolvimento
+# Mudar para a branch de desenvolvimento e puxar as atualizações
 git checkout dev
-
-# Puxar as atualizações mais recentes do servidor
 git pull origin dev
 ```
 
