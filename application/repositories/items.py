@@ -22,6 +22,7 @@ def map_item(row) -> dict:
         "status": i.status, "pointId": i.point_id, "storageLocation": i.storage_location,
         "inventoryStatus": i.inventory_status, "latitude": i.latitude, "longitude": i.longitude,
         "isDemo": getattr(i, "is_demo", False),
+        "aiVisual": getattr(i, "ai_visual", None),
         "imageSrc": i.image_url or (f"/api/images/{i.id}" if has_image else None),
         "createdAt": i.created_at, "updatedAt": i.updated_at,
         "ownerName": u.name, "ownerEmail": u.email, "ownerPhone": u.phone, "ownerRole": u.role,
@@ -181,7 +182,8 @@ def list_open_by_type(record_type: str) -> list[dict]:
     rows = db.scalars(select(Item).where(Item.type == record_type, Item.status.in_(["OPEN", "RESERVED"])))
     return [{"id": i.id, "userId": i.user_id, "type": i.type, "category": i.category, "title": i.title,
              "description": i.description, "color": i.color, "brand": i.brand, "model": i.model,
-             "location": i.location, "occurredAt": i.occurred_at, "attributes": i.attributes or {}}
+             "location": i.location, "occurredAt": i.occurred_at, "attributes": i.attributes or {},
+             "aiVisual": getattr(i, "ai_visual", None)}
             for i in rows]
 
 def list_stored_entered_before(cutoff, statuses) -> list[dict]:
