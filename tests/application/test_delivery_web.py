@@ -164,3 +164,4 @@ def test_document_preview_supports_image_and_pdf_with_responsive_bounds(app, att
     css = attendant.get("/static/style.css").get_data(as_text=True)
     assert ".doc-preview-box" in css and ".doc-preview-img" in css and ".doc-preview-pdf" in css
     assert "object-fit:contain" in css and "max-height:320px" in css
+    assert "html{max-width:100%;overflow-x:clip" in css and "font-size:16px;min-height:44px" in css
