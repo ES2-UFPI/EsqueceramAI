@@ -152,3 +152,15 @@ def test_existing_pages_still_work(app, persona):
     staff = persona in ("operador@ufpi.edu.br", "admin@ufpi.edu.br")
     assert c.get("/painel/operador").status_code == (200 if staff else 302)
     assert c.get("/painel/admin").status_code == (200 if persona == "admin@ufpi.edu.br" else 302)
+
+
+def test_document_preview_supports_image_and_pdf_with_responsive_bounds(app, attendant):
+    html = attendant.get("/painel/entregas/nova").get_data(as_text=True)
+    for needle in ('id="doc-preview-box"', 'id="doc-preview"', 'id="doc-preview-pdf"', 'id="doc-preview-open"'):
+        assert needle in html
+    js_url = re.search(r'src="([^"]*delivery\.js[^"]*)"', html).group(1)
+    js = attendant.get(js_url).get_data(as_text=True)
+    assert "application/pdf" in js and "revokeObjectURL" in js and "previewPdf" in js
+    css = attendant.get("/static/style.css").get_data(as_text=True)
+    assert ".doc-preview-box" in css and ".doc-preview-img" in css and ".doc-preview-pdf" in css
+    assert "object-fit:contain" in css and "max-height:320px" in css

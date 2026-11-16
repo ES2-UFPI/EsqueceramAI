@@ -30,7 +30,14 @@
     {{ err(errors,'document') }}
     <div id="cam-box" hidden class="mt-s"><video id="cam-video" autoplay playsinline muted style="width:100%;max-width:440px;border-radius:12px;background:#000"></video>
       <div class="flex gap-s mt-s"><button type="button" class="btn btn-primary btn-sm" id="cam-shot">Capturar foto</button><button type="button" class="btn btn-ghost btn-sm" id="cam-close">Fechar câmera</button></div></div>
-    <img id="doc-preview" hidden alt="Pré-visualização do documento" style="max-width:260px;border-radius:12px;border:1px solid var(--line);margin-top:10px">
+    <div id="doc-preview-box" class="doc-preview-box mt-s" hidden>
+      <div class="flex between center wrap gap-s mb-s">
+        <span class="xs muted" id="doc-preview-meta"></span>
+        <a id="doc-preview-open" class="xs bold brand" href="#" target="_blank" rel="noopener" hidden>Abrir PDF ↗</a>
+      </div>
+      <img id="doc-preview" class="doc-preview-img" hidden alt="Pré-visualização do documento">
+      <iframe id="doc-preview-pdf" class="doc-preview-pdf" hidden title="Pré-visualização do documento em PDF"></iframe>
+    </div>
     {% if error %}<p class="xs muted mt-s">Por segurança do navegador, selecione o documento novamente.</p>{% endif %}</div>
   <div class="alert xs">🔒 O CPF completo não é armazenado: o sistema guarda apenas a versão mascarada e um código de conferência. O termo em PDF exibirá o CPF mascarado.</div>
   <div class="flex gap wrap"><button class="btn btn-primary btn-lg">Enviar código ao retirante →</button><a class="btn btn-ghost btn-lg" href="{{ url_for('delivery_web.lista') }}">Cancelar</a></div>
