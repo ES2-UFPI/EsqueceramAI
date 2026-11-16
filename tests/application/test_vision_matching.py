@@ -184,3 +184,26 @@ def test_analyze_falls_back_to_next_model_on_404(monkeypatch):
     res = vision_service.analyze_item_image(PNG, "image/png")
     assert res is not None and res["title"] == "Chaveiro"
     assert len(tried) == 2 and "gemini-inexistente:generateContent" in tried[0]
+
+
+def test_analyze_falls_back_on_503_and_timeout(monkeypatch):
+    monkeypatch.setenv("GEMINI_API_KEY", "fake-key")
+    monkeypatch.setenv("GEMINI_MODEL", "gemini-3.8-flash")
+    sample = {
+        "category": "ACCESSORY", "title": "Garrafa", "description": "Garrafa azul.",
+        "color": "Azul", "brand": "", "model": "", "visualTags": ["garrafa"], "visualSummary": "Garrafa azul.",
+    }
+    calls = []
+
+    def fake_open(req, timeout=25):
+        calls.append(req.full_url)
+        if "gemini-3.8-flash:" in req.full_url:
+            raise urllib.error.HTTPError(req.full_url, 503, "Unavailable", {}, io.BytesIO(b'{"error":"high demand"}'))
+        if "gemini-3.8-flash-lite:" in req.full_url:
+            raise TimeoutError("The read operation timed out")
+        return _FakeResp(_gemini_payload(sample))
+
+    monkeypatch.setattr(vision_service.urllib.request, "urlopen", fake_open)
+    res = vision_service.analyze_item_image(PNG, "image/png")
+    assert res is not None and res["title"] == "Garrafa"
+    assert len(calls) >= 3
