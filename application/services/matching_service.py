@@ -49,6 +49,18 @@ def shared_words(a, b) -> list[str]:
     return [w for w in tokens(a) if w in right][:4]
 
 
+def _visual_tokens(item: dict) -> set[str]:
+    v = item.get("aiVisual") or {}
+    if not isinstance(v, dict):
+        return set()
+    parts = [v.get("visualSummary") or "", " ".join(v.get("visualTags") or []), v.get("brand") or "", v.get("color") or ""]
+    return tokens(" ".join(parts))
+
+
+def _text_tokens(item: dict) -> set[str]:
+    return tokens(" ".join(str(item.get(k) or "") for k in ("title", "description", "color", "brand", "model")))
+
+
 def score_pair(lost: dict, found: dict) -> dict:
     """Pontuador determinístico: cada motivo é legível para explicar a sugestão."""
     if lost["category"] != found["category"]:
@@ -119,6 +131,22 @@ def score_pair(lost: dict, found: dict) -> dict:
             label = re.sub(r"([A-Z])", r" \1", key).lower()
             reasons.append(f"Atributo coincidente: {label}")
     score += min(hits * 5, 10)
+
+    lv, fv = _visual_tokens(lost), _visual_tokens(found)
+    if lv and fv:
+        vis_overlap = overlap_ratio(lv, fv)
+        if vis_overlap > 0:
+            score += _round(vis_overlap * 14)
+            shared = sorted(lv & fv)[:4]
+            reasons.append(f"Análise visual por IA compatível: {', '.join(shared)}")
+    elif lv or fv:
+        vis_side = lv or fv
+        text_side = _text_tokens(found if lv else lost)
+        cross_overlap = overlap_ratio(vis_side, text_side)
+        if cross_overlap > 0:
+            score += _round(cross_overlap * 10)
+            shared = sorted(vis_side & text_side)[:4]
+            reasons.append(f"Foto analisada por IA compatível com a descrição: {', '.join(shared)}")
 
     return {"score": max(0, min(99, score)), "reasons": reasons[:5]}
 

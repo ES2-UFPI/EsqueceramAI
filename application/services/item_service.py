@@ -9,7 +9,7 @@ from application.repositories.items import (create_item, delete_item, find_item_
                                             set_item_status, update_item)
 from application.repositories.points import find_point_by_id
 from application.repositories.users import add_user_score
-from application.services import claim_service, inventory_service
+from application.services import claim_service, inventory_service, vision_service
 from application.services.matching_service import generate_matches_for_item
 from application.services.storage_service import store_item_image
 from application.validation import Form, parse_iso
@@ -84,6 +84,11 @@ def create_item_from_form(user: dict, form, image=None) -> dict:
     claim_service.save_secret(user, created.id, form, valid_secret)
     if image is not None and getattr(image, "filename", ""):
         store_item_image(created.id, image)
+        if vision_service.is_vision_enabled() and hasattr(image, "stream"):
+            image.stream.seek(0)
+            visual = vision_service.analyze_item_image(image.read(), image.mimetype or "")
+            if visual:
+                update_item(created.id, {"ai_visual": visual})
     add_item_event(item_id=created.id, actor_id=user["id"], status="OPEN",
                    note="Registro de item perdido publicado." if data["type"] == "LOST"
                    else "Registro de item encontrado publicado.")
