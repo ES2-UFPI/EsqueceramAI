@@ -83,7 +83,7 @@ def _candidate_models() -> list[str]:
 
 def _call_gemini(endpoint: str, raw_payload: bytes) -> dict:
     req = urllib.request.Request(endpoint, data=raw_payload, method="POST", headers={"Content-Type": "application/json"})
-    with urllib.request.urlopen(req, timeout=25) as resp:
+    with urllib.request.urlopen(req, timeout=8) as resp:
         return json.loads(resp.read().decode("utf-8"))
 
 
@@ -108,22 +108,28 @@ def analyze_item_image(image_bytes: bytes, mime_type: str) -> dict | None:
     api_key = os.getenv("GEMINI_API_KEY", "").strip()
     if not api_key or not image_bytes or mime_type not in SUPPORTED_MIMES:
         return None
-    payload = json.dumps({
+    payload_dict = {
         "contents": [{
             "parts": [
                 {"text": _PROMPT},
                 {"inline_data": {"mime_type": mime_type, "data": base64.b64encode(image_bytes).decode("ascii")}},
             ]
         }],
-        "generationConfig": {"responseMimeType": "application/json", "temperature": 0.2, "maxOutputTokens": 400},
-    }).encode("utf-8")
+        "generationConfig": {
+            "responseMimeType": "application/json",
+            "temperature": 0.2,
+            "maxOutputTokens": 300,
+            "thinkingConfig": {"thinkingBudget": 0},
+        },
+    }
+    payload = json.dumps(payload_dict).encode("utf-8")
 
     body = None
     tried: set[str] = set()
-    candidates = _candidate_models()
+    candidates = _candidate_models()[:3]
     discovered_loaded = False
     idx = 0
-    while idx < len(candidates):
+    while idx < len(candidates) and len(tried) < 3:
         model = candidates[idx]
         idx += 1
         tried.add(model)
@@ -134,11 +140,18 @@ def analyze_item_image(image_bytes: bytes, mime_type: str) -> dict | None:
         except urllib.error.HTTPError as exc:
             detail = exc.read().decode("utf-8", errors="ignore")[:240]
             log.warning("Falha ao analisar imagem com IA (modelo %s, HTTP %s): %s", model, exc.code, detail or exc)
+            if exc.code == 400 and "thinking" in detail.lower():
+                no_think = {**payload_dict, "generationConfig": {"responseMimeType": "application/json", "temperature": 0.2, "maxOutputTokens": 300}}
+                try:
+                    body = _call_gemini(endpoint, json.dumps(no_think).encode("utf-8"))
+                    break
+                except (urllib.error.URLError, TimeoutError, OSError, ValueError):
+                    pass
             if exc.code not in RETRYABLE_HTTP_CODES:
                 return None
         except (urllib.error.URLError, TimeoutError, OSError, ValueError) as exc:
             log.warning("Falha ao analisar imagem com IA (modelo %s): %s", model, exc)
-        if idx == len(candidates) and not discovered_loaded:
+        if idx == len(candidates) and not discovered_loaded and len(tried) < 3:
             discovered_loaded = True
             candidates.extend(_discover_flash_models(api_key, tried))
     if not body:
