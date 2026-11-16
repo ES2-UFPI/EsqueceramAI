@@ -12,7 +12,8 @@ from application.repositories.engagement import (count_unread_notifications, lis
 from application.repositories.items import item_row_json, items_at_points
 from application.repositories.points import create_point, list_points, point_json, update_point
 from application.repositories.users import list_users, set_user_active, set_user_role
-from application.services import auth_service, claim_service, inventory_service, item_service, vision_service
+from application.services import (auth_service, claim_service, inventory_service, item_service, storage_service,
+                                  vision_service)
 from application.services.matching_service import decide_match
 from application.services.seed_service import DEMO_PASSWORD_HINT, ensure_seeded, find_demo_persona
 from application.services.storage_service import resolve_item_image, validate_image
@@ -324,3 +325,10 @@ def health():
     except Exception as exc:  # noqa: BLE001
         print("[health] database check failed", repr(exc))
         return jsonify(status="unhealthy"), 500
+
+@bp.get("/health/storage")
+@controller
+def health_storage():
+    """Estado do bucket de imagens. Restrito a ADMIN: expõe configuração."""
+    _require_admin()
+    return jsonify(storage_service.diagnose_bucket())

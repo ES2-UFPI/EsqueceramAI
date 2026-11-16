@@ -1,11 +1,15 @@
 import json
+import logging
 import os
+import re
 import urllib.error
 import urllib.request
 import uuid
 
 from application.errors import ApiError
 from application.repositories.items import find_item_image, save_item_image
+
+log = logging.getLogger("esqueceram.storage")
 
 BUCKET = "item-images"
 MAX_BYTES = 3 * 1024 * 1024
@@ -19,6 +23,43 @@ def _creds():
 def storage_provider() -> str:
     url, key = _creds()
     return "SUPABASE" if url and key else "DATABASE"
+
+
+def _scrub(text: str, *secrets: str) -> str:
+    """Remove credenciais de mensagens antes de irem para o log."""
+    for secret in secrets:
+        if secret:
+            text = text.replace(secret, "***")
+    return re.sub(r"(key|token|authorization)=([^&\s\"']+)", r"\1=***", text, flags=re.I)
+
+
+def diagnose_bucket() -> dict:
+    """Estado observável do armazenamento, sem enviar arquivos."""
+    url, key = _creds()
+    result = {
+        "provider": storage_provider(),
+        "bucket": BUCKET,
+        "urlConfigured": bool(url),
+        "keyConfigured": bool(key),
+        "keyPrefix": (key or "")[:9] or None,
+    }
+    if not (url and key):
+        result["error"] = "SUPABASE_URL e SUPABASE_SERVICE_ROLE_KEY precisam estar definidos."
+        return result
+    try:
+        req = urllib.request.Request(f"{url}/storage/v1/bucket/{BUCKET}",
+                                     headers={"Authorization": f"Bearer {key}"})
+        with urllib.request.urlopen(req, timeout=10) as resp:
+            info = json.loads(resp.read().decode("utf-8"))
+        result.update(bucketExists=True, isPublic=info.get("public"),
+                      fileSizeLimit=info.get("file_size_limit"),
+                      allowedMimes=info.get("allowed_mime_types"))
+    except urllib.error.HTTPError as exc:
+        body = _scrub(exc.read().decode("utf-8", errors="ignore")[:200], key)
+        result.update(bucketExists=exc.code != 404, httpStatus=exc.code, error=body or str(exc))
+    except (urllib.error.URLError, OSError, ValueError) as exc:
+        result.update(bucketExists=None, error=_scrub(str(getattr(exc, "reason", exc)), key))
+    return result
 
 
 def validate_image(mime: str, size: int):
@@ -43,7 +84,13 @@ def store_item_image(item_id: int, file):
             headers={"Authorization": f"Bearer {svc_key}", "Content-Type": mime, "x-upsert": "true"})
         try:
             urllib.request.urlopen(req, timeout=15).close()
-        except (urllib.error.URLError, OSError):
+        except urllib.error.HTTPError as exc:
+            detail = _scrub(exc.read().decode("utf-8", errors="ignore")[:300], svc_key)
+            log.warning("Falha no upload ao bucket %s (HTTP %s): %s", BUCKET, exc.code, detail or exc)
+            raise ApiError(f"Falha ao enviar a imagem para o armazenamento privado (HTTP {exc.code}).", 502)
+        except (urllib.error.URLError, OSError) as exc:
+            reason = _scrub(str(getattr(exc, "reason", exc)), svc_key)
+            log.warning("Falha no upload ao bucket %s: %s", BUCKET, reason)
             raise ApiError("Falha ao enviar a imagem para o armazenamento privado.", 502)
         save_item_image(item_id=item_id, provider="SUPABASE", storage_key=key, mime_type=mime,
                         size_bytes=len(data), data=None)
