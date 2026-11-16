@@ -5,6 +5,29 @@
 {% if error %}<div class="alert error mt">{{ error }}</div>{% endif %}
 <form method="post" enctype="multipart/form-data" class="card pad mt stack" style="max-width:820px">
   <div><span class="eyebrow">Tipo de registro</span><div class="flex gap mt-s">{% for t in D.RECORD_TYPES %}<label class="chip"><input type="radio" name="type" value="{{ t }}" data-record-type {{ 'checked' if values.get('type') == t }}> {{ 'Perdi um item' if t == 'LOST' else 'Encontrei um item' }}</label>{% endfor %}</div>{{ err(errors,'type') }}</div>
+  <section class="photo-upload-card stack-s">
+    <label class="field"><span>Foto do item (JPG, PNG ou WebP, até 3 MB){% if item and item.imageSrc %} — enviar outra substitui a atual{% endif %}</span><input class="input" type="file" id="item-image-input" name="image" accept="image/jpeg,image/png,image/webp">{{ err(errors,'image') }}</label>
+    <input type="file" id="item-image-capture" accept="image/*" capture="environment" hidden>
+    <div class="flex gap-s wrap center photo-actions">
+      <button type="button" class="btn btn-secondary btn-sm" id="item-cam-open">📷 Tirar foto agora</button>
+      <button type="button" class="btn btn-secondary btn-sm" data-vision-analyze>✨ Preencher campos com IA pela foto</button>
+    </div>
+    <span class="xs muted" data-vision-status>Envie ou tire uma foto primeiro: a IA pode sugerir categoria, título, descrição, cor e marca.</span>
+    <div id="item-cam-box" hidden class="stack-s mt-s">
+      <video id="item-cam-video" autoplay playsinline muted class="cam-video"></video>
+      <div class="flex gap-s wrap photo-actions">
+        <button type="button" class="btn btn-primary btn-sm" id="item-cam-shot">Capturar foto</button>
+        <button type="button" class="btn btn-ghost btn-sm" id="item-cam-close">Fechar câmera</button>
+      </div>
+    </div>
+    <div id="item-photo-preview-box" class="doc-preview-box mt-s" hidden>
+      <div class="flex between center wrap gap-s mb-s">
+        <span class="xs muted" id="item-photo-meta"></span>
+        <button type="button" class="btn btn-ghost btn-sm" id="item-photo-clear">Remover foto</button>
+      </div>
+      <img id="item-photo-preview" class="doc-preview-img" alt="Pré-visualização da foto do item">
+    </div>
+  </section>
   <label class="field"><span>Categoria</span><select class="select" name="category" data-category-select>{% for c in D.CATEGORIES %}<option value="{{ c }}" {{ 'selected' if values.get('category') == c }}>{{ D.CATEGORY_LABEL[c] }} — {{ D.CATEGORY_FIELDS[c].hint }}</option>{% endfor %}</select>{{ err(errors,'category') }}</label>
   <label class="field"><span>Título</span><input class="input" name="title" value="{{ values.get('title','') }}" placeholder="Ex.: Fone Bluetooth JBL preto">{{ err(errors,'title') }}</label>
   <label class="field"><span>Descrição</span><textarea class="textarea" name="description" placeholder="Detalhe características, estado, onde e como foi visto…">{{ values.get('description','') }}</textarea>{{ err(errors,'description') }}</label>
@@ -28,8 +51,6 @@
   <label class="field"><span>Localização física interna no posto (exclusivo para atendentes)</span><input class="input" name="storageLocation" maxlength="80" value="{{ values.get('storageLocation','') }}" placeholder="Ex.: Prateleira B2 · Gaveta 3 · Caixa 1">{{ err(errors,'storageLocation') }}</label>
   {% endif %}
   <div class="flex gap center wrap" data-geo-box><button type="button" class="btn btn-ghost btn-sm" data-geo-locate data-geo-lat-name="latitude" data-geo-lng-name="longitude">📍 Usar minha localização atual</button><span class="xs muted" data-geo-status>Com as coordenadas, o registro aparece nas buscas por proximidade.</span></div>
-  <label class="field"><span>Foto (JPG, PNG ou WebP, até 3 MB){% if item and item.imageSrc %} — enviar outra substitui a atual{% endif %}</span><input class="input" type="file" name="image" accept="image/jpeg,image/png,image/webp">{{ err(errors,'image') }}</label>
-  <div class="flex gap wrap center"><button type="button" class="btn btn-secondary btn-sm" data-vision-analyze>✨ Preencher campos com IA pela foto</button><span class="xs muted" data-vision-status>Opcional: analisa a foto e sugere categoria, título, descrição, cor e marca.</span></div>
   <fieldset class="card pad stack" style="box-shadow:none" data-secret-box {{ 'hidden' if values.get('type') != 'FOUND' }}>
     <legend class="eyebrow">🔐 Validação de posse (opcional)</legend>
     <p class="xs muted">Guarde um detalhe que só o verdadeiro dono conhece e crie uma pergunta-chave. O detalhe nunca é exibido: só serve para você conferir a resposta de quem reivindicar o item.</p>
@@ -40,6 +61,6 @@
     </div>
     {% if has_secret %}<label class="chip"><input type="checkbox" name="secretClear" value="1"> Remover a pergunta-chave deste registro</label>{% endif %}
   </fieldset>
-  <div class="flex gap wrap"><button class="btn btn-primary btn-lg">{{ 'Publicar registro' if mode == 'new' else 'Salvar alterações' }}</button><a class="btn btn-ghost btn-lg" href="{{ '/painel/itens' if mode == 'new' else '/itens/%d'|format(item.id) }}">Cancelar</a></div>
+  <div class="flex gap wrap form-actions"><button class="btn btn-primary btn-lg">{{ 'Publicar registro' if mode == 'new' else 'Salvar alterações' }}</button><a class="btn btn-ghost btn-lg" href="{{ '/painel/itens' if mode == 'new' else '/itens/%d'|format(item.id) }}">Cancelar</a></div>
 </form>
 {% endblock %}

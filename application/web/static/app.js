@@ -106,6 +106,52 @@
   });
   document.addEventListener("keydown", (ev) => { if (ev.key === "Escape") setDrawer(false); });
 
+  const itemImgInput = document.getElementById("item-image-input");
+  const itemPreviewBox = document.getElementById("item-photo-preview-box");
+  const itemPreview = document.getElementById("item-photo-preview");
+  const itemMeta = document.getElementById("item-photo-meta");
+  const itemClear = document.getElementById("item-photo-clear");
+  let itemPreviewUrl = null;
+  function showItemPhoto(file) {
+    if (!itemPreviewBox || !itemPreview) return;
+    if (itemPreviewUrl) { URL.revokeObjectURL(itemPreviewUrl); itemPreviewUrl = null; }
+    if (!file) { itemPreviewBox.hidden = true; itemPreview.removeAttribute("src"); return; }
+    itemPreviewUrl = URL.createObjectURL(file);
+    itemPreview.src = itemPreviewUrl;
+    if (itemMeta) itemMeta.textContent = `${file.name || "foto"} · ${Math.max(1, Math.round((file.size || 0) / 1024))} KB`;
+    itemPreviewBox.hidden = false;
+  }
+  function setItemPhoto(file) {
+    if (!itemImgInput || !file) return;
+    const dt = new DataTransfer(); dt.items.add(file); itemImgInput.files = dt.files;
+    showItemPhoto(file);
+  }
+  if (itemImgInput) itemImgInput.addEventListener("change", () => showItemPhoto(itemImgInput.files[0]));
+  if (itemClear) itemClear.addEventListener("click", () => { if (itemImgInput) itemImgInput.value = ""; showItemPhoto(null); });
+
+  const camOpen = document.getElementById("item-cam-open"), camBox = document.getElementById("item-cam-box");
+  const camVideo = document.getElementById("item-cam-video"), camShot = document.getElementById("item-cam-shot"), camClose = document.getElementById("item-cam-close");
+  const camFallback = document.getElementById("item-image-capture");
+  let camStream = null;
+  function stopCam() { if (camStream) camStream.getTracks().forEach(t => t.stop()); camStream = null; if (camBox) camBox.hidden = true; }
+  if (camFallback) camFallback.addEventListener("change", () => camFallback.files[0] && setItemPhoto(camFallback.files[0]));
+  if (camOpen) camOpen.addEventListener("click", async () => {
+    try {
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) throw new Error("sem camera");
+      camStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" }, audio: false });
+      camVideo.srcObject = camStream; camBox.hidden = false;
+    } catch (e) {
+      if (camFallback) camFallback.click();
+    }
+  });
+  if (camClose) camClose.addEventListener("click", stopCam);
+  if (camShot) camShot.addEventListener("click", () => {
+    const c = document.createElement("canvas");
+    c.width = camVideo.videoWidth || 1280; c.height = camVideo.videoHeight || 720;
+    c.getContext("2d").drawImage(camVideo, 0, 0, c.width, c.height);
+    c.toBlob(blob => { if (blob) setItemPhoto(new File([blob], "item-capturado.jpg", { type: "image/jpeg" })); stopCam(); }, "image/jpeg", 0.9);
+  });
+
   const visionBtn = document.querySelector("[data-vision-analyze]");
   if (visionBtn) {
     const statusEl = document.querySelector("[data-vision-status]");
