@@ -199,7 +199,7 @@ def test_analyze_falls_back_on_503_and_timeout(monkeypatch):
         calls.append(req.full_url)
         if "gemini-3.8-flash:" in req.full_url:
             raise urllib.error.HTTPError(req.full_url, 503, "Unavailable", {}, io.BytesIO(b'{"error":"high demand"}'))
-        if "gemini-3.8-flash-lite:" in req.full_url:
+        if "gemini-3.5-flash-lite:" in req.full_url:
             raise TimeoutError("The read operation timed out")
         return _FakeResp(_gemini_payload(sample))
 

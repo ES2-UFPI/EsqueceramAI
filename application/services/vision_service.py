@@ -9,8 +9,8 @@ from application.domain import CATEGORIES, COLORS
 
 log = logging.getLogger("esqueceram.vision")
 
-DEFAULT_GEMINI_MODEL = "gemini-3.8-flash-lite"
-FALLBACK_MODELS = ("gemini-3.8-flash-lite", "gemini-3.8-flash", "gemini-2.5-flash-lite", "gemini-2.5-flash")
+DEFAULT_GEMINI_MODEL = "gemini-3.5-flash-lite"
+FALLBACK_MODELS = ("gemini-3.5-flash-lite", "gemini-3.1-flash-lite", "gemini-flash-lite-latest", "gemini-3.8-flash")
 RETRYABLE_HTTP_CODES = {404, 429, 500, 502, 503, 504}
 SUPPORTED_MIMES = ("image/jpeg", "image/png", "image/webp")
 
@@ -119,7 +119,6 @@ def analyze_item_image(image_bytes: bytes, mime_type: str) -> dict | None:
             "responseMimeType": "application/json",
             "temperature": 0.2,
             "maxOutputTokens": 300,
-            "thinkingConfig": {"thinkingBudget": 0},
         },
     }
     payload = json.dumps(payload_dict).encode("utf-8")
@@ -140,13 +139,6 @@ def analyze_item_image(image_bytes: bytes, mime_type: str) -> dict | None:
         except urllib.error.HTTPError as exc:
             detail = exc.read().decode("utf-8", errors="ignore")[:240]
             log.warning("Falha ao analisar imagem com IA (modelo %s, HTTP %s): %s", model, exc.code, detail or exc)
-            if exc.code == 400 and "thinking" in detail.lower():
-                no_think = {**payload_dict, "generationConfig": {"responseMimeType": "application/json", "temperature": 0.2, "maxOutputTokens": 300}}
-                try:
-                    body = _call_gemini(endpoint, json.dumps(no_think).encode("utf-8"))
-                    break
-                except (urllib.error.URLError, TimeoutError, OSError, ValueError):
-                    pass
             if exc.code not in RETRYABLE_HTTP_CODES:
                 return None
         except (urllib.error.URLError, TimeoutError, OSError, ValueError) as exc:
