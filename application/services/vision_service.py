@@ -9,8 +9,8 @@ from application.domain import CATEGORIES, COLORS
 
 log = logging.getLogger("esqueceram.vision")
 
-DEFAULT_GEMINI_MODEL = "gemini-2.5-flash"
-FALLBACK_MODELS = ("gemini-2.5-flash", "gemini-2.0-flash", "gemini-1.5-flash")
+DEFAULT_GEMINI_MODEL = "gemini-3.8-flash"
+FALLBACK_MODELS = ("gemini-3.8-flash", "gemini-2.5-flash", "gemini-2.0-flash")
 SUPPORTED_MIMES = ("image/jpeg", "image/png", "image/webp")
 
 _PROMPT = (
@@ -86,6 +86,21 @@ def _call_gemini(endpoint: str, raw_payload: bytes) -> dict:
         return json.loads(resp.read().decode("utf-8"))
 
 
+def _discover_flash_model(api_key: str, already_tried: set[str]) -> str | None:
+    try:
+        with urllib.request.urlopen(f"https://generativelanguage.googleapis.com/v1beta/models?key={api_key}", timeout=10) as resp:
+            models = json.loads(resp.read().decode("utf-8")).get("models") or []
+    except (urllib.error.URLError, OSError, ValueError):
+        return None
+    for m in models:
+        if "generateContent" not in (m.get("supportedGenerationMethods") or []):
+            continue
+        name = str(m.get("name") or "").removeprefix("models/")
+        if "flash" in name and name not in already_tried:
+            return name
+    return None
+
+
 def analyze_item_image(image_bytes: bytes, mime_type: str) -> dict | None:
     """Extrai atributos e tags visuais de uma foto usando Gemini Vision."""
     api_key = os.getenv("GEMINI_API_KEY", "").strip()
@@ -102,7 +117,10 @@ def analyze_item_image(image_bytes: bytes, mime_type: str) -> dict | None:
     }).encode("utf-8")
 
     body = None
-    for model in _candidate_models():
+    tried: set[str] = set()
+    candidates = _candidate_models()
+    for model in candidates:
+        tried.add(model)
         endpoint = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={api_key}"
         try:
             body = _call_gemini(endpoint, payload)
@@ -116,6 +134,16 @@ def analyze_item_image(image_bytes: bytes, mime_type: str) -> dict | None:
         except (urllib.error.URLError, OSError, ValueError) as exc:
             log.warning("Falha ao analisar imagem com IA: %s", exc)
             return None
+    if not body:
+        if discovered := _discover_flash_model(api_key, tried):
+            try:
+                body = _call_gemini(
+                    f"https://generativelanguage.googleapis.com/v1beta/models/{discovered}:generateContent?key={api_key}",
+                    payload,
+                )
+            except (urllib.error.URLError, OSError, ValueError) as exc:
+                log.warning("Falha ao analisar imagem com IA (modelo descoberto %s): %s", discovered, exc)
+                return None
     if not body:
         return None
     try:
