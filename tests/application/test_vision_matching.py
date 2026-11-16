@@ -153,3 +153,13 @@ def test_item_creation_stores_image_and_ai_visual(app, monkeypatch):
     assert sample["visualSummary"] in user.get(f"/itens/{item_id}").get_data(as_text=True)
     db.delete(row)
     db.commit()
+
+
+def test_item_form_renders_camera_and_photo_before_details(app):
+    user = persona_client(app, "carlos@ufpi.edu.br")
+    html = user.get("/painel/itens/novo").get_data(as_text=True)
+    for needle in ('id="item-cam-open"', 'id="item-image-capture"', 'capture="environment"', 'data-vision-analyze'):
+        assert needle in html
+    assert html.index('name="image"') < html.index('name="title"') < html.index('name="description"')
+    css = user.get("/static/style.css").get_data(as_text=True)
+    assert ".photo-actions" in css and "min-height:44px" in css
