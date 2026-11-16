@@ -35,6 +35,8 @@ def test_pdf_has_required_content(data):
     assert "ATD-2024-0117" in t and "Renata Nunes" in t       # matrícula e atendente
     assert "08/11/2026 14:32:10" in t and "2026-11-08T17:32:10Z" in t   # carimbo de data/hora
     assert "ENT-2026-000012" in t and code in t
+    assert "Termo Digital de Entrega" in t and "ASSINATURA ELETRÔNICA" in t
+    assert len(PdfReader(io.BytesIO(pdf)).pages[0].images) >= 1  # logomarca incorporada
     assert data.document_sha256 in t.replace("\n", "")
 
 
