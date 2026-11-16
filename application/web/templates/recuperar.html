@@ -1,6 +1,6 @@
 {% extends "base.html" %}{% from "_ui.html" import field %}{% block title %}Recuperar senha · Esqueceram AI{% endblock %}
 {% block body %}<div class="authwrap"><div class="card authcard">
-<a href="/" class="brandmark"><i>🔎</i> Esqueceram AI</a><h1 class="display mt" style="font-size:1.8rem">Recuperar senha</h1>
+<a href="/" class="brandmark"><img src="{{ url_for('static', filename='logo-esqueceram-ai.png') }}" alt="Esqueceram AI" class="brandlogo"></a><h1 class="display mt" style="font-size:1.8rem">Recuperar senha</h1>
 <p class="sm muted mt-s">Confirme seu e-mail e o telefone cadastrado para definir uma nova senha.</p>
 {% if error %}<div class="alert error mt">{{ error }}</div>{% endif %}
 <form method="post" class="stack mt">{{ field('E-mail','email',values,errors,'email','',True) }}{{ field('Telefone cadastrado','phone',values,errors,'tel','(86) 99999-0000',True) }}

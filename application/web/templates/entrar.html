@@ -1,6 +1,6 @@
 {% extends "base.html" %}{% from "_ui.html" import field %}{% block title %}Entrar · Esqueceram AI{% endblock %}
 {% block body %}<div class="authwrap"><div class="card authcard">
-<a href="/" class="brandmark"><i>🔎</i> Esqueceram AI</a><h1 class="display mt" style="font-size:1.8rem">Entrar</h1><p class="sm muted mt-s">Acesse sua conta para registrar e acompanhar itens.</p>
+<a href="/" class="brandmark"><img src="{{ url_for('static', filename='logo-esqueceram-ai.png') }}" alt="Esqueceram AI" class="brandlogo"></a><h1 class="display mt" style="font-size:1.8rem">Entrar</h1><p class="sm muted mt-s">Acesse sua conta para registrar e acompanhar itens.</p>
 {% if error %}<div class="alert error mt">{{ error }}</div>{% endif %}
 <form method="post" class="stack mt"><input type="hidden" name="next" value="{{ next }}">
 {{ field('E-mail','email',values,errors,'email','voce@ufpi.edu.br',True) }}{{ field('Senha','password',values,errors,'password','',True) }}
