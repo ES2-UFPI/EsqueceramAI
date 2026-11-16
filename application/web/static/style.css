@@ -37,6 +37,8 @@ label.field{display:block}.field>span{display:block;font-size:12px;font-weight:7
 .nav-toggle:hover{background:var(--paper-deep)}
 .brandmark{display:flex;align-items:center;gap:10px;font-family:var(--display);font-weight:700;font-size:19px}
 .brandmark i{display:grid;place-items:center;width:34px;height:34px;border-radius:10px;background:var(--brand);color:#fff;font-style:normal;font-size:16px}
+.brandlogo{display:block;height:36px;width:auto;max-width:100%;object-fit:contain}
+.mobilebar .brandlogo{height:28px}
 .footer{margin-top:64px;border-top:1px solid var(--line);background:var(--surface);padding:32px 0;font-size:12px;color:var(--muted)}
 .hero h1{font-size:clamp(2.4rem,5.2vw,4rem);line-height:1.03;margin-top:18px}.hero{padding:56px 0 40px}
 .searchbox{margin-top:24px;background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:8px}

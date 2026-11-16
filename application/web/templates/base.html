@@ -1,10 +1,11 @@
 <!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>{% block title %}Esqueceram AI · achados e perdidos{% endblock %}</title>
+<link rel="icon" type="image/png" href="{{ url_for('static', filename='logo-esqueceram-ai.png') }}">
 <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}"></head><body>
 {% for cat, msg in get_flashed_messages(with_categories=true) %}<span class="flash" hidden data-msg="{{ msg }}" data-tone="{{ cat }}"></span>{% endfor %}
 {% block body %}
 <header class="header"><div class="container">
-  <a href="/" class="brandmark"><i>🔎</i> Esqueceram AI</a>
+  <a href="/" class="brandmark"><img src="{{ url_for('static', filename='logo-esqueceram-ai.png') }}" alt="Esqueceram AI" class="brandlogo"></a>
   <nav id="public-nav" data-public-nav><a class="btn btn-ghost btn-sm" href="/itens">Explorar</a><a class="btn btn-ghost btn-sm" href="/itens?tipo=FOUND">Achados</a><a class="btn btn-ghost btn-sm" href="/#pontos">Pontos de coleta</a></nav>
   <div class="flex gap-s center header-actions">{% if user %}<a class="btn btn-primary btn-sm" href="/painel">Painel →</a>{% else %}
   <a class="btn btn-secondary btn-sm" href="/entrar">Entrar</a><a class="btn btn-primary btn-sm" href="/cadastrar">Criar conta</a>{% endif %}
