@@ -163,3 +163,24 @@ def test_item_form_renders_camera_and_photo_before_details(app):
     assert html.index('name="image"') < html.index('name="title"') < html.index('name="description"')
     css = user.get("/static/style.css").get_data(as_text=True)
     assert ".photo-actions" in css and "min-height:44px" in css
+
+
+def test_analyze_falls_back_to_next_model_on_404(monkeypatch):
+    monkeypatch.setenv("GEMINI_API_KEY", "fake-key")
+    monkeypatch.setenv("GEMINI_MODEL", "models/gemini-inexistente")
+    tried = []
+    sample = {
+        "category": "ACCESSORY", "title": "Chaveiro", "description": "Chaveiro prateado.",
+        "color": "Prata", "brand": "", "model": "", "visualTags": ["chaveiro"], "visualSummary": "Chaveiro prateado.",
+    }
+
+    def fake_open(req, timeout=15):
+        tried.append(req.full_url)
+        if "gemini-inexistente" in req.full_url:
+            raise urllib.error.HTTPError(req.full_url, 404, "Not Found", {}, io.BytesIO(b'{"error":"not found"}'))
+        return _FakeResp(_gemini_payload(sample))
+
+    monkeypatch.setattr(vision_service.urllib.request, "urlopen", fake_open)
+    res = vision_service.analyze_item_image(PNG, "image/png")
+    assert res is not None and res["title"] == "Chaveiro"
+    assert len(tried) == 2 and "gemini-inexistente:generateContent" in tried[0]

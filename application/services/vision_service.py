@@ -10,6 +10,7 @@ from application.domain import CATEGORIES, COLORS
 log = logging.getLogger("esqueceram.vision")
 
 DEFAULT_GEMINI_MODEL = "gemini-2.5-flash"
+FALLBACK_MODELS = ("gemini-2.5-flash", "gemini-2.0-flash", "gemini-1.5-flash")
 SUPPORTED_MIMES = ("image/jpeg", "image/png", "image/webp")
 
 _PROMPT = (
@@ -70,14 +71,27 @@ def _normalize_analysis(raw: dict) -> dict | None:
     }
 
 
+def _candidate_models() -> list[str]:
+    configured = os.getenv("GEMINI_MODEL", DEFAULT_GEMINI_MODEL).strip().strip("\"'").removeprefix("models/")
+    models = [configured or DEFAULT_GEMINI_MODEL]
+    for m in FALLBACK_MODELS:
+        if m not in models:
+            models.append(m)
+    return models
+
+
+def _call_gemini(endpoint: str, raw_payload: bytes) -> dict:
+    req = urllib.request.Request(endpoint, data=raw_payload, method="POST", headers={"Content-Type": "application/json"})
+    with urllib.request.urlopen(req, timeout=15) as resp:
+        return json.loads(resp.read().decode("utf-8"))
+
+
 def analyze_item_image(image_bytes: bytes, mime_type: str) -> dict | None:
     """Extrai atributos e tags visuais de uma foto usando Gemini Vision."""
     api_key = os.getenv("GEMINI_API_KEY", "").strip()
     if not api_key or not image_bytes or mime_type not in SUPPORTED_MIMES:
         return None
-    model = os.getenv("GEMINI_MODEL", DEFAULT_GEMINI_MODEL).strip() or DEFAULT_GEMINI_MODEL
-    endpoint = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={api_key}"
-    payload = {
+    payload = json.dumps({
         "contents": [{
             "parts": [
                 {"text": _PROMPT},
@@ -85,19 +99,29 @@ def analyze_item_image(image_bytes: bytes, mime_type: str) -> dict | None:
             ]
         }],
         "generationConfig": {"responseMimeType": "application/json", "temperature": 0.2},
-    }
-    req = urllib.request.Request(
-        endpoint,
-        data=json.dumps(payload).encode("utf-8"),
-        method="POST",
-        headers={"Content-Type": "application/json"},
-    )
+    }).encode("utf-8")
+
+    body = None
+    for model in _candidate_models():
+        endpoint = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={api_key}"
+        try:
+            body = _call_gemini(endpoint, payload)
+            break
+        except urllib.error.HTTPError as exc:
+            detail = exc.read().decode("utf-8", errors="ignore")[:240]
+            log.warning("Falha ao analisar imagem com IA (modelo %s, HTTP %s): %s", model, exc.code, detail or exc)
+            if exc.code == 404:
+                continue
+            return None
+        except (urllib.error.URLError, OSError, ValueError) as exc:
+            log.warning("Falha ao analisar imagem com IA: %s", exc)
+            return None
+    if not body:
+        return None
     try:
-        with urllib.request.urlopen(req, timeout=15) as resp:
-            body = json.loads(resp.read().decode("utf-8"))
         text = body["candidates"][0]["content"]["parts"][0]["text"]
         parsed = json.loads(text)
-    except (urllib.error.URLError, OSError, ValueError, KeyError, IndexError, TypeError) as exc:
-        log.warning("Falha ao analisar imagem com IA: %s", exc)
+    except (ValueError, KeyError, IndexError, TypeError) as exc:
+        log.warning("Resposta inválida da IA ao analisar imagem: %s", exc)
         return None
     return _normalize_analysis(parsed)
