@@ -14,13 +14,10 @@ from reportlab.platypus import Image, Paragraph, SimpleDocTemplate, Spacer, Tabl
 from application.delivery.security import mac_hex
 
 TZ = ZoneInfo("America/Fortaleza")
-BRAND = colors.HexColor("#0d5c53")
-ACCENT = colors.HexColor("#c59b27")
-SOFT = colors.HexColor("#e4efec")
-TINT = colors.HexColor("#f5f9f8")
-LINE = colors.HexColor("#d7d3c6")
-MUTED = colors.HexColor("#5c6d68")
-INK = colors.HexColor("#172824")
+INK = colors.HexColor("#111827")
+MUTED = colors.HexColor("#4b5563")
+BORDER = colors.HexColor("#374151")
+GRID = colors.HexColor("#9ca3af")
 
 LOGO_PATH = Path(__file__).resolve().parents[1] / "web" / "static" / "logo-esqueceram-ai.png"
 
@@ -67,182 +64,130 @@ def verification_code(d: ReceiptData) -> str:
     return "-".join(raw[i:i + 5] for i in range(0, 20, 5))
 
 
-def _section_table(title: str, rows: list[tuple[str, object]], label_style: ParagraphStyle) -> Table:
-    header_style = ParagraphStyle("sec", parent=label_style, fontSize=8.5, textColor=colors.white)
-    data = [[Paragraph(escape(title), header_style), ""]]
-    for k, v in rows:
-        data.append([Paragraph(escape(k), label_style), v])
-    t = Table(data, colWidths=[52 * mm, 118 * mm])
-    t.setStyle(TableStyle([
-        ("SPAN", (0, 0), (1, 0)),
-        ("BACKGROUND", (0, 0), (1, 0), BRAND),
-        ("TOPPADDING", (0, 0), (1, 0), 5),
-        ("BOTTOMPADDING", (0, 0), (1, 0), 5),
-        ("LEFTPADDING", (0, 0), (-1, -1), 8),
-        ("RIGHTPADDING", (0, 0), (-1, -1), 8),
-        ("VALIGN", (0, 1), (-1, -1), "TOP"),
-        ("BACKGROUND", (0, 1), (0, -1), SOFT),
-        ("BACKGROUND", (1, 1), (1, -1), colors.white),
-        ("LINEBELOW", (0, 1), (-1, -1), 0.5, LINE),
-        ("BOX", (0, 0), (-1, -1), 0.8, BRAND),
-        ("TOPPADDING", (0, 1), (-1, -1), 5.5),
-        ("BOTTOMPADDING", (0, 1), (-1, -1), 5.5),
-    ]))
-    return t
-
-
 def build_receipt_pdf(d: ReceiptData) -> tuple[bytes, str]:
-    """Retorna (bytes do PDF, código de verificação)."""
+    """Retorna (bytes do PDF, código de verificação) em layout estilo boleto/recibo branco."""
     code = verification_code(d)
     number = receipt_number(d.delivery_id, d.created_at)
     base = getSampleStyleSheet()
-    body = ParagraphStyle("body", parent=base["BodyText"], fontName="Helvetica", fontSize=9.5, leading=13.5, textColor=INK)
-    label = ParagraphStyle("label", parent=body, fontName="Helvetica-Bold", fontSize=8.5, textColor=MUTED)
-    mono = ParagraphStyle("mono", parent=body, fontName="Courier", fontSize=8, leading=10, textColor=INK)
-    h1 = ParagraphStyle("h1", parent=body, fontName="Helvetica-Bold", fontSize=16, leading=20, textColor=BRAND)
-    sub = ParagraphStyle("sub", parent=body, fontSize=8.5, leading=11.5, textColor=MUTED)
-    right_meta = ParagraphStyle("rmeta", parent=body, alignment=2, fontSize=8.5, leading=11.5, textColor=MUTED)
-    right_num = ParagraphStyle("rnum", parent=body, alignment=2, fontName="Helvetica-Bold", fontSize=11, leading=14, textColor=BRAND)
+    val = ParagraphStyle("val", parent=base["BodyText"], fontName="Helvetica", fontSize=9.5, leading=12.5, textColor=INK)
+    val_b = ParagraphStyle("valb", parent=val, fontName="Helvetica-Bold")
+    mono = ParagraphStyle("mono", parent=val, fontName="Courier", fontSize=8, leading=10, textColor=INK)
+    title_st = ParagraphStyle("title", parent=val, fontName="Helvetica-Bold", fontSize=12.5, leading=15, textColor=INK)
+    num_st = ParagraphStyle("num", parent=val, alignment=2, fontName="Helvetica-Bold", fontSize=10.5, leading=13, textColor=INK)
+    small = ParagraphStyle("small", parent=val, fontSize=8, leading=11, textColor=MUTED)
 
-    def P(text, style=body):
-        return Paragraph(escape(str(text)), style)
+    def cell(lbl: str, value_html: str, style=val) -> Paragraph:
+        return Paragraph(f"<font size=7 color='#4b5563'><b>{escape(lbl.upper())}</b></font><br/>{value_html}", style)
 
-    if LOGO_PATH.exists():
-        left_brand = Image(str(LOGO_PATH), width=48 * mm, height=8 * mm)
-    else:
-        left_brand = P("Esqueceram AI", h1)
+    logo = Image(str(LOGO_PATH), width=42 * mm, height=7 * mm) if LOGO_PATH.exists() else Paragraph("<b>Esqueceram AI</b>", title_st)
 
-    header = Table(
-        [[left_brand,
-          Paragraph(f"<font size=8 color='#5c6d68'>TERMO Nº</font><br/><b>{escape(number)}</b><br/>"
-                    f"<font size=7.5 color='#5c6d68'>Achados e Perdidos · UFPI</font>", right_num)]],
-        colWidths=[102 * mm, 68 * mm],
+    top_bar = Table(
+        [[logo,
+          Paragraph("<b>Termo Digital de Entrega de Objeto</b><br/><font size=8 color='#4b5563'>Comprovante de devolução · UFPI</font>", title_st),
+          Paragraph(f"<font size=7 color='#4b5563'>NÚMERO DO TERMO</font><br/>{escape(number)}", num_st)]],
+        colWidths=[46 * mm, 82 * mm, 42 * mm],
     )
-    header.setStyle(TableStyle([
+    top_bar.setStyle(TableStyle([
         ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
-        ("LEFTPADDING", (0, 0), (-1, -1), 0),
-        ("RIGHTPADDING", (0, 0), (-1, -1), 0),
-        ("TOPPADDING", (0, 0), (-1, -1), 0),
+        ("LINEBELOW", (0, 0), (-1, -1), 1.4, BORDER),
+        ("LINEAFTER", (0, 0), (1, 0), 0.6, GRID),
+        ("LEFTPADDING", (0, 0), (-1, -1), 6),
+        ("RIGHTPADDING", (0, 0), (-1, -1), 6),
+        ("TOPPADDING", (0, 0), (-1, -1), 5),
         ("BOTTOMPADDING", (0, 0), (-1, -1), 6),
     ]))
 
-    banner = Table(
-        [[Paragraph("<b>Termo Digital de Entrega e Devolução de Objeto</b><br/>"
-                    "<font size=8.5 color='#5c6d68'>Comprovante oficial de retirada presencial mediante "
-                    "conferência documental e código único.</font>", h1)]],
-        colWidths=[170 * mm],
-    )
-    banner.setStyle(TableStyle([
-        ("BACKGROUND", (0, 0), (-1, -1), TINT),
-        ("LINEBEFORE", (0, 0), (0, -1), 3.5, BRAND),
-        ("LINEBELOW", (0, 0), (-1, -1), 0.8, LINE),
-        ("LEFTPADDING", (0, 0), (-1, -1), 10),
-        ("RIGHTPADDING", (0, 0), (-1, -1), 10),
-        ("TOPPADDING", (0, 0), (-1, -1), 8),
-        ("BOTTOMPADDING", (0, 0), (-1, -1), 8),
+    # Grade estilo boleto (células todas brancas com rótulo pequeno no topo e valor abaixo)
+    grid_rows = [
+        [cell("Código do item", f"<b>{escape(d.item_code)}</b>"),
+         cell("Descrição do objeto", escape(d.item_title)),
+         cell("Ponto de coleta", escape(d.point_name or "—"))],
+        [cell("Retirante", escape(d.recipient_name)),
+         cell("CPF (mascarado)", escape(d.cpf_masked)),
+         cell("Confirmação por e-mail", escape(d.email_masked))],
+        [cell("Atendente responsável", f"{escape(d.attendant_name)} · mat. {escape(d.attendant_registration)}"),
+         cell("Data e hora da entrega", f"{escape(format_local(d.confirmed_at))}<br/><font size=7.5 color='#4b5563'>UTC: {format_utc(d.confirmed_at)}</font>"),
+         ""],
+        [cell("Documento com foto (SHA-256 da imagem)", f"<font name='Courier' size=8>{escape(d.document_sha256)}</font>"), "", ""],
+    ]
+    boleto = Table(grid_rows, colWidths=[44 * mm, 76 * mm, 50 * mm])
+    boleto.setStyle(TableStyle([
+        ("BACKGROUND", (0, 0), (-1, -1), colors.white),
+        ("VALIGN", (0, 0), (-1, -1), "TOP"),
+        ("BOX", (0, 0), (-1, -1), 1.0, BORDER),
+        ("INNERGRID", (0, 0), (-1, -1), 0.5, GRID),
+        ("SPAN", (1, 2), (2, 2)),
+        ("SPAN", (0, 3), (2, 3)),
+        ("LEFTPADDING", (0, 0), (-1, -1), 6),
+        ("RIGHTPADDING", (0, 0), (-1, -1), 6),
+        ("TOPPADDING", (0, 0), (-1, -1), 5),
+        ("BOTTOMPADDING", (0, 0), (-1, -1), 6),
     ]))
 
-    item_section = _section_table(
-        "1. DADOS DO OBJETO DEVOLVIDO",
-        [
-            ("Identificador do item", Paragraph(f"<b>{escape(d.item_code)}</b> — {escape(d.item_title)}", body)),
-            ("Ponto de coleta", P(d.point_name or "—")),
-            ("Data e hora da entrega", Paragraph(f"{escape(format_local(d.confirmed_at))}<br/>"
-                                                 f"<font size=7.5 color='#5c6d68'>UTC: {format_utc(d.confirmed_at)}</font>", body)),
-        ],
-        label,
-    )
-
-    recipient_section = _section_table(
-        "2. DADOS DO RETIRANTE E CONFERÊNCIA",
-        [
-            ("Retirante", P(d.recipient_name)),
-            ("CPF do retirante (mascarado)", P(d.cpf_masked)),
-            ("Confirmação por e-mail", Paragraph(f"Código enviado a {escape(d.email_masked)} e confirmado em {escape(format_local(d.confirmed_at))}", body)),
-            ("Atendente responsável", P(f"{d.attendant_name} — matrícula {d.attendant_registration}")),
-            ("Documento com foto (SHA-256)", Paragraph(escape(d.document_sha256), mono)),
-        ],
-        label,
-    )
-
     declaration = Table(
-        [[Paragraph("<b>3. DECLARAÇÃO DE RECEBIMENTO</b><br/>"
-                    "O retirante acima identificado declara ter recebido o objeto descrito neste termo, conferindo o item no ato da "
-                    "entrega. A identidade foi verificada pelo atendente mediante documento oficial com foto, cujo arquivo foi "
-                    "registrado em ambiente privado, e a retirada foi confirmada por código de uso único enviado ao e-mail do retirante.",
-                    body)]],
+        [[Paragraph(
+            "<font size=7 color='#4b5563'><b>DECLARAÇÃO DE RECEBIMENTO</b></font><br/>"
+            "Declaro ter conferido e recebido o objeto descrito acima neste termo. A identidade do retirante foi verificada pelo "
+            "atendente mediante documento oficial com foto (armazenado de forma restrita) e confirmada por código único enviado "
+            "ao e-mail informado.",
+            val,
+        )]],
         colWidths=[170 * mm],
     )
     declaration.setStyle(TableStyle([
-        ("BACKGROUND", (0, 0), (-1, -1), TINT),
-        ("LINEBEFORE", (0, 0), (0, -1), 3, BRAND),
-        ("BOX", (0, 0), (-1, -1), 0.6, LINE),
-        ("LEFTPADDING", (0, 0), (-1, -1), 10),
-        ("RIGHTPADDING", (0, 0), (-1, -1), 10),
-        ("TOPPADDING", (0, 0), (-1, -1), 7),
-        ("BOTTOMPADDING", (0, 0), (-1, -1), 7),
+        ("BACKGROUND", (0, 0), (-1, -1), colors.white),
+        ("BOX", (0, 0), (-1, -1), 0.8, BORDER),
+        ("LEFTPADDING", (0, 0), (-1, -1), 7),
+        ("RIGHTPADDING", (0, 0), (-1, -1), 7),
+        ("TOPPADDING", (0, 0), (-1, -1), 6),
+        ("BOTTOMPADDING", (0, 0), (-1, -1), 6),
     ]))
 
-    auth_title = ParagraphStyle("auth_t", parent=label, fontSize=8.5, textColor=colors.white)
-    auth_box = Table(
-        [
-            [Paragraph("ASSINATURA ELETRÔNICA E INTEGRIDADE", auth_title), ""],
-            [Paragraph(f"<b>Código de verificação:</b> <font name='Courier-Bold' size=10.5 color='#0d5c53'>{code}</font>", body),
-             Paragraph(f"Emitido em {format_utc(d.confirmed_at)}", right_meta)],
-        ],
-        colWidths=[112 * mm, 58 * mm],
+    auth_strip = Table(
+        [[cell("ASSINATURA ELETRÔNICA · CÓDIGO DE VERIFICAÇÃO", f"<font name='Courier-Bold' size=10.5>{code}</font>"),
+          cell("EMISSÃO ELETRÔNICA (UTC)", escape(format_utc(d.confirmed_at)), val_b)]],
+        colWidths=[118 * mm, 52 * mm],
     )
-    auth_box.setStyle(TableStyle([
-        ("SPAN", (0, 0), (1, 0)),
-        ("BACKGROUND", (0, 0), (1, 0), BRAND),
-        ("BACKGROUND", (0, 1), (1, 1), SOFT),
-        ("BOX", (0, 0), (-1, -1), 1, BRAND),
-        ("VALIGN", (0, 1), (-1, 1), "MIDDLE"),
-        ("LEFTPADDING", (0, 0), (-1, -1), 8),
-        ("RIGHTPADDING", (0, 0), (-1, -1), 8),
-        ("TOPPADDING", (0, 0), (-1, 0), 4.5),
-        ("BOTTOMPADDING", (0, 0), (-1, 0), 4.5),
-        ("TOPPADDING", (0, 1), (-1, 1), 8),
-        ("BOTTOMPADDING", (0, 1), (-1, 1), 8),
+    auth_strip.setStyle(TableStyle([
+        ("BACKGROUND", (0, 0), (-1, -1), colors.white),
+        ("BOX", (0, 0), (-1, -1), 1.0, BORDER),
+        ("INNERGRID", (0, 0), (-1, -1), 0.5, GRID),
+        ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
+        ("LEFTPADDING", (0, 0), (-1, -1), 6),
+        ("RIGHTPADDING", (0, 0), (-1, -1), 6),
+        ("TOPPADDING", (0, 0), (-1, -1), 5),
+        ("BOTTOMPADDING", (0, 0), (-1, -1), 6),
     ]))
 
     story = [
-        header,
-        Spacer(1, 4),
-        banner,
-        Spacer(1, 10),
-        item_section,
-        Spacer(1, 8),
-        recipient_section,
-        Spacer(1, 9),
+        top_bar,
+        Spacer(1, 6),
+        boleto,
+        Spacer(1, 6),
         declaration,
-        Spacer(1, 9),
-        auth_box,
-        Spacer(1, 7),
-        P("Documento gerado eletronicamente pelo sistema Esqueceram AI, dispensando assinatura manuscrita. O CPF completo não é "
-          "impresso neste termo; o documento com foto e os registros de auditoria permanecem armazenados de forma restrita para "
-          "eventual contestação. Qualquer alteração dos dados acima invalida o código de verificação.", sub),
+        Spacer(1, 6),
+        auth_strip,
+        Spacer(1, 6),
+        Paragraph(
+            "Documento gerado eletronicamente pelo sistema Esqueceram AI, dispensando assinatura manuscrita. "
+            "O CPF completo não é impresso neste termo; qualquer alteração dos dados invalida o código de verificação.",
+            small,
+        ),
     ]
 
     def chrome(canvas, doc):
         canvas.saveState()
-        canvas.setStrokeColor(BRAND)
-        canvas.setLineWidth(3)
-        canvas.line(20 * mm, 286 * mm, 190 * mm, 286 * mm)
-        canvas.setStrokeColor(ACCENT)
-        canvas.setLineWidth(1)
-        canvas.line(20 * mm, 284.5 * mm, 190 * mm, 284.5 * mm)
-        canvas.setStrokeColor(LINE)
+        canvas.setStrokeColor(GRID)
         canvas.setLineWidth(0.6)
-        canvas.line(20 * mm, 17 * mm, 190 * mm, 17 * mm)
+        canvas.line(20 * mm, 16 * mm, 190 * mm, 16 * mm)
         canvas.setFont("Helvetica", 7.5)
         canvas.setFillColor(MUTED)
-        canvas.drawString(20 * mm, 12 * mm, f"Esqueceram AI · {number} · emitido em {format_utc(d.confirmed_at)} · verificação {code}")
-        canvas.drawRightString(190 * mm, 12 * mm, f"Página {doc.page} de {doc.page}")
+        canvas.drawString(20 * mm, 11.5 * mm, f"Esqueceram AI · {number} · verificação {code}")
+        canvas.drawRightString(190 * mm, 11.5 * mm, f"Página {doc.page} de {doc.page}")
         canvas.restoreState()
 
     buf = io.BytesIO()
-    SimpleDocTemplate(buf, pagesize=A4, leftMargin=20 * mm, rightMargin=20 * mm, topMargin=20 * mm, bottomMargin=20 * mm,
+    SimpleDocTemplate(buf, pagesize=A4, leftMargin=20 * mm, rightMargin=20 * mm, topMargin=18 * mm, bottomMargin=20 * mm,
                       title=f"Termo de Entrega {number}", author="Esqueceram AI", subject=f"Item {d.item_code}").build(
         story, onFirstPage=chrome, onLaterPages=chrome)
     return buf.getvalue(), code
