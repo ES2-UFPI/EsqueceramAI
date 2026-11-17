@@ -1,17 +1,13 @@
 services:
   api:
     build:
-      context: ./backend
+      context: .
       dockerfile: Dockerfile
     environment:
       PORT: "10000"
       DATABASE_URL: postgresql://esqueceram_ai:esqueceram_ai@db:5432/esqueceram_ai
-      FRONTEND_ORIGIN: http://localhost:8080
-      UPLOAD_DIR: /app/storage
     ports:
-      - "5000:10000"
-    volumes:
-      - uploads:/app/storage
+      - "10000:10000"
     depends_on:
       db:
         condition: service_healthy
@@ -31,23 +27,12 @@ services:
       POSTGRES_PASSWORD: esqueceram_ai
     volumes:
       - postgres_data:/var/lib/postgresql/data
-      - ./backend/sql/schema.sql:/docker-entrypoint-initdb.d/01-schema.sql:ro
+      - ./supabase/migrations/20261106000000_initial_schema.sql:/docker-entrypoint-initdb.d/01-initial-schema.sql:ro
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U esqueceram_ai -d esqueceram_ai"]
       interval: 5s
       timeout: 5s
       retries: 10
-    restart: unless-stopped
-
-  frontend:
-    build:
-      context: ./frontend
-      dockerfile: Dockerfile
-    ports:
-      - "8080:80"
-    depends_on:
-      api:
-        condition: service_started
     restart: unless-stopped
 
 networks:
@@ -56,4 +41,3 @@ networks:
 
 volumes:
   postgres_data:
-  uploads:

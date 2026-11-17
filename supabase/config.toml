@@ -1,0 +1,22 @@
+# Configuração do Supabase CLI para o projeto Esqueceram AI.
+# As migrations em supabase/migrations/ são a ÚNICA fonte do schema do banco:
+# são aplicadas no Supabase (supabase db push) e também no PostgreSQL local
+# (docker compose / python init_db.py).
+
+project_id = "gmgxcsztfpoxdbstrvwx"
+
+[api]
+enabled = true
+port = 54321
+schemas = ["public"]
+extra_search_path = ["public", "extensions"]
+max_rows = 1000
+
+[db]
+port = 54322
+shadow_port = 54320
+major_version = 16
+
+[studio]
+enabled = true
+port = 54323

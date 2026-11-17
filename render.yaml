@@ -2,10 +2,36 @@ services:
   - type: web
     name: esqueceram-ai-api
     runtime: docker
-    dockerContext: ./backend
-    dockerfilePath: ./backend/Dockerfile
+    dockerContext: .
+    dockerfilePath: ./Dockerfile
+    healthCheckPath: /api/health
     envVars:
       - key: PORT
         value: "10000"
+      - key: DATABASE_URL
+        sync: false
+      - key: SECRET_KEY
+        generateValue: true
       - key: FRONTEND_ORIGIN
-        value: "https://es2-ufpi.github.io" # Libera o CORS para o GitHub Pages
+        value: "https://es2-ufpi.github.io"
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_SERVICE_ROLE_KEY
+        sync: false
+      - key: SUPABASE_STORAGE_BUCKET
+        value: "item-images"
+      - key: MATCH_NOTIFY_THRESHOLD
+        value: "75"
+      - key: APP_BASE_URL
+        value: "https://esqueceramai.onrender.com"
+      - key: SMTP_HOST
+        sync: false
+      - key: SMTP_PORT
+        # 25/465/587 são bloqueadas nas instâncias gratuitas do Render; a 2525 passa.
+        value: "2525"
+      - key: SMTP_USER
+        sync: false
+      - key: SMTP_PASSWORD
+        sync: false
+      - key: SMTP_FROM
+        sync: false

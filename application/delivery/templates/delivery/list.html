@@ -1,0 +1,14 @@
+{% extends "app_base.html" %}{% block title %}Entregas · Esqueceram AI{% endblock %}
+{% block content %}
+<div class="flex between center wrap gap"><div><p class="eyebrow">Posto de coleta</p><h1 class="display" style="font-size:2rem">Entregas com termo</h1>
+<p class="sm muted">{{ 'Todas as entregas (auditoria).' if user.role == 'ADMIN' else 'Entregas registradas por você.' }}</p></div>
+{% if user.role == 'OPERATOR_POST' %}<a class="btn btn-primary" href="{{ url_for('delivery_web.nova') }}">＋ Nova entrega</a>{% endif %}</div>
+<section class="card pad mt"><div class="tablewrap"><table class="t"><thead><tr><th>Termo</th><th>Item</th><th>Retirante</th><th>CPF</th><th>Atendente</th><th>Status</th><th></th></tr></thead><tbody>
+{% for d in deliveries %}<tr><td><b>{{ d.receiptNumber }}</b><br><span class="xs muted">{{ (d.confirmedAt or d.createdAt)|datetime }}</span></td>
+<td>{{ d.itemCode }}<br><span class="xs muted">{{ d.itemTitle }}</span></td><td>{{ d.recipientName }}</td><td>{{ d.cpfMasked }}</td>
+<td>{{ d.attendantName }}<br><span class="xs muted">mat. {{ d.attendantRegistration }}</span></td>
+<td><span class="badge {{ STATUS[d.status][1] }}">{{ STATUS[d.status][0] }}</span></td>
+<td><a class="btn btn-secondary btn-sm" href="{{ url_for('delivery_web.detalhe', delivery_id=d.id) }}">Abrir</a></td></tr>
+{% else %}<tr><td colspan="7"><div class="empty"><b>Nenhuma entrega registrada</b><p class="sm">As entregas com CPF e documento aparecerão aqui.</p></div></td></tr>{% endfor %}
+</tbody></table></div></section>
+{% endblock %}

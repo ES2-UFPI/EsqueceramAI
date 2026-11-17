@@ -1,0 +1,21 @@
+{% extends "app_base.html" %}{% block title %}Confirmar entrega · Esqueceram AI{% endblock %}
+{% block content %}
+<nav class="xs muted mb"><a href="{{ url_for('delivery_web.lista') }}">Entregas</a> › <b class="soft">Confirmar {{ d.receiptNumber }}</b></nav>
+<h1 class="display" style="font-size:2rem">Confirmar a retirada</h1>
+<p class="sm muted">Peça ao retirante o código de 6 dígitos que chegou ao e-mail <b>{{ d.emailMasked }}</b> e digite abaixo.</p>
+<div class="grid g2 mt" style="max-width:900px">
+<section class="card pad"><div class="flex between center"><h2 class="display" style="font-size:1.2rem">Código de confirmação</h2><span id="code-timer" class="badge warn" data-expires="{{ d.codeExpiresAt }}"></span></div>
+{% if error %}<div class="alert error mt">{{ error }}</div>{% endif %}
+<form method="post" class="stack mt"><label class="field"><span>Código de 6 dígitos</span>
+<input class="input" name="code" inputmode="numeric" pattern="\d{6}" maxlength="6" minlength="6" autocomplete="one-time-code" autofocus required placeholder="000000" style="font-size:1.6rem;letter-spacing:.4em;text-align:center"></label>
+<button class="btn btn-primary btn-block btn-lg">Confirmar entrega</button></form>
+<p class="xs muted mt-s">Tentativas restantes: <b>{{ d.attemptsLeft }}</b></p>
+<div class="flex gap-s mt">
+<form method="post" action="{{ url_for('delivery_web.reenviar', delivery_id=d.id) }}"><button class="btn btn-secondary btn-sm">Reenviar código</button></form>
+<form method="post" action="{{ url_for('delivery_web.cancelar', delivery_id=d.id) }}" onsubmit="return confirm('Cancelar esta entrega?')"><button class="btn btn-danger btn-sm">Cancelar entrega</button></form></div></section>
+<section class="card pad"><p class="eyebrow">Resumo</p><dl class="stack-s mt sm">
+<div><b>Item:</b> {{ d.itemCode }} — {{ d.itemTitle }}</div><div><b>Ponto:</b> {{ d.pointName or '—' }}</div>
+<div><b>Retirante:</b> {{ d.recipientName }}</div><div><b>CPF:</b> {{ d.cpfMasked }}</div>
+<div><b>Documento:</b> <a class="brand bold" href="/api/deliveries/{{ d.id }}/document" target="_blank" rel="noopener">ver imagem</a></div></dl></section></div>
+<script src="{{ url_for('delivery_web.static', filename='delivery.js') }}"></script>
+{% endblock %}
