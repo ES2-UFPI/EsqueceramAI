@@ -3,7 +3,7 @@ name: Verificação diária de itens armazenados (US08)
 on:
   schedule:
     # 09:00 UTC = 06:00 em Fortaleza (UTC-3, sem horário de verão)
-    - cron: "15 1 * * *"
+    - cron: "18 1 * * *"
   workflow_dispatch:
 
 permissions:
