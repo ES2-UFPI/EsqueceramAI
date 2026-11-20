@@ -288,7 +288,22 @@ def _sync_missing_columns():
                 conn.execute(text(ddl))
 
 
+_INIT_DB_LOCK_ID = 84729103
+
+
 def init_db():
+    if engine.dialect.name == "postgresql":
+        with engine.connect() as conn:
+            conn.execute(text(f"SELECT pg_advisory_lock({_INIT_DB_LOCK_ID})"))
+            try:
+                Base.metadata.create_all(conn)
+                conn.commit()
+                _sync_missing_columns()
+                _sync_item_status_enum()
+            finally:
+                conn.execute(text(f"SELECT pg_advisory_unlock({_INIT_DB_LOCK_ID})"))
+                conn.commit()
+        return
     Base.metadata.create_all(engine)
     _sync_missing_columns()
     _sync_item_status_enum()
