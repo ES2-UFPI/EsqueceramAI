@@ -13,15 +13,15 @@ services:
       - key: SECRET_KEY
         generateValue: true
       - key: FRONTEND_ORIGIN
-        value: "https://es2-ufpi.github.io"
+        sync: false
       - key: SUPABASE_URL
         sync: false
       - key: SUPABASE_SERVICE_ROLE_KEY
         sync: false
       - key: SUPABASE_STORAGE_BUCKET
-        value: "item-images"
+        sync: false
       - key: MATCH_NOTIFY_THRESHOLD
-        value: "75"
+        sync: false
       - key: APP_BASE_URL
         value: "https://esqueceramai.onrender.com"
       - key: SMTP_HOST
