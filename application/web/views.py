@@ -9,8 +9,8 @@ from application.repositories.engagement import (count_pending_matches, count_un
                                          list_notifications, list_recent_events, mark_all_notifications_read)
 from application.repositories.items import items_at_points
 from application.repositories.points import create_point, list_points, list_recent_point_activity
-from application.services import (auth_service, claim_service, inventory_service, item_service, matching_service,
-                                  retention_service)
+from application.services import (audit_service, auth_service, claim_service, inventory_service, item_service,
+                                  matching_service, retention_service)
 from application.services.seed_service import DEMO_PASSWORD_HINT, DEMO_PERSONAS, ensure_seeded
 from application.services.stats_service import get_admin_overview, get_dashboard, get_public_home
 from application.validation import Form
@@ -400,3 +400,15 @@ def painel_descarte_csv(user):
 def painel_admin(user):
     return render_template("painel_admin.html", o=get_admin_overview(request.args.get("q") or None), q=request.args.get("q", ""),
                            me=user, **shell_ctx(user), active="/painel/admin")
+
+
+@bp.get("/painel/admin/logs")
+@login_required("ADMIN")
+def painel_admin_logs(user):
+    selected_type = request.args.get("tipo") if request.args.get("tipo") in audit_service.LOG_TYPES else ""
+    q = (request.args.get("q") or "").strip()[:120]
+    logs = audit_service.list_system_logs(log_type=selected_type or None, q=q or None)
+    counts = {key: sum(1 for entry in logs if entry["type"] == key) for key in audit_service.LOG_TYPES}
+    return render_template("painel_logs.html", logs=logs, counts=counts, selected_type=selected_type, q=q,
+                           log_type_labels=audit_service.LOG_TYPE_LABEL,
+                           **shell_ctx(user), active="/painel/admin/logs")

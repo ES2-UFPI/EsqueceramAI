@@ -1,6 +1,6 @@
 {% extends "app_base.html" %}{% from "_ui.html" import stat, bars, api_button %}{% block title %}Administração · Esqueceram AI{% endblock %}
 {% block content %}
-<p class="eyebrow">Administração</p><h1 class="display" style="font-size:2rem">Visão administrativa</h1>
+<div class="flex between center wrap gap"><div><p class="eyebrow">Administração</p><h1 class="display" style="font-size:2rem">Visão administrativa</h1></div><a class="btn btn-secondary btn-sm" href="/painel/admin/logs">📜 Ver logs e auditoria →</a></div>
 <div class="grid g4 mt">{{ stat('Contas cadastradas', o.userCount) }}{{ stat('Correspondências pendentes', o.pending) }}{{ stat('Confirmadas', o.confirmed) }}{{ stat('Descartadas', o.rejected) }}</div>
 <div class="grid g3 mt">{{ stat('Taxa de recuperação', '%d%%'|format(o.recoveryRate)) }}</div>
 <div class="grid g3 mt">
