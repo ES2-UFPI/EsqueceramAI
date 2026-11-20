@@ -7,7 +7,7 @@
 <header class="header"><div class="container">
   <a href="/" class="brandmark"><img src="{{ url_for('static', filename='logo-esqueceram-ai.png') }}" alt="Esqueceram AI" class="brandlogo"></a>
   <nav id="public-nav" data-public-nav><a class="btn btn-ghost btn-sm" href="/itens">Explorar</a><a class="btn btn-ghost btn-sm" href="/itens?tipo=FOUND">Achados</a><a class="btn btn-ghost btn-sm" href="/#pontos">Pontos de coleta</a></nav>
-  <div class="flex gap-s center header-actions">{% if user %}<a class="btn btn-primary btn-sm" href="/painel">Painel →</a>{% else %}
+  <div class="flex gap-s center header-actions">{% if user %}<a class="btn btn-secondary btn-sm" href="/painel/itens/novo">＋ Novo registro</a><a class="btn btn-primary btn-sm" href="/painel">Painel →</a><form method="post" action="/sair" style="display:inline"><button class="btn btn-ghost btn-sm" type="submit">Sair</button></form>{% else %}
   <a class="btn btn-secondary btn-sm" href="/entrar">Entrar</a><a class="btn btn-primary btn-sm" href="/cadastrar">Criar conta</a>{% endif %}
   <button type="button" class="nav-toggle" data-public-nav-toggle aria-label="Abrir navegação" aria-expanded="false" aria-controls="public-nav">☰</button></div>
 </div></header>
