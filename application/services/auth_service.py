@@ -1,10 +1,18 @@
+import hashlib
 import os
 import re
+import secrets
+from datetime import timedelta
 
 from application.auth import create_session, hash_password, to_session_user, verify_password
+from application.delivery.email_service import send_password_reset_link
 from application.errors import ApiError
+from application.models import utcnow
 from application.repositories.engagement import create_notification
-from application.repositories.users import (create_user, find_user_by_email, find_user_by_id, update_user_password,
+from application.repositories.users import (create_password_reset_token, create_user,
+                                    find_user_by_email, find_user_by_id,
+                                    find_valid_password_reset_token,
+                                    mark_password_reset_token_used, update_user_password,
                                     update_user_profile)
 from application.services.seed_service import ensure_demo_accounts, ensure_seeded, find_demo_persona
 from application.validation import Form
@@ -74,25 +82,57 @@ def login_demo_user(persona: str | None) -> dict:
     return to_session_user(user)
 
 
-def recover_password(raw: dict) -> dict:
+RESET_TOKEN_TTL_MINUTES = 30
+
+
+def _token_hash(token: str) -> str:
+    return hashlib.sha256(token.encode("utf-8")).hexdigest()
+
+
+def request_password_reset(raw: dict, base_url: str | None = None) -> dict:
+    """Gera token temporário de redefinição e envia link por e-mail."""
     f = Form(raw)
     f.email("email")
-    f.text("phone", min=8, min_msg="Informe o telefone cadastrado na conta.")
-    f.raw_text("newPassword", min=8, min_msg="A nova senha deve ter no mínimo 8 caracteres.")
     data = f.finish()
     user = find_user_by_email(data["email"])
-    if not user:
-        raise ApiError("Não encontramos uma conta com este e-mail. Confira os dados ou crie um novo cadastro.", 404)
-    only_digits = lambda s: re.sub(r"\D", "", s or "")  # noqa: E731
-    stored, informed = only_digits(user.phone), only_digits(data["phone"])
-    if not stored or stored != informed:
-        raise ApiError("O telefone informado não corresponde ao cadastro desta conta.", 422,
-                       {"phone": ["Telefone diferente do cadastrado."]})
-    update_user_password(user.id, hash_password(data["newPassword"]))
-    create_notification(userId=user.id, type="SYSTEM", title="Sua senha foi redefinida",
-                        body="A senha foi alterada com verificação por telefone. Se não foi você, procure a administração imediatamente.",
+    if user and user.is_active:
+        token = secrets.token_urlsafe(32)
+        expires_at = utcnow() + timedelta(minutes=RESET_TOKEN_TTL_MINUTES)
+        create_password_reset_token(user_id=user.id, token_hash=_token_hash(token), expires_at=expires_at)
+        root = (base_url or os.getenv("APP_BASE_URL") or "http://localhost:5000").rstrip("/")
+        reset_url = f"{root}/redefinir-senha?token={token}"
+        send_password_reset_link(to=user.email, name=user.name, reset_url=reset_url, ttl_minutes=RESET_TOKEN_TTL_MINUTES)
+    return {"ok": True}
+
+
+def validate_password_reset_token(token: str | None) -> bool:
+    clean = (token or "").strip()
+    if not clean:
+        return False
+    return find_valid_password_reset_token(_token_hash(clean)) is not None
+
+
+def reset_password_with_token(raw: dict) -> dict:
+    """Valida o token enviado por e-mail, redefine a senha e invalida o token."""
+    f = Form(raw)
+    f.raw_text("token", min=10, min_msg="Token de redefinição inválido.")
+    f.raw_text("newPassword", min=8, max=128, min_msg="A nova senha deve ter no mínimo 8 caracteres.", max_msg="Senha muito longa.")
+    data = f.finish()
+    row = find_valid_password_reset_token(_token_hash(data["token"].strip()))
+    if not row:
+        raise ApiError("Link de redefinição inválido ou expirado. Solicite um novo.", 400)
+    update_user_password(row.user_id, hash_password(data["newPassword"]))
+    mark_password_reset_token_used(row.id)
+    create_notification(userId=row.user_id, type="SYSTEM", title="Sua senha foi redefinida",
+                        body="A senha foi alterada usando o link enviado por e-mail. Se não foi você, procure a administração imediatamente.",
                         link="/painel/perfil")
     return {"ok": True}
+
+
+def recover_password(raw: dict) -> dict:
+    if (raw or {}).get("token"):
+        return reset_password_with_token(raw)
+    return request_password_reset(raw)
 
 
 def update_profile(user_id: int, raw: dict) -> dict:

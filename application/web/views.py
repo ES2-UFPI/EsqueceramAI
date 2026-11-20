@@ -119,12 +119,28 @@ def recuperar():
     ctx = {"values": {}, "error": None, "errors": {}}
     if request.method == "POST":
         try:
-            auth_service.recover_password(request.form)
-            flash("Senha redefinida. Entre com a nova senha.", "ok")
+            auth_service.request_password_reset(request.form, base_url=request.url_root.rstrip("/"))
+            flash("Se o e-mail estiver cadastrado, enviamos um link para redefinir sua senha.", "ok")
             return redirect("/entrar")
         except ApiError as exc:
             ctx.update(_form_error(exc), values=request.form)
     return render_template("recuperar.html", **ctx)
+
+
+@bp.route("/redefinir-senha", methods=["GET", "POST"])
+def redefinir_senha():
+    token = (request.values.get("token") or "").strip()
+    valid = auth_service.validate_password_reset_token(token)
+    ctx = {"token": token, "valid": valid, "error": None, "errors": {}}
+    if request.method == "POST":
+        try:
+            auth_service.reset_password_with_token(request.form)
+            flash("Senha redefinida com sucesso. Entre com a nova senha.", "ok")
+            return redirect("/entrar")
+        except ApiError as exc:
+            ctx.update(_form_error(exc))
+            ctx["valid"] = auth_service.validate_password_reset_token(token)
+    return render_template("redefinir_senha.html", **ctx)
 
 @bp.post("/sair")
 def sair():
