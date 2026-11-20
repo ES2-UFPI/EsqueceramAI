@@ -115,9 +115,18 @@ function createElement(tagName = "div", opts = {}) {
   return el;
 }
 
-function loadAppJs({ selectors = {}, selectorAll = {}, fetchImpl, sessionData = {} } = {}) {
+function loadAppJs({
+  selectors = {},
+  selectorAll = {},
+  fetchImpl,
+  sessionData = {},
+  localData = {},
+  bodyDataset = {},
+  navigatorExtras = {},
+  notificationApi,
+} = {}) {
   const docListeners = new Map();
-  const body = createElement("body");
+  const body = createElement("body", { dataset: bodyDataset });
   const ids = {};
   for (const [sel, el] of Object.entries(selectors)) {
     if (sel.startsWith("#")) ids[sel.slice(1)] = el;
@@ -142,14 +151,23 @@ function loadAppJs({ selectors = {}, selectorAll = {}, fetchImpl, sessionData = 
     removeItem: (k) => sessionMap.delete(k),
   };
 
+  const localMap = new Map(Object.entries(localData));
+  const localStorage = {
+    getItem: (k) => (localMap.has(k) ? localMap.get(k) : null),
+    setItem: (k, v) => localMap.set(k, String(v)),
+    removeItem: (k) => localMap.delete(k),
+  };
+
   const locationState = { href: "/", reloaded: false, reload: () => (locationState.reloaded = true) };
   const timeouts = [];
 
   const context = {
     document,
     sessionStorage,
+    localStorage,
     location: locationState,
-    navigator: {},
+    navigator: { ...navigatorExtras },
+    Notification: notificationApi,
     FormData: class {
       constructor() {
         this.entries = [];
@@ -168,6 +186,7 @@ function loadAppJs({ selectors = {}, selectorAll = {}, fetchImpl, sessionData = 
       timeouts.push({ fn, ms });
       return timeouts.length;
     },
+    setInterval: () => 1,
     URL: { createObjectURL: () => "blob:mock", revokeObjectURL: () => {} },
   };
   context.window = context;
@@ -178,6 +197,7 @@ function loadAppJs({ selectors = {}, selectorAll = {}, fetchImpl, sessionData = 
     window: context,
     body,
     sessionMap,
+    localMap,
     locationState,
     timeouts,
     async emitDoc(type, event) {
@@ -370,4 +390,60 @@ test("initVisionAnalyze envia imagem e preenche apenas campos vazios", async () 
   assert.equal(modelInput.value, "Tune 510");
   assert.equal(statusEl.textContent, "IA: Fone JBL preto");
   assert.equal(visionBtn.disabled, false);
+});
+
+test("initBrowserPush registra service worker, solicita permissao e exibe notificacao sem duplicar", async () => {
+  const pushBtn = createElement("button");
+  const pushStatus = createElement("p");
+  const shown = [];
+  let swRegistered = null;
+
+  const notificationApi = {
+    permission: "default",
+    requestPermission: async () => {
+      notificationApi.permission = "granted";
+      return "granted";
+    },
+  };
+
+  const env = loadAppJs({
+    selectors: {
+      "[data-push-enable]": pushBtn,
+      "[data-push-status]": pushStatus,
+    },
+    bodyDataset: { userAuthed: "1" },
+    notificationApi,
+    navigatorExtras: {
+      serviceWorker: {
+        register: async (url) => {
+          swRegistered = url;
+          return {
+            showNotification: async (title, opts) => {
+              shown.push({ title, opts });
+            },
+          };
+        },
+      },
+    },
+    fetchImpl: async () => ({
+      ok: true,
+      json: async () => ({
+        notifications: [
+          { id: 10, isRead: false, title: "Novo match", body: "Possível correspondência", link: "/painel/matches" },
+          { id: 11, isRead: true, title: "Já lida", body: "Ignorar" },
+        ],
+      }),
+    }),
+  });
+
+  await Promise.resolve();
+  assert.equal(swRegistered, "/sw.js");
+  assert.equal(pushStatus.textContent, "Ative para receber alertas no navegador ou celular.");
+
+  await pushBtn.dispatchEvent({ type: "click" });
+  assert.equal(shown.length, 1);
+  assert.equal(shown[0].title, "Novo match");
+  assert.equal(shown[0].opts.data.url, "/painel/matches");
+  assert.equal(pushBtn.textContent, "🔔 Notificações ativadas");
+  assert.equal(JSON.parse(env.localMap.get("esqueceram_seen_notifs")).includes(10), true);
 });

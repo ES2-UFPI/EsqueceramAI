@@ -1,0 +1,15 @@
+{
+  "name": "Esqueceram AI",
+  "short_name": "Esqueceram AI",
+  "start_url": "/painel",
+  "display": "standalone",
+  "background_color": "#f6f7f5",
+  "theme_color": "#0d5c53",
+  "icons": [
+    {
+      "src": "/static/logo-esqueceram-ai.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}

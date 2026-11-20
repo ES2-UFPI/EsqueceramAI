@@ -69,6 +69,17 @@ def render_not_found():
 def _form_error(exc: ApiError):
     return {"error": exc.message, "errors": exc.details or {}}
 
+@bp.get("/sw.js")
+def service_worker():
+    from pathlib import Path
+    sw_path = Path(__file__).resolve().parent / "static" / "sw.js"
+    return Response(
+        sw_path.read_text(encoding="utf-8"),
+        mimetype="application/javascript",
+        headers={"Service-Worker-Allowed": "/", "Cache-Control": "no-cache"},
+    )
+
+
 @bp.get("/")
 def home():
     ensure_seeded()

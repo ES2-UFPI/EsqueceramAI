@@ -348,6 +348,113 @@
     });
   }
 
+  function initBrowserPush(toast) {
+    const pushBtn = document.querySelector("[data-push-enable]");
+    const pushStatus = document.querySelector("[data-push-status]");
+    const isAuthed = document.body && document.body.dataset && document.body.dataset.userAuthed === "1";
+    const hasNotificationApi = typeof Notification !== "undefined";
+    const SEEN_KEY = "esqueceram_seen_notifs";
+    let swReg = null;
+
+    function getSeenIds() {
+      try {
+        const raw = localStorage.getItem(SEEN_KEY);
+        const parsed = raw ? JSON.parse(raw) : [];
+        return Array.isArray(parsed) ? parsed : [];
+      } catch (e) {
+        return [];
+      }
+    }
+
+    function saveSeenIds(ids) {
+      try {
+        localStorage.setItem(SEEN_KEY, JSON.stringify(ids.slice(-100)));
+      } catch (e) {}
+    }
+
+    function updatePushStatus() {
+      if (!pushStatus && !pushBtn) return;
+      if (!hasNotificationApi) {
+        if (pushStatus) pushStatus.textContent = "Este navegador não suporta notificações nativas.";
+        if (pushBtn) pushBtn.disabled = true;
+        return;
+      }
+      if (Notification.permission === "granted") {
+        if (pushStatus) pushStatus.textContent = "Notificações no dispositivo ativadas para novos avisos.";
+        if (pushBtn) pushBtn.textContent = "🔔 Notificações ativadas";
+      } else if (Notification.permission === "denied") {
+        if (pushStatus) pushStatus.textContent = "Notificações bloqueadas nas permissões do navegador.";
+      } else if (pushStatus) {
+        pushStatus.textContent = "Ative para receber alertas no navegador ou celular.";
+      }
+    }
+
+    async function showNativeNotification(notif) {
+      const options = {
+        body: notif.body || "",
+        icon: "/static/logo-esqueceram-ai.png",
+        tag: `esqueceram-notif-${notif.id}`,
+        data: { url: notif.link || "/painel/notificacoes" },
+      };
+      if (swReg && typeof swReg.showNotification === "function") {
+        await swReg.showNotification(notif.title || "Esqueceram AI", options);
+        return;
+      }
+      const n = new Notification(notif.title || "Esqueceram AI", options);
+      n.onclick = () => {
+        if (options.data.url) location.href = options.data.url;
+      };
+    }
+
+    async function checkUnreadNotifications() {
+      if (!isAuthed || !hasNotificationApi || Notification.permission !== "granted") return;
+      try {
+        const data = await apiCall("/api/notifications", "GET");
+        const unread = (data.notifications || []).filter((n) => !n.isRead);
+        if (!unread.length) return;
+        const seen = new Set(getSeenIds());
+        const fresh = unread.filter((n) => !seen.has(n.id));
+        if (!fresh.length) return;
+        for (const notif of fresh) {
+          await showNativeNotification(notif);
+          seen.add(notif.id);
+        }
+        saveSeenIds(Array.from(seen));
+      } catch (e) {}
+    }
+
+    if (typeof navigator !== "undefined" && navigator.serviceWorker && typeof navigator.serviceWorker.register === "function") {
+      navigator.serviceWorker.register("/sw.js").then((reg) => {
+        swReg = reg;
+        checkUnreadNotifications();
+      }).catch(() => {});
+    }
+
+    updatePushStatus();
+
+    if (pushBtn && hasNotificationApi) {
+      pushBtn.addEventListener("click", async () => {
+        try {
+          const perm = await Notification.requestPermission();
+          updatePushStatus();
+          if (perm === "granted") {
+            toast("Notificações ativadas no dispositivo.");
+            await checkUnreadNotifications();
+          } else if (perm === "denied") {
+            toast("Permissão negada", "Libere as notificações nas configurações do navegador.", true);
+          }
+        } catch (e) {
+          toast("Não foi possível ativar as notificações.", e.message, true);
+        }
+      });
+    }
+
+    if (isAuthed && hasNotificationApi) {
+      checkUnreadNotifications();
+      setInterval(checkUnreadNotifications, 20000);
+    }
+  }
+
   function init() {
     const toast = initToasts();
     initApiActions(toast);
@@ -357,6 +464,7 @@
     initMobileDrawers();
     initPhotoCapture();
     initVisionAnalyze(toast);
+    initBrowserPush(toast);
   }
 
   init();
