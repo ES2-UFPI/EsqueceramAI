@@ -78,6 +78,26 @@ def send_email(to: str, subject: str, body: str, html_body: str | None = None) -
     return "smtp"
 
 
+def send_password_reset_link(*, to: str, name: str, reset_url: str, ttl_minutes: int = 30) -> str:
+    """Envia link com token temporário para redefinição de senha."""
+    subject = "Esqueceram AI · Redefinição de senha"
+    body = (
+        f"Olá, {name}.\n\n"
+        f"Recebemos uma solicitação para redefinir a senha da sua conta.\n"
+        f"Acesse o link abaixo (válido por {ttl_minutes} minutos) para cadastrar uma nova senha:\n\n"
+        f"{reset_url}\n\n"
+        "Se você não fez esta solicitação, ignore este e-mail."
+    )
+    html_body = (
+        f"<p>Olá, <b>{html.escape(name)}</b>.</p>"
+        f"<p>Recebemos uma solicitação para redefinir a senha da sua conta.</p>"
+        f"<p><a href='{html.escape(reset_url)}'>Clique aqui para redefinir sua senha</a> "
+        f"(link válido por {ttl_minutes} minutos).</p>"
+        "<p style='color:#666;font-size:12px'>Se você não fez esta solicitação, ignore este e-mail.</p>"
+    )
+    return send_email(to, subject, body, html_body)
+
+
 def send_confirmation_code(*, to: str, name: str, code: str, item_title: str, point_name: str | None, ttl_minutes: int) -> str:
     local = f" no ponto de coleta {point_name}" if point_name else ""
     body = (

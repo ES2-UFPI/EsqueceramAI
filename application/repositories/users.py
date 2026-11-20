@@ -1,6 +1,6 @@
 from sqlalchemy import func, or_, select
 from application.domain import FINAL_STATUSES
-from application.models import Item, User, db, utcnow
+from application.models import Item, PasswordResetToken, User, db, utcnow
 
 
 def find_user_by_email(email: str):
@@ -32,6 +32,31 @@ def update_user_password(user_id: int, password_hash: str):
     row = db.get(User, user_id)
     row.password_hash, row.updated_at = password_hash, utcnow()
     db.commit()
+
+
+def create_password_reset_token(*, user_id: int, token_hash: str, expires_at):
+    row = PasswordResetToken(user_id=user_id, token_hash=token_hash, expires_at=expires_at)
+    db.add(row)
+    db.commit()
+    return row
+
+
+def find_valid_password_reset_token(token_hash: str):
+    now = utcnow()
+    return db.execute(
+        select(PasswordResetToken).where(
+            PasswordResetToken.token_hash == token_hash,
+            PasswordResetToken.used_at.is_(None),
+            PasswordResetToken.expires_at > now,
+        )
+    ).scalar_one_or_none()
+
+
+def mark_password_reset_token_used(token_id: int):
+    row = db.get(PasswordResetToken, token_id)
+    if row:
+        row.used_at = utcnow()
+        db.commit()
 
 
 def add_user_score(user_id: int, amount: int):
