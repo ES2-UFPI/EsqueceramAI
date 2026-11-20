@@ -103,11 +103,8 @@ def _discover_flash_models(api_key: str, already_tried: set[str]) -> list[str]:
     return found
 
 
-def analyze_item_image(image_bytes: bytes, mime_type: str) -> dict | None:
-    """Extrai atributos e tags visuais de uma foto usando Gemini Vision."""
-    api_key = os.getenv("GEMINI_API_KEY", "").strip()
-    if not api_key or not image_bytes or mime_type not in SUPPORTED_MIMES:
-        return None
+def _build_vision_payload(image_bytes: bytes, mime_type: str) -> bytes:
+    """Monta o payload JSON enviado à API Gemini Vision."""
     payload_dict = {
         "contents": [{
             "parts": [
@@ -121,9 +118,11 @@ def analyze_item_image(image_bytes: bytes, mime_type: str) -> dict | None:
             "maxOutputTokens": 300,
         },
     }
-    payload = json.dumps(payload_dict).encode("utf-8")
+    return json.dumps(payload_dict).encode("utf-8")
 
-    body = None
+
+def _request_with_fallback(api_key: str, payload: bytes) -> dict | None:
+    """Executa a chamada ao Gemini com fallback entre modelos e descoberta automática."""
     tried: set[str] = set()
     candidates = _candidate_models()[:3]
     discovered_loaded = False
@@ -134,8 +133,7 @@ def analyze_item_image(image_bytes: bytes, mime_type: str) -> dict | None:
         tried.add(model)
         endpoint = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={api_key}"
         try:
-            body = _call_gemini(endpoint, payload)
-            break
+            return _call_gemini(endpoint, payload)
         except urllib.error.HTTPError as exc:
             detail = exc.read().decode("utf-8", errors="ignore")[:240]
             log.warning("Falha ao analisar imagem com IA (modelo %s, HTTP %s): %s", model, exc.code, detail or exc)
@@ -146,8 +144,11 @@ def analyze_item_image(image_bytes: bytes, mime_type: str) -> dict | None:
         if idx == len(candidates) and not discovered_loaded and len(tried) < 3:
             discovered_loaded = True
             candidates.extend(_discover_flash_models(api_key, tried))
-    if not body:
-        return None
+    return None
+
+
+def _parse_gemini_response(body: dict) -> dict | None:
+    """Extrai e normaliza o JSON retornado pelo Gemini Vision."""
     try:
         text = body["candidates"][0]["content"]["parts"][0]["text"]
         parsed = json.loads(text)
@@ -155,3 +156,15 @@ def analyze_item_image(image_bytes: bytes, mime_type: str) -> dict | None:
         log.warning("Resposta inválida da IA ao analisar imagem: %s", exc)
         return None
     return _normalize_analysis(parsed)
+
+
+def analyze_item_image(image_bytes: bytes, mime_type: str) -> dict | None:
+    """Extrai atributos e tags visuais de uma foto usando Gemini Vision."""
+    api_key = os.getenv("GEMINI_API_KEY", "").strip()
+    if not api_key or not image_bytes or mime_type not in SUPPORTED_MIMES:
+        return None
+    payload = _build_vision_payload(image_bytes, mime_type)
+    body = _request_with_fallback(api_key, payload)
+    if not body:
+        return None
+    return _parse_gemini_response(body)
