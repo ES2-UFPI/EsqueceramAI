@@ -49,3 +49,16 @@ jobs:
 
       - name: Validate YAML files
         run: python -c "import pathlib, yaml; [yaml.safe_load(path.read_text()) for path in pathlib.Path('.').rglob('*.yml')]; print('YAML válido')"
+
+  # Job para validar os testes automatizados de JavaScript do frontend
+  frontend-validation:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4.2.2
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Run frontend JS tests
+        run: node --test tests/frontend/app.test.mjs
