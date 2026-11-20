@@ -1,16 +1,33 @@
-"""Consulta consolidada de logs de auditoria e eventos do sistema para administradores."""
+"""Registro e consulta consolidada de logs de auditoria e eventos do sistema."""
+from datetime import datetime, time, timezone
 from sqlalchemy import select
 
 from application import domain as D
 from application.delivery.models import Delivery, DeliveryEvent
-from application.models import Item, ItemEvent, Match, MatchNotification, User, db
+from application.models import Item, ItemEvent, Match, MatchNotification, Notification, User, db
 
-LOG_TYPES = ("ITEM", "DELIVERY", "NOTIFICATION")
+LOG_TYPES = ("ITEM", "DELIVERY", "NOTIFICATION", "AUTH", "ADMIN", "POINT", "SYSTEM")
 LOG_TYPE_LABEL = {
     "ITEM": "Evento de item",
     "DELIVERY": "Auditoria de entrega",
     "NOTIFICATION": "Notificação de match",
+    "AUTH": "Autenticação e conta",
+    "ADMIN": "Administração",
+    "POINT": "Pontos de coleta",
+    "SYSTEM": "Sistema",
 }
+_PREFIX_TO_TYPE = {
+    "[AUTH]": "AUTH",
+    "[ADMIN]": "ADMIN",
+    "[POINT]": "POINT",
+}
+
+
+def record_audit_log(*, user_id: int, category: str, title: str, body: str, link: str | None = None) -> None:
+    """Registra uma ação do sistema na tabela notifications (is_read=True para não gerar alerta)."""
+    prefix = f"[{category}] " if category in ("AUTH", "ADMIN", "POINT") else ""
+    db.add(Notification(user_id=user_id, type="SYSTEM", title=f"{prefix}{title}", body=body, link=link, is_read=True))
+    db.commit()
 
 
 def _item_logs(limit: int) -> list[dict]:
@@ -85,18 +102,86 @@ def _notification_logs(limit: int) -> list[dict]:
     return rows
 
 
-def list_system_logs(log_type: str | None = None, q: str | None = None, limit: int = 100) -> list[dict]:
-    """Retorna logs consolidados ordenados do mais recente para o mais antigo."""
+def _classify_system_notification(title: str) -> tuple[str, str]:
+    for prefix, log_type in _PREFIX_TO_TYPE.items():
+        if title.startswith(prefix):
+            return log_type, title[len(prefix):].strip()
+    return "SYSTEM", title
+
+
+def _system_logs(limit: int) -> list[dict]:
+    stmt = (
+        select(Notification, User.name, User.email)
+        .join(User, User.id == Notification.user_id)
+        .where(Notification.type == "SYSTEM")
+        .order_by(Notification.created_at.desc(), Notification.id.desc())
+        .limit(limit)
+    )
+    rows = []
+    for notif, user_name, user_email in db.execute(stmt).all():
+        log_type, clean_title = _classify_system_notification(notif.title)
+        rows.append({
+            "type": log_type,
+            "typeLabel": LOG_TYPE_LABEL[log_type],
+            "title": clean_title,
+            "detail": f"{notif.body} ({user_email})",
+            "status": log_type,
+            "actor": user_name,
+            "createdAt": notif.created_at,
+            "link": notif.link or "/painel/admin",
+        })
+    return rows
+
+
+def _parse_date_bound(raw: str | None, end_of_day: bool = False) -> datetime | None:
+    text = (raw or "").strip()
+    if not text:
+        return None
+    try:
+        parsed = datetime.strptime(text, "%Y-%m-%d").date()
+    except ValueError:
+        return None
+    return datetime.combine(parsed, time.max if end_of_day else time.min, tzinfo=timezone.utc)
+
+
+def _ensure_utc(dt: datetime) -> datetime:
+    return dt if dt.tzinfo else dt.replace(tzinfo=timezone.utc)
+
+
+def list_system_logs(
+    log_type: str | None = None,
+    q: str | None = None,
+    actor: str | None = None,
+    date_from: str | None = None,
+    date_to: str | None = None,
+    limit: int = 200,
+) -> list[dict]:
+    """Retorna logs consolidados com filtros por tipo, responsável, período e busca textual."""
     selected = log_type if log_type in LOG_TYPES else None
-    fetchers = {
-        "ITEM": _item_logs,
-        "DELIVERY": _delivery_logs,
-        "NOTIFICATION": _notification_logs,
-    }
     entries: list[dict] = []
-    for key, fn in fetchers.items():
-        if selected is None or selected == key:
-            entries.extend(fn(limit))
+
+    if selected in (None, "ITEM"):
+        entries.extend(_item_logs(limit))
+    if selected in (None, "DELIVERY"):
+        entries.extend(_delivery_logs(limit))
+    if selected in (None, "NOTIFICATION"):
+        entries.extend(_notification_logs(limit))
+    if selected in (None, "AUTH", "ADMIN", "POINT", "SYSTEM"):
+        sys_entries = _system_logs(limit)
+        if selected in ("AUTH", "ADMIN", "POINT", "SYSTEM"):
+            sys_entries = [e for e in sys_entries if e["type"] == selected]
+        entries.extend(sys_entries)
+
+    actor_q = (actor or "").strip().lower()
+    if actor_q:
+        entries = [e for e in entries if actor_q in e["actor"].lower()]
+
+    start_dt = _parse_date_bound(date_from, end_of_day=False)
+    end_dt = _parse_date_bound(date_to, end_of_day=True)
+    if start_dt:
+        entries = [e for e in entries if _ensure_utc(e["createdAt"]) >= start_dt]
+    if end_dt:
+        entries = [e for e in entries if _ensure_utc(e["createdAt"]) <= end_dt]
 
     query = (q or "").strip().lower()
     if query:
@@ -108,5 +193,5 @@ def list_system_logs(log_type: str | None = None, q: str | None = None, limit: i
             or query in e["status"].lower()
         ]
 
-    entries.sort(key=lambda e: e["createdAt"], reverse=True)
+    entries.sort(key=lambda e: _ensure_utc(e["createdAt"]), reverse=True)
     return entries[:limit]

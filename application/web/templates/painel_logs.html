@@ -4,7 +4,7 @@
   <div>
     <p class="eyebrow">Administração</p>
     <h1 class="display" style="font-size:2rem">Logs e auditoria do sistema</h1>
-    <p class="sm muted">Histórico consolidado de eventos de itens, entregas e notificações de correspondência.</p>
+    <p class="sm muted">Histórico consolidado de itens, entregas, notificações, autenticação, administração e pontos de coleta.</p>
   </div>
   <a class="btn btn-secondary btn-sm" href="/painel/admin">← Voltar à administração</a>
 </div>
@@ -12,8 +12,8 @@
 <div class="grid g4 stats-grid mt">
   {{ stat('Registros exibidos', logs|length) }}
   {{ stat('Eventos de itens', counts.ITEM) }}
-  {{ stat('Auditoria de entregas', counts.DELIVERY) }}
-  {{ stat('Notificações de match', counts.NOTIFICATION) }}
+  {{ stat('Autenticação e admin', counts.AUTH + counts.ADMIN) }}
+  {{ stat('Entregas, pontos e match', counts.DELIVERY + counts.POINT + counts.NOTIFICATION) }}
 </div>
 
 <section class="card pad mt">
@@ -27,9 +27,21 @@
         {% endfor %}
       </select>
     </label>
-    <label class="field grow">
+    <label class="field">
+      <span>Responsável / Ator</span>
+      <input class="input" name="ator" value="{{ actor }}" placeholder="Nome do usuário ou Sistema">
+    </label>
+    <label class="field">
       <span>Buscar nos logs</span>
-      <input class="input" name="q" value="{{ q }}" placeholder="Item, responsável, e-mail, erro ou detalhe...">
+      <input class="input" name="q" value="{{ q }}" placeholder="Item, e-mail, erro ou detalhe...">
+    </label>
+    <label class="field">
+      <span>De</span>
+      <input class="input" type="date" name="de" value="{{ date_from }}">
+    </label>
+    <label class="field">
+      <span>Até</span>
+      <input class="input" type="date" name="ate" value="{{ date_to }}">
     </label>
     <div class="flex gap-s">
       <button class="btn btn-primary btn-sm" type="submit">Filtrar</button>

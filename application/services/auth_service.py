@@ -14,6 +14,7 @@ from application.repositories.users import (create_password_reset_token, create_
                                     find_valid_password_reset_token,
                                     mark_password_reset_token_used, update_user_password,
                                     update_user_profile)
+from application.services.audit_service import record_audit_log
 from application.services.seed_service import ensure_demo_accounts, ensure_seeded, find_demo_persona
 from application.validation import Form
 
@@ -56,6 +57,8 @@ def login_user(raw: dict) -> dict:
     if not user.is_active:
         raise ApiError("Sua conta está desativada. Procure a administração.", 403)
     create_session(user.id)
+    record_audit_log(user_id=user.id, category="AUTH", title="Login realizado",
+                     body="Acesso autenticado por e-mail e senha.", link="/painel/perfil")
     return to_session_user(user)
 
 
@@ -79,6 +82,8 @@ def login_demo_user(persona: str | None) -> dict:
     if not user.is_active:
         raise ApiError("A conta de demonstração está desativada.", 403)
     create_session(user.id)
+    record_audit_log(user_id=user.id, category="AUTH", title="Login realizado",
+                     body="Acesso autenticado por e-mail e senha.", link="/painel/perfil")
     return to_session_user(user)
 
 
@@ -102,6 +107,8 @@ def request_password_reset(raw: dict, base_url: str | None = None) -> dict:
         root = (base_url or os.getenv("APP_BASE_URL") or "http://localhost:5000").rstrip("/")
         reset_url = f"{root}/redefinir-senha?token={token}"
         send_password_reset_link(to=user.email, name=user.name, reset_url=reset_url, ttl_minutes=RESET_TOKEN_TTL_MINUTES)
+        record_audit_log(user_id=user.id, category="AUTH", title="Solicitação de redefinição de senha",
+                         body="Link temporário enviado por e-mail.", link="/recuperar-senha")
     return {"ok": True}
 
 
@@ -146,6 +153,8 @@ def update_profile(user_id: int, raw: dict) -> dict:
     updated = update_user_profile(user_id, name=data["name"], phone=data["phone"] or None, avatar_url=data["avatarUrl"] or None)
     if not updated:
         raise ApiError("Perfil não encontrado.", 404)
+    record_audit_log(user_id=user_id, category="AUTH", title="Perfil atualizado",
+                     body=f"Nome atualizado para {data['name']}.", link="/painel/perfil")
     return to_session_user(updated)
 
 
@@ -160,6 +169,8 @@ def change_password(user_id: int, raw: dict) -> dict:
     if not verify_password(data["currentPassword"], user.password_hash):
         raise ApiError("Senha atual incorreta.", 422, {"currentPassword": ["Senha atual incorreta."]})
     update_user_password(user_id, hash_password(data["newPassword"]))
+    record_audit_log(user_id=user_id, category="AUTH", title="Senha alterada",
+                     body="Senha alterada pelo próprio usuário.", link="/painel/perfil")
     return {"ok": True}
 
 
