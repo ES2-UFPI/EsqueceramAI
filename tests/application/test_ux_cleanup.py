@@ -16,6 +16,15 @@ def test_item_form_prefills_date_and_removes_unnecessary_secret_detail(app):
     assert 'name="occurredAt" required' in html
     assert "secretDetail" not in html
     assert "Detalhe confidencial" not in html
+    assert "data-geo-map-toggle" in html
+    assert 'id="item-geo-map-box" hidden' in html
+    assert 'data-has-error="0"' in html
+
+    err_html = authed.post(
+        "/painel/itens/novo",
+        data={"type": "FOUND", "category": "ACCESSORY", "title": "ab", "description": "curta", "location": "CT", "occurredAt": today},
+    ).get_data(as_text=True)
+    assert 'data-has-error="1"' in err_html
 
 
 def test_found_item_can_set_question_without_secret_detail(app):

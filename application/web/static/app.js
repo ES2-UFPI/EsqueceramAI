@@ -144,6 +144,71 @@
       const opt = sel.selectedOptions[0];
       geoApply(sel, opt.dataset.lat, opt.dataset.lng);
     });
+
+    const mapToggle = document.querySelector("[data-geo-map-toggle]");
+    const mapBox = document.getElementById("item-geo-map-box");
+    const mapContainer = document.getElementById("item-geo-map");
+    if (mapToggle && mapBox && mapContainer) {
+      let mapInstance = null;
+      let mapMarker = null;
+
+      function ensureLeaflet(cb) {
+        if (window.L) {
+          cb(window.L);
+          return;
+        }
+        if (!document.getElementById("leaflet-css")) {
+          const css = document.createElement("link");
+          css.id = "leaflet-css";
+          css.rel = "stylesheet";
+          css.href = "https://unpkg.com/leaflet@1.9.4/dist/leaflet.css";
+          document.head.appendChild(css);
+        }
+        const script = document.createElement("script");
+        script.src = "https://unpkg.com/leaflet@1.9.4/dist/leaflet.js";
+        script.onload = () => window.L && cb(window.L);
+        script.onerror = () => geoSay(mapToggle, "Não foi possível carregar o mapa. Informe as coordenadas manualmente.");
+        document.head.appendChild(script);
+      }
+
+      mapToggle.addEventListener("click", () => {
+        const opening = mapBox.hidden;
+        mapBox.hidden = !opening;
+        mapToggle.setAttribute("aria-expanded", opening ? "true" : "false");
+        if (!opening) return;
+
+        ensureLeaflet((L) => {
+          const { form } = geoBox(mapToggle);
+          const latVal = parseFloat(form && form.elements.latitude ? form.elements.latitude.value : "");
+          const lngVal = parseFloat(form && form.elements.longitude ? form.elements.longitude.value : "");
+          const hasCoords = Number.isFinite(latVal) && Number.isFinite(lngVal);
+          const center = hasCoords ? [latVal, lngVal] : [-5.0563, -42.7894];
+
+          if (!mapInstance) {
+            mapInstance = L.map(mapContainer).setView(center, 16);
+            L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+              attribution: "&copy; OpenStreetMap",
+              maxZoom: 19,
+            }).addTo(mapInstance);
+            if (hasCoords) mapMarker = L.marker(center).addTo(mapInstance);
+            mapInstance.on("click", (ev) => {
+              const { lat, lng } = ev.latlng;
+              if (mapMarker) mapMarker.setLatLng([lat, lng]);
+              else mapMarker = L.marker([lat, lng]).addTo(mapInstance);
+              geoApply(mapToggle, lat, lng);
+              geoSay(mapToggle, `Ponto selecionado no mapa (${lat.toFixed(6)}, ${lng.toFixed(6)}).`);
+            });
+          } else {
+            mapInstance.invalidateSize();
+            if (hasCoords) {
+              mapInstance.setView(center, 16);
+              if (mapMarker) mapMarker.setLatLng(center);
+              else mapMarker = L.marker(center).addTo(mapInstance);
+            }
+          }
+        });
+      });
+    }
   }
 
   function initDynamicFormFields() {
@@ -210,12 +275,58 @@
   }
 
   function initPhotoCapture() {
+    const itemForm = document.querySelector("[data-item-form]");
     const itemImgInput = document.getElementById("item-image-input");
     const itemPreviewBox = document.getElementById("item-photo-preview-box");
     const itemPreview = document.getElementById("item-photo-preview");
     const itemMeta = document.getElementById("item-photo-meta");
     const itemClear = document.getElementById("item-photo-clear");
+    const PENDING_PHOTO_KEY = "esqueceram_pending_photo";
     let itemPreviewUrl = null;
+
+    function clearPendingPhoto() {
+      try {
+        sessionStorage.removeItem(PENDING_PHOTO_KEY);
+      } catch (e) {}
+    }
+
+    function savePendingPhoto(file) {
+      if (!file || typeof FileReader === "undefined") return;
+      try {
+        const reader = new FileReader();
+        reader.onload = () => {
+          try {
+            sessionStorage.setItem(PENDING_PHOTO_KEY, JSON.stringify({
+              name: file.name || "foto.jpg",
+              type: file.type || "image/jpeg",
+              dataUrl: reader.result,
+            }));
+          } catch (e) {}
+        };
+        reader.readAsDataURL(file);
+      } catch (e) {}
+    }
+
+    function restorePendingPhoto() {
+      if (!itemForm || itemForm.dataset.hasError !== "1") {
+        clearPendingPhoto();
+        return;
+      }
+      if (!itemImgInput || (itemImgInput.files && itemImgInput.files.length)) return;
+      try {
+        const raw = sessionStorage.getItem(PENDING_PHOTO_KEY);
+        if (!raw) return;
+        const saved = JSON.parse(raw);
+        if (!saved || !saved.dataUrl) return;
+        const parts = saved.dataUrl.split(",");
+        if (parts.length !== 2) return;
+        const bin = atob(parts[1]);
+        const bytes = new Uint8Array(bin.length);
+        for (let i = 0; i < bin.length; i += 1) bytes[i] = bin.charCodeAt(i);
+        const restored = new File([bytes], saved.name || "foto.jpg", { type: saved.type || "image/jpeg" });
+        setItemPhoto(restored, false);
+      } catch (e) {}
+    }
 
     function showItemPhoto(file) {
       if (!itemPreviewBox || !itemPreview) return;
@@ -234,19 +345,33 @@
       itemPreviewBox.hidden = false;
     }
 
-    function setItemPhoto(file) {
+    function setItemPhoto(file, shouldSave = true) {
       if (!itemImgInput || !file) return;
-      const dt = new DataTransfer();
-      dt.items.add(file);
-      itemImgInput.files = dt.files;
+      if (typeof DataTransfer !== "undefined") {
+        const dt = new DataTransfer();
+        dt.items.add(file);
+        itemImgInput.files = dt.files;
+      }
+      if (shouldSave) savePendingPhoto(file);
       showItemPhoto(file);
     }
 
-    if (itemImgInput) itemImgInput.addEventListener("change", () => showItemPhoto(itemImgInput.files[0]));
-    if (itemClear) itemClear.addEventListener("click", () => {
-      if (itemImgInput) itemImgInput.value = "";
-      showItemPhoto(null);
-    });
+    if (itemImgInput) {
+      itemImgInput.addEventListener("change", () => {
+        const file = itemImgInput.files[0];
+        if (file) savePendingPhoto(file);
+        else clearPendingPhoto();
+        showItemPhoto(file);
+      });
+    }
+    if (itemClear) {
+      itemClear.addEventListener("click", () => {
+        if (itemImgInput) itemImgInput.value = "";
+        clearPendingPhoto();
+        showItemPhoto(null);
+      });
+    }
+    restorePendingPhoto();
 
     const camOpen = document.getElementById("item-cam-open");
     const camBox = document.getElementById("item-cam-box");

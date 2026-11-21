@@ -168,6 +168,22 @@ function loadAppJs({
     location: locationState,
     navigator: { ...navigatorExtras },
     Notification: notificationApi,
+    L: globalThis.__mockLeaflet,
+    atob: (s) => Buffer.from(s, "base64").toString("binary"),
+    File: class {
+      constructor(parts, name, opts = {}) {
+        this.parts = parts;
+        this.name = name;
+        this.type = opts.type || "";
+        this.size = parts.reduce((acc, p) => acc + (p.length || 0), 0);
+      }
+    },
+    DataTransfer: class {
+      constructor() {
+        this.files = [];
+        this.items = { add: (f) => this.files.push(f) };
+      }
+    },
     FormData: class {
       constructor() {
         this.entries = [];
@@ -446,4 +462,79 @@ test("initBrowserPush registra service worker, solicita permissao e exibe notifi
   assert.equal(shown[0].opts.data.url, "/painel/matches");
   assert.equal(pushBtn.textContent, "🔔 Notificações ativadas");
   assert.equal(JSON.parse(env.localMap.get("esqueceram_seen_notifs")).includes(10), true);
+});
+
+test("mapa interativo abre ao clicar no botao e preenche latitude/longitude ao clicar no mapa", async () => {
+  const latInput = createElement("input", { value: "" });
+  const lngInput = createElement("input", { value: "" });
+  const locateBtn = createElement("button", { dataset: { geoLatName: "latitude", geoLngName: "longitude" } });
+  const form = createElement("form", {
+    elements: { latitude: latInput, longitude: lngInput },
+    queryMap: { "[data-geo-locate]": locateBtn },
+  });
+  const statusEl = createElement("span");
+  const geoBox = createElement("div", { queryMap: { "[data-geo-status]": statusEl } });
+  const mapToggle = createElement("button", { attrs: { "aria-expanded": "false" } });
+  mapToggle.closest = (sel) => (sel === "[data-geo-box]" ? geoBox : sel === "form" ? form : null);
+  const mapBox = createElement("div", { hidden: true });
+  const mapContainer = createElement("div");
+
+  let clickHandler = null;
+  const marker = { setLatLng: () => {}, addTo: () => marker };
+  globalThis.__mockLeaflet = {
+    map: () => ({
+      setView: function () { return this; },
+      on: (ev, fn) => { if (ev === "click") clickHandler = fn; },
+      invalidateSize: () => {},
+    }),
+    tileLayer: () => ({ addTo: () => {} }),
+    marker: () => marker,
+  };
+
+  loadAppJs({
+    selectors: {
+      "[data-geo-map-toggle]": mapToggle,
+      "#item-geo-map-box": mapBox,
+      "#item-geo-map": mapContainer,
+    },
+  });
+  delete globalThis.__mockLeaflet;
+
+  assert.equal(mapBox.hidden, true);
+  await mapToggle.dispatchEvent({ type: "click" });
+  assert.equal(mapBox.hidden, false);
+  assert.equal(mapToggle.getAttribute("aria-expanded"), "true");
+
+  clickHandler({ latlng: { lat: -5.057123, lng: -42.791456 } });
+  assert.equal(latInput.value, "-5.057123");
+  assert.equal(lngInput.value, "-42.791456");
+});
+
+test("initPhotoCapture restaura foto do sessionStorage quando formulario recarrega com erro", () => {
+  const form = createElement("form", { dataset: { hasError: "1" } });
+  const imgInput = createElement("input", { files: [] });
+  const previewBox = createElement("div", { hidden: true });
+  const previewImg = createElement("img");
+  const metaEl = createElement("span");
+
+  loadAppJs({
+    selectors: {
+      "[data-item-form]": form,
+      "#item-image-input": imgInput,
+      "#item-photo-preview-box": previewBox,
+      "#item-photo-preview": previewImg,
+      "#item-photo-meta": metaEl,
+    },
+    sessionData: {
+      esqueceram_pending_photo: JSON.stringify({
+        name: "mochila.jpg",
+        type: "image/jpeg",
+        dataUrl: "data:image/jpeg;base64,ZmFrZS1pbWc=",
+      }),
+    },
+  });
+
+  assert.equal(imgInput.files.length, 1);
+  assert.equal(imgInput.files[0].name, "mochila.jpg");
+  assert.equal(previewBox.hidden, false);
 });
