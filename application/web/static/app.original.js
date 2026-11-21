@@ -428,13 +428,38 @@
       }
     }
     fillIfEmpty("input[name=title]", analysis.title);
-    fillIfEmpty("textarea[name=description]", analysis.description);
+    fillIfEmpty("textarea[name=description]", analysis.description || analysis.visualSummary);
     if (analysis.color) {
       const colorEl = document.querySelector("select[name=color]");
       if (colorEl && !colorEl.value) colorEl.value = analysis.color;
     }
     fillIfEmpty("input[name=brand]", analysis.brand);
     fillIfEmpty("input[name=model]", analysis.model);
+
+    const attrs = analysis.attributes && typeof analysis.attributes === "object" ? analysis.attributes : {};
+    for (const [key, val] of Object.entries(attrs)) {
+      if (val) fillIfEmpty(`input[name='attributes.${key}']`, String(val));
+    }
+
+    const tags = Array.isArray(analysis.visualTags) ? analysis.visualTags.filter(Boolean) : [];
+    const tagsText = tags.join(", ");
+    if (tagsText) {
+      if (analysis.category === "ACCESSORY") fillIfEmpty("input[name='attributes.visualDetails']", tagsText);
+      else if (analysis.category === "ELECTRONIC") fillIfEmpty("input[name='attributes.compatibility']", tagsText);
+      else if (analysis.category === "DOCUMENT") fillIfEmpty("input[name='attributes.documentType']", analysis.title || tagsText);
+    }
+
+    const tagsBox = document.querySelector("[data-vision-tags]");
+    if (tagsBox) {
+      tagsBox.innerHTML = "";
+      tags.forEach((tag) => {
+        const chip = document.createElement("span");
+        chip.className = "chip";
+        chip.textContent = `#${tag}`;
+        tagsBox.appendChild(chip);
+      });
+      tagsBox.hidden = tags.length === 0;
+    }
   }
 
   function initVisionAnalyze(toast) {

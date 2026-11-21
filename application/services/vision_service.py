@@ -15,14 +15,19 @@ RETRYABLE_HTTP_CODES = {404, 429, 500, 502, 503, 504}
 SUPPORTED_MIMES = ("image/jpeg", "image/png", "image/webp")
 
 _PROMPT = (
-    "Analise a fotografia de um objeto para um sistema universitário de achados e perdidos em português. "
+    "Analise detalhadamente a fotografia de um objeto para um sistema de achados e perdidos em português. "
+    "Extraia o máximo de informações visíveis possível para preencher automaticamente o formulário de cadastro. "
     "Retorne exclusivamente um objeto JSON com as chaves: "
     "\"category\" (exatamente um de: ELECTRONIC, DOCUMENT, ACCESSORY), "
-    "\"title\" (título curto do objeto com 2 a 6 palavras), "
-    "\"description\" (descrição visual objetiva com detalhes visíveis, estado e marcas), "
-    "\"color\" (uma cor simples em português, ex.: Preto, Azul, Branco, ou vazio se incerto), "
-    "\"brand\" (marca visível ou vazio), "
-    "\"model\" (modelo visível ou vazio), "
+    "\"title\" (título claro do objeto com 2 a 6 palavras), "
+    "\"description\" (descrição visual rica e objetiva com formato, textura, estado de conservação, marcas de uso, textos/etiquetas visíveis e detalhes úteis para identificação), "
+    "\"color\" (uma cor predominante em português: Preto, Branco, Cinza, Azul, Vermelho, Verde, Amarelo, Rosa, Roxo, Marrom, Laranja, Prata, Dourado, ou vazio se incerto; se for uma cor diferente, como \"gelo\" ou outra cor que não é necessariamente uma dessas, deixe entre parênteses a cor exata), "
+    "\"brand\" (marca ou fabricante visível, ou vazio), "
+    "\"model\" (modelo específico visível, ou vazio), "
+    "\"attributes\" (objeto JSON com detalhes específicos da categoria escolhida: "
+    "se ELECTRONIC use {\"serialNumber\": \"...\", \"compatibility\": \"características técnicas, conexões, tamanho\"}; "
+    "se DOCUMENT use {\"documentType\": \"tipo do documento\", \"issuingBody\": \"órgão emissor\"}; "
+    "se ACCESSORY use {\"material\": \"material aparente\", \"visualDetails\": \"detalhes visuais, estampas, avarias\"}), "
     "\"visualTags\" (lista de até 8 palavras-chave visuais em minúsculas), "
     "\"visualSummary\" (frase única resumindo o que aparece na foto)."
 )
@@ -60,6 +65,13 @@ def _normalize_analysis(raw: dict) -> dict | None:
     description = str(raw.get("description") or "").strip()[:800]
     if not (summary or title or tags):
         return None
+    raw_attrs = raw.get("attributes") if isinstance(raw.get("attributes"), dict) else {}
+    allowed_attr_keys = ("serialNumber", "compatibility", "documentType", "issuingBody", "material", "visualDetails")
+    attributes = {
+        k: " ".join(str(raw_attrs.get(k) or "").split())[:120]
+        for k in allowed_attr_keys
+        if str(raw_attrs.get(k) or "").strip()
+    }
     return {
         "category": category,
         "title": title,
@@ -67,6 +79,7 @@ def _normalize_analysis(raw: dict) -> dict | None:
         "color": _match_color(raw.get("color")),
         "brand": " ".join(str(raw.get("brand") or "").split())[:60],
         "model": " ".join(str(raw.get("model") or "").split())[:60],
+        "attributes": attributes,
         "visualTags": tags,
         "visualSummary": summary or title,
     }
@@ -115,7 +128,7 @@ def _build_vision_payload(image_bytes: bytes, mime_type: str) -> bytes:
         "generationConfig": {
             "responseMimeType": "application/json",
             "temperature": 0.2,
-            "maxOutputTokens": 300,
+            "maxOutputTokens": 500,
         },
     }
     return json.dumps(payload_dict).encode("utf-8")
