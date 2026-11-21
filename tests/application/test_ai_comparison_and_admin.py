@@ -182,3 +182,42 @@ def test_custom_color_extraction_and_cached_ai_color_similarity(app, monkeypatch
     assert calls[0]["generationConfig"]["maxOutputTokens"] <= 40
     assert any("Cores próximas segundo IA (85%)" in r for r in res1["reasons"])
     assert res1["score"] == res2["score"]
+
+
+def test_direct_vision_mismatch_penalizes_score_and_preserves_full_reason(app, monkeypatch):
+    from application.services import matching_service
+
+    monkeypatch.setenv("GEMINI_API_KEY", "test-key-123")
+    long_reason = (
+        "Os objetos são diferentes: a primeira imagem mostra uma garrafa térmica Stanley com alça e "
+        "acabamento metálico na tampa, enquanto a segunda mostra um copo/caneca térmica preta sem alça lateral."
+    )
+    assert len(long_reason) > 180
+
+    monkeypatch.setattr(
+        vision_service,
+        "_call_gemini",
+        lambda endpoint, raw: {
+            "candidates": [{
+                "content": {
+                    "parts": [{
+                        "text": json.dumps({"similarity": 20, "sameObject": False, "reason": long_reason})
+                    }]
+                }
+            }]
+        },
+    )
+    with app.app_context():
+        cmp = vision_service.compare_item_images(b"a", "image/jpeg", b"b", "image/jpeg")
+        assert cmp is not None
+        assert cmp["reason"] == long_reason
+
+        monkeypatch.setattr(matching_service, "_load_item_image_bytes", lambda _id: (b"img", "image/jpeg"))
+        pair = (
+            {"id": 1, "title": "Garrafa Stanley"},
+            {"id": 2, "title": "Copo térmico"},
+            {"score": 72, "reasons": ["Mesma categoria: Acessório"]},
+        )
+        matching_service._apply_direct_vision_comparison([pair])
+        assert pair[2]["score"] == 43  # 72*0.45 + 20*0.55 = 43 (< 55 MATCH_THRESHOLD)
+        assert long_reason in pair[2]["reasons"][0]
