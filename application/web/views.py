@@ -241,7 +241,11 @@ def _item_form_context(user, values, error=None, errors=None, item=None):
 @bp.route("/painel/itens/novo", methods=["GET", "POST"])
 @login_required()
 def item_novo(user):
-    values = {"type": request.args.get("tipo", "LOST"), "category": "ELECTRONIC"}
+    values = {
+        "type": request.args.get("tipo", "LOST"),
+        "category": "ELECTRONIC",
+        "occurredAt": D.to_input_date(datetime.now(timezone.utc)),
+    }
     if request.method == "POST":
         try:
             result = item_service.create_item_from_form(user, request.form.to_dict(), request.files.get("image"))

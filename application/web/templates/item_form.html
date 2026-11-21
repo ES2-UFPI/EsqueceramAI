@@ -29,8 +29,8 @@
     </div>
   </section>
   <label class="field"><span>Categoria</span><select class="select" name="category" data-category-select>{% for c in D.CATEGORIES %}<option value="{{ c }}" {{ 'selected' if values.get('category') == c }}>{{ D.CATEGORY_LABEL[c] }} — {{ D.CATEGORY_FIELDS[c].hint }}</option>{% endfor %}</select>{{ err(errors,'category') }}</label>
-  <label class="field"><span>Título</span><input class="input" name="title" value="{{ values.get('title','') }}" placeholder="Ex.: Fone Bluetooth JBL preto">{{ err(errors,'title') }}</label>
-  <label class="field"><span>Descrição</span><textarea class="textarea" name="description" placeholder="Detalhe características, estado, onde e como foi visto…">{{ values.get('description','') }}</textarea>{{ err(errors,'description') }}</label>
+  <label class="field"><span>Título *</span><input class="input" name="title" required minlength="3" value="{{ values.get('title','') }}" placeholder="Ex.: Fone Bluetooth JBL preto">{{ err(errors,'title') }}</label>
+  <label class="field"><span>Descrição *</span><textarea class="textarea" name="description" required minlength="5" placeholder="Detalhe características, estado, onde e como foi visto…">{{ values.get('description','') }}</textarea>{{ err(errors,'description') }}</label>
   <div class="grid g3">
     <label class="field"><span>Cor</span><select class="select" name="color"><option value="">—</option>{% for c in D.COLORS %}<option {{ 'selected' if values.get('color') == c }}>{{ c }}</option>{% endfor %}</select></label>
     <label class="field"><span>Marca</span><input class="input" name="brand" value="{{ values.get('brand','') }}"></label>
@@ -38,26 +38,28 @@
   </div>
   {% for c in D.CATEGORIES %}<div data-category-group="{{ c }}" class="grid g2" {{ 'hidden' if values.get('category', 'ELECTRONIC') != c }}>{% for fld in D.CATEGORY_FIELDS[c].fields %}
     <label class="field"><span>{{ fld.label }}</span><input class="input" name="attributes.{{ fld.name }}" value="{{ values.get('attributes.' ~ fld.name, '') }}" placeholder="{{ fld.placeholder }}"></label>{% endfor %}</div>{% endfor %}
-  <div class="grid g2">
-    <label class="field"><span>Local da ocorrência</span><input class="input" name="location" list="locs" value="{{ values.get('location','') }}">{{ err(errors,'location') }}<datalist id="locs">{% for l in D.CAMPUS_LOCATIONS %}<option value="{{ l }}">{% endfor %}</datalist></label>
-    <label class="field"><span>Data da ocorrência</span><input class="input" type="date" name="occurredAt" value="{{ values.get('occurredAt','') }}">{{ err(errors,'occurredAt') }}</label>
-  </div>
   <div class="grid g3">
-    <label class="field"><span>Ponto de coleta</span><select class="select" name="pointId"><option value="">Nenhum</option>{% for p in points %}<option value="{{ p.id }}" {{ 'selected' if values.get('pointId')|string == p.id|string }}>{{ p.name }}</option>{% endfor %}</select>{{ err(errors,'pointId') }}</label>
-    <label class="field"><span>Latitude (opcional)</span><input class="input" name="latitude" value="{{ values.get('latitude','') }}" placeholder="-5.0563">{{ err(errors,'latitude') }}</label>
-    <label class="field"><span>Longitude (opcional)</span><input class="input" name="longitude" value="{{ values.get('longitude','') }}" placeholder="-42.7894">{{ err(errors,'longitude') }}</label>
+    <label class="field"><span>Local da ocorrência *</span><input class="input" name="location" required minlength="2" list="locs" value="{{ values.get('location','') }}">{{ err(errors,'location') }}<datalist id="locs">{% for l in D.CAMPUS_LOCATIONS %}<option value="{{ l }}">{% endfor %}</datalist></label>
+    <label class="field"><span>Data da ocorrência *</span><input class="input" type="date" name="occurredAt" required value="{{ values.get('occurredAt','') }}">{{ err(errors,'occurredAt') }}</label>
+    <label class="field"><span>Ponto de coleta (opcional)</span><select class="select" name="pointId"><option value="">Nenhum</option>{% for p in points %}<option value="{{ p.id }}" {{ 'selected' if values.get('pointId')|string == p.id|string }}>{{ p.name }}</option>{% endfor %}</select>{{ err(errors,'pointId') }}</label>
   </div>
   {% if user and user.role in ('OPERATOR_POST', 'ADMIN') %}
   <label class="field"><span>Localização física interna no posto (exclusivo para atendentes)</span><input class="input" name="storageLocation" maxlength="80" value="{{ values.get('storageLocation','') }}" placeholder="Ex.: Prateleira B2 · Gaveta 3 · Caixa 1">{{ err(errors,'storageLocation') }}</label>
   {% endif %}
-  <div class="flex gap center wrap" data-geo-box><button type="button" class="btn btn-ghost btn-sm" data-geo-locate data-geo-lat-name="latitude" data-geo-lng-name="longitude">📍 Usar minha localização atual</button><span class="xs muted" data-geo-status>Com as coordenadas, o registro aparece nas buscas por proximidade.</span></div>
+  <details class="card pad stack-s" style="box-shadow:none" {{ 'open' if values.get('latitude') or values.get('longitude') }}>
+    <summary class="xs bold muted" style="cursor:pointer">📍 Coordenadas geográficas (opcional — para busca por proximidade)</summary>
+    <div class="grid g2 mt-s">
+      <label class="field"><span>Latitude</span><input class="input" name="latitude" value="{{ values.get('latitude','') }}" placeholder="-5.0563">{{ err(errors,'latitude') }}</label>
+      <label class="field"><span>Longitude</span><input class="input" name="longitude" value="{{ values.get('longitude','') }}" placeholder="-42.7894">{{ err(errors,'longitude') }}</label>
+    </div>
+    <div class="flex gap center wrap mt-s" data-geo-box><button type="button" class="btn btn-ghost btn-sm" data-geo-locate data-geo-lat-name="latitude" data-geo-lng-name="longitude">📍 Usar minha localização atual</button><span class="xs muted" data-geo-status></span></div>
+  </details>
   <fieldset class="card pad stack" style="box-shadow:none" data-secret-box {{ 'hidden' if values.get('type') != 'FOUND' }}>
     <legend class="eyebrow">🔐 Validação de posse (opcional)</legend>
-    <p class="xs muted">Guarde um detalhe que só o verdadeiro dono conhece e crie uma pergunta-chave. O detalhe nunca é exibido: só serve para você conferir a resposta de quem reivindicar o item.</p>
-    <label class="field"><span>Detalhe confidencial (nunca exibido)</span><textarea class="textarea" name="secretDetail" placeholder="Ex.: arranhão em forma de X na tampa, adesivo na capa interna…">{{ values.get('secretDetail','') }}</textarea>{{ err(errors,'secretDetail') }}</label>
+    <p class="xs muted">Crie uma pergunta-chave que só o verdadeiro dono saberá responder ao reivindicar o item.</p>
     <div class="grid g2">
       <label class="field"><span>Pergunta-chave</span><input class="input" name="secretQuestion" value="{{ values.get('secretQuestion','') }}" placeholder="Ex.: Qual é a cor do adesivo dentro da capa?">{{ err(errors,'secretQuestion') }}</label>
-      <label class="field"><span>Resposta esperada{% if has_secret %} — preencha para manter a atual{% endif %}</span><input class="input" name="secretAnswer" value="" autocomplete="off" placeholder="Ex.: do Sport">{{ err(errors,'secretAnswer') }}</label>
+      <label class="field"><span>Resposta esperada{% if has_secret %} — preencha para manter a atual{% endif %}</span><input class="input" name="secretAnswer" value="" autocomplete="off" placeholder="Ex.: Azul">{{ err(errors,'secretAnswer') }}</label>
     </div>
     {% if has_secret %}<label class="chip"><input type="checkbox" name="secretClear" value="1"> Remover a pergunta-chave deste registro</label>{% endif %}
   </fieldset>
