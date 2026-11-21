@@ -3,5 +3,3 @@ __pycache__/
 .env
 .venv/
 tests/
-
-application/web/static/app.original.js
