@@ -57,3 +57,27 @@ def test_collection_point_form_uses_shared_geo_picker_and_persists_coords(app):
     home_html = ana.get("/").get_data(as_text=True)
     assert "Guarita Leste Geo" in home_html
     assert "Ver localização no mapa" in home_html
+
+    # Staff can edit an existing collection point (name, building, hours, coordinates)
+    edit_page = admin.get(f"/painel/pontos?editar={created['id']}").get_data(as_text=True)
+    assert f"Editar ponto: {created['name']}" in edit_page
+    assert 'value="-5.056123"' in edit_page
+
+    upd = admin.post(
+        "/painel/pontos",
+        data={
+            "pointId": str(created["id"]),
+            "name": "Guarita Leste Atualizada",
+            "building": "Portaria Leste Bloco A",
+            "description": "Entrada reformada",
+            "openingHours": "08h às 20h",
+            "contact": "guarita@ufpi.edu.br",
+            "latitude": "-5.057000",
+            "longitude": "-42.790000",
+        },
+        follow_redirects=True,
+    )
+    assert upd.status_code == 200
+    upd_html = upd.get_data(as_text=True)
+    assert "Guarita Leste Atualizada" in upd_html
+    assert "mlat=-5.057" in upd_html
