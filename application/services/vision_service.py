@@ -21,7 +21,7 @@ _PROMPT = (
     "\"category\" (exatamente um de: ELECTRONIC, DOCUMENT, ACCESSORY), "
     "\"title\" (título claro do objeto com 2 a 6 palavras), "
     "\"description\" (descrição visual rica e objetiva com formato, textura, estado de conservação, marcas de uso, textos/etiquetas visíveis e detalhes úteis para identificação), "
-    "\"color\" (uma cor predominante em português: Preto, Branco, Cinza, Azul, Vermelho, Verde, Amarelo, Rosa, Roxo, Marrom, Laranja, Prata, Dourado, ou vazio se incerto), "
+    "\"color\" (uma cor predominante em português: Preto, Branco, Cinza, Azul, Vermelho, Verde, Amarelo, Rosa, Roxo, Marrom, Laranja, Prata, Dourado, ou vazio se incerto; se for uma cor diferente, como "gelo" ou outra cor que não é necessariamente uma dessas, deixe entre parênteses a cor exata), "
     "\"brand\" (marca ou fabricante visível, ou vazio), "
     "\"model\" (modelo específico visível, ou vazio), "
     "\"attributes\" (objeto JSON com detalhes específicos da categoria escolhida: "
