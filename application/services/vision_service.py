@@ -19,7 +19,7 @@ RETRYABLE_HTTP_CODES = {404, 429, 500, 502, 503, 504}
 SUPPORTED_MIMES = ("image/jpeg", "image/png", "image/webp")
 
 _PROMPT = (
-    "Analise detalhadamente a fotografia de um objeto para um sistema universitário de achados e perdidos em português. "
+    "Analise detalhadamente a fotografia de um objeto para um sistema de achados e perdidos em português. "
     "Extraia o máximo de informações visíveis possível para preencher automaticamente o formulário de cadastro. "
     "Retorne exclusivamente um objeto JSON com as chaves: "
     "\"category\" (exatamente um de: ELECTRONIC, DOCUMENT, ACCESSORY), "
@@ -38,7 +38,7 @@ _PROMPT = (
 
 
 _COMPARE_PROMPT = (
-    "Compare estas duas fotografias de um sistema universitário de achados e perdidos em português. "
+    "Compare estas duas fotografias de um sistema de achados e perdidos em português. "
     "A primeira imagem é do item perdido e a segunda é do item encontrado. "
     "Avalie se as duas fotos mostram o mesmo objeto físico (mesmo modelo, cor, formato, marcas, adesivos ou avarias). "
     "Retorne exclusivamente um objeto JSON com as chaves: "
