@@ -15,7 +15,7 @@ RETRYABLE_HTTP_CODES = {404, 429, 500, 502, 503, 504}
 SUPPORTED_MIMES = ("image/jpeg", "image/png", "image/webp")
 
 _PROMPT = (
-    "Analise detalhadamente a fotografia de um objeto para um sistema universitário de achados e perdidos em português. "
+    "Analise detalhadamente a fotografia de um objeto para um sistema de achados e perdidos em português. "
     "Extraia o máximo de informações visíveis possível para preencher automaticamente o formulário de cadastro. "
     "Retorne exclusivamente um objeto JSON com as chaves: "
     "\"category\" (exatamente um de: ELECTRONIC, DOCUMENT, ACCESSORY), "
