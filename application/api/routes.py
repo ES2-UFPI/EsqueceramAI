@@ -12,8 +12,8 @@ from application.repositories.engagement import (count_unread_notifications, lis
 from application.repositories.items import item_row_json, items_at_points
 from application.repositories.points import create_point, list_points, point_json, update_point
 from application.repositories.users import list_users, set_user_active, set_user_role
-from application.services import (auth_service, claim_service, inventory_service, item_service, storage_service,
-                                  vision_service)
+from application.services import (audit_service, auth_service, claim_service, inventory_service, item_service,
+                                  storage_service, vision_service)
 from application.services.matching_service import decide_match
 from application.services.seed_service import DEMO_PASSWORD_HINT, ensure_seeded, find_demo_persona
 from application.services.storage_service import resolve_item_image, validate_image
@@ -43,7 +43,11 @@ def auth_post(action):
     if action == "recover":
         return jsonify(auth_service.recover_password(read_json()))
     if action == "logout":
+        current = api_user(required=False)
         destroy_session(cookie_token())
+        if current:
+            audit_service.record_audit_log(user_id=current["id"], category="AUTH", title="Logout realizado",
+                                           body="Sessão encerrada via API.")
         resp = jsonify(ok=True)
         resp.delete_cookie(SESSION_COOKIE, path="/")
         return resp
@@ -266,6 +270,8 @@ def points_post():
     point = create_point(name=d["name"], building=d["building"], description=d["description"] or None,
                          openingHours=d["openingHours"] or None, contact=d["contact"] or None,
                          latitude=d["latitude"], longitude=d["longitude"])
+    audit_service.record_audit_log(user_id=user["id"], category="POINT", title="Ponto de coleta criado",
+                                   body=f"Ponto '{d['name']}' ({d['building']}) cadastrado via API.", link="/painel/pontos")
     return jsonify(point=point_json(point)), 201
 
 @bp.patch("/points")
@@ -279,6 +285,9 @@ def points_patch():
         return jsonify(error="Informe o identificador do ponto."), 422
     point = update_point(payload["id"], isActive=payload.get("isActive"), openingHours=payload.get("openingHours"),
                          description=payload.get("description"))
+    if point:
+        audit_service.record_audit_log(user_id=user["id"], category="POINT", title="Ponto de coleta atualizado",
+                                       body=f"Ponto #{payload['id']} atualizado.", link="/painel/pontos")
     return jsonify(point=point_json(point) if point else None)
 
 # ------------------------------------------------------------------ admin
@@ -312,6 +321,14 @@ def admin_users_patch():
         if uid == admin["id"] and not p["isActive"]:
             return jsonify(error="Você não pode desativar a sua própria conta."), 422
         set_user_active(uid, p["isActive"])
+    changes = []
+    if p.get("role"):
+        changes.append(f"papel={p['role']}")
+    if isinstance(p.get("isActive"), bool):
+        changes.append(f"ativo={p['isActive']}")
+    if changes:
+        audit_service.record_audit_log(user_id=admin["id"], category="ADMIN", title="Usuário atualizado pela administração",
+                                       body=f"Usuário #{uid}: {', '.join(changes)}.", link="/painel/admin")
     return jsonify(ok=True)
 
 # ----------------------------------------------------------------- health

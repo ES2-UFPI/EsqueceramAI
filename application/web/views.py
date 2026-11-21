@@ -144,7 +144,11 @@ def redefinir_senha():
 
 @bp.post("/sair")
 def sair():
+    current = get_current_user()
     destroy_session(cookie_token())
+    if current:
+        audit_service.record_audit_log(user_id=current["id"], category="AUTH", title="Logout realizado",
+                                       body="Sessão encerrada pelo usuário.")
     resp = make_response(redirect("/"))
     resp.delete_cookie(SESSION_COOKIE, path="/")
     return resp
@@ -331,6 +335,8 @@ def painel_pontos(user):
             d = f.finish()
             create_point(name=d["name"], building=d["building"], description=d["description"] or None,
                          openingHours=d["openingHours"] or None, contact=d["contact"] or None)
+            audit_service.record_audit_log(user_id=user["id"], category="POINT", title="Ponto de coleta criado",
+                                           body=f"Ponto '{d['name']}' ({d['building']}) cadastrado.", link="/painel/pontos")
             flash("Ponto de coleta criado.", "ok")
             return redirect("/painel/pontos")
         except ApiError as exc:
@@ -434,8 +440,18 @@ def painel_admin(user):
 def painel_admin_logs(user):
     selected_type = request.args.get("tipo") if request.args.get("tipo") in audit_service.LOG_TYPES else ""
     q = (request.args.get("q") or "").strip()[:120]
-    logs = audit_service.list_system_logs(log_type=selected_type or None, q=q or None)
+    actor = (request.args.get("ator") or "").strip()[:80]
+    date_from = (request.args.get("de") or "").strip()[:10]
+    date_to = (request.args.get("ate") or "").strip()[:10]
+    logs = audit_service.list_system_logs(
+        log_type=selected_type or None,
+        q=q or None,
+        actor=actor or None,
+        date_from=date_from or None,
+        date_to=date_to or None,
+    )
     counts = {key: sum(1 for entry in logs if entry["type"] == key) for key in audit_service.LOG_TYPES}
     return render_template("painel_logs.html", logs=logs, counts=counts, selected_type=selected_type, q=q,
+                           actor=actor, date_from=date_from, date_to=date_to,
                            log_type_labels=audit_service.LOG_TYPE_LABEL,
                            **shell_ctx(user), active="/painel/admin/logs")

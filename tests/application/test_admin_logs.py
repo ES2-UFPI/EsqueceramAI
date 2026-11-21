@@ -76,3 +76,41 @@ def test_admin_logs_lists_and_filters_events(app):
     filtered = only_delivery.get_data(as_text=True)
     assert "Entrega confirmada no posto" in filtered
     assert "Registro criado para auditoria" not in filtered
+
+
+def test_admin_logs_records_auth_admin_and_point_actions_with_filters(app):
+    admin = persona_client(app, "admin@ufpi.edu.br")
+    # Create a collection point (POINT log)
+    pt = admin.post("/api/points", json={
+        "name": "Portaria Sul Audit",
+        "building": "Portaria",
+        "description": "Guarita principal",
+    })
+    assert pt.status_code == 201
+
+    # Admin updates user status (ADMIN log)
+    with app.app_context():
+        ana = db.query(User).filter_by(email="ana@ufpi.edu.br").first()
+        admin_user = db.query(User).filter_by(email="admin@ufpi.edu.br").first()
+        ana_id = ana.id
+        admin_name = admin_user.name
+    upd = admin.patch("/api/admin/users", json={"userId": ana_id, "isActive": True})
+    assert upd.status_code == 200
+
+    # Filter by AUTH
+    auth_logs = admin.get("/painel/admin/logs?tipo=AUTH").get_data(as_text=True)
+    assert "Login realizado" in auth_logs
+    assert "Portaria Sul Audit" not in auth_logs
+
+    # Filter by POINT + actor
+    point_logs = admin.get(f"/painel/admin/logs?tipo=POINT&ator={admin_name}").get_data(as_text=True)
+    assert "Ponto de coleta criado" in point_logs
+    assert "Portaria Sul Audit" in point_logs
+
+    # Filter by ADMIN
+    admin_logs = admin.get("/painel/admin/logs?tipo=ADMIN").get_data(as_text=True)
+    assert "Usuário atualizado pela administração" in admin_logs
+
+    # Filter by future date range returns empty
+    empty_logs = admin.get("/painel/admin/logs?de=2099-01-01&ate=2099-12-31").get_data(as_text=True)
+    assert "Nenhum log encontrado" in empty_logs
