@@ -249,7 +249,10 @@ def _apply_direct_vision_comparison(scored_pairs: list[tuple[dict, dict, dict]])
         if not cmp:
             continue
         blended = _round(result["score"] * 0.45 + cmp["similarity"] * 0.55)
-        result["score"] = max(0, min(99, max(result["score"], blended)))
+        if cmp["sameObject"] or cmp["similarity"] >= 60:
+            result["score"] = max(0, min(99, max(result["score"], blended)))
+        else:
+            result["score"] = max(0, min(99, blended))
         result["reasons"] = [f"Comparação visual direta por IA ({cmp['similarity']}%): {cmp['reason']}", *result["reasons"]][:5]
 
 

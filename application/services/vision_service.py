@@ -44,7 +44,7 @@ _COMPARE_PROMPT = (
     "Retorne exclusivamente um objeto JSON com as chaves: "
     "\"similarity\" (número inteiro de 0 a 100 indicando a chance de ser o mesmo objeto), "
     "\"sameObject\" (true ou false), "
-    "\"reason\" (frase objetiva em português explicando o motivo visual da pontuação)."
+    "\"reason\" (frase curta e completa em português, de no máximo 200 caracteres, explicando o motivo visual da pontuação)."
 )
 
 
@@ -255,7 +255,7 @@ def compare_item_images(lost_bytes: bytes, lost_mime: str, found_bytes: bytes, f
         "generationConfig": {
             "responseMimeType": "application/json",
             "temperature": 0.1,
-            "maxOutputTokens": 220,
+            "maxOutputTokens": 350,
         },
     }).encode("utf-8")
     body, used_model = _request_with_fallback(api_key, payload)
@@ -266,7 +266,7 @@ def compare_item_images(lost_bytes: bytes, lost_mime: str, found_bytes: bytes, f
             sim = max(0, min(100, int(round(float(parsed.get("similarity", 0))))))
         except (TypeError, ValueError):
             sim = 0
-        reason = " ".join(str(parsed.get("reason") or "").split())[:180]
+        reason = " ".join(str(parsed.get("reason") or "").split())[:360]
         if reason:
             result = {"similarity": sim, "sameObject": bool(parsed.get("sameObject", sim >= 60)), "reason": reason}
     record_ai_usage(

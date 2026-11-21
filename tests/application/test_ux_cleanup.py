@@ -55,3 +55,9 @@ def test_cadastrar_and_perfil_cleaned_up(app, client):
     perfil_html = authed.get("/painel/perfil").get_data(as_text=True)
     assert "avatarUrl" not in perfil_html
     assert "URL da foto" not in perfil_html
+
+
+def test_item_hero_image_uses_object_fit_contain_to_avoid_cropping(client):
+    css = client.get("/static/style.css").get_data(as_text=True)
+    assert ".item-hero-thumb{height:auto!important" in css
+    assert "object-fit:contain" in css
