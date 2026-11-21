@@ -354,9 +354,10 @@ test("initMobileDrawers abre, fecha no clique e fecha com Escape", async () => {
   assert.equal(toggleBtn.getAttribute("aria-expanded"), "false");
 });
 
-test("initVisionAnalyze envia imagem e preenche apenas campos vazios", async () => {
+test("initVisionAnalyze envia imagem e preenche todos os campos vazios incluindo atributos e tags", async () => {
   const visionBtn = createElement("button");
   const statusEl = createElement("span");
+  const tagsBox = createElement("div", { hidden: true });
   const fileInput = createElement("input", { files: [{ name: "fone.jpg", size: 2048 }] });
   const catSelect = createElement("select", { value: "ACCESSORY" });
   const titleInput = createElement("input", { value: "Título já preenchido" });
@@ -364,11 +365,13 @@ test("initVisionAnalyze envia imagem e preenche apenas campos vazios", async () 
   const colorSelect = createElement("select", { value: "" });
   const brandInput = createElement("input", { value: "" });
   const modelInput = createElement("input", { value: "" });
+  const compatInput = createElement("input", { value: "" });
 
   loadAppJs({
     selectors: {
       "[data-vision-analyze]": visionBtn,
       "[data-vision-status]": statusEl,
+      "[data-vision-tags]": tagsBox,
       "input[name=image]": fileInput,
       "[data-category-select]": catSelect,
       "input[name=title]": titleInput,
@@ -376,6 +379,7 @@ test("initVisionAnalyze envia imagem e preenche apenas campos vazios", async () 
       "select[name=color]": colorSelect,
       "input[name=brand]": brandInput,
       "input[name=model]": modelInput,
+      "input[name='attributes.compatibility']": compatInput,
     },
     fetchImpl: async (url) => {
       assert.equal(url, "/api/vision/analyze");
@@ -389,6 +393,7 @@ test("initVisionAnalyze envia imagem e preenche apenas campos vazios", async () 
             color: "Preto",
             brand: "JBL",
             model: "Tune 510",
+            visualTags: ["fone", "bluetooth", "preto"],
             visualSummary: "Fone JBL preto",
           },
         }),
@@ -404,6 +409,10 @@ test("initVisionAnalyze envia imagem e preenche apenas campos vazios", async () 
   assert.equal(colorSelect.value, "Preto");
   assert.equal(brandInput.value, "JBL");
   assert.equal(modelInput.value, "Tune 510");
+  assert.equal(compatInput.value, "fone, bluetooth, preto");
+  assert.equal(tagsBox.hidden, false);
+  assert.equal(tagsBox.children.length, 3);
+  assert.equal(tagsBox.children[0].textContent, "#fone");
   assert.equal(statusEl.textContent, "IA: Fone JBL preto");
   assert.equal(visionBtn.disabled, false);
 });

@@ -24,12 +24,14 @@ _PROMPT = (
     "Retorne exclusivamente um objeto JSON com as chaves: "
     "\"category\" (exatamente um de: ELECTRONIC, DOCUMENT, ACCESSORY), "
     "\"title\" (título claro do objeto com 2 a 6 palavras), "
-    "\"description\" (descrição visual rica e objetiva com formato, textura, estado de conservação, marcas de uso e detalhes visíveis), "
+    "\"description\" (descrição visual rica e objetiva com formato, textura, estado de conservação, marcas de uso, textos/etiquetas visíveis e detalhes úteis para identificação), "
     "\"color\" (cor predominante considerando iluminação e balanço de branco: escolha a cor base mais próxima entre Preto, Branco, Cinza, Azul, Vermelho, Verde, Amarelo, Rosa, Roxo, Marrom, Laranja, Prata, Dourado e, quando houver tonalidade específica como gelo, grafite ou azul-marinho, informe entre parênteses, ex.: \"Branco (gelo)\", \"Cinza (grafite)\"; vazio se incerto), "
-    "\"brand\" (marca visível ou vazio), "
-    "\"model\" (modelo visível ou vazio), "
-    "\"attributes\" (objeto JSON com detalhes específicos da categoria: "
-    "ELECTRONIC: serialNumber, compatibility; DOCUMENT: documentType, issuingBody; ACCESSORY: material, visualDetails), "
+    "\"brand\" (marca ou fabricante visível, ou vazio), "
+    "\"model\" (modelo específico visível, ou vazio), "
+    "\"attributes\" (objeto JSON com detalhes específicos da categoria escolhida: "
+    "se ELECTRONIC use {\"serialNumber\": \"...\", \"compatibility\": \"características técnicas, conexões, tamanho\"}; "
+    "se DOCUMENT use {\"documentType\": \"tipo do documento\", \"issuingBody\": \"órgão emissor\"}; "
+    "se ACCESSORY use {\"material\": \"material aparente\", \"visualDetails\": \"detalhes visuais, estampas, avarias\"}), "
     "\"visualTags\" (lista de até 8 palavras-chave visuais em minúsculas), "
     "\"visualSummary\" (frase única resumindo o que aparece na foto)."
 )
@@ -96,6 +98,13 @@ def _normalize_analysis(raw: dict) -> dict | None:
     description = str(raw.get("description") or "").strip()[:800]
     if not (summary or title or tags):
         return None
+    raw_attrs = raw.get("attributes") if isinstance(raw.get("attributes"), dict) else {}
+    allowed_attr_keys = ("serialNumber", "compatibility", "documentType", "issuingBody", "material", "visualDetails")
+    attributes = {
+        k: " ".join(str(raw_attrs.get(k) or "").split())[:120]
+        for k in allowed_attr_keys
+        if str(raw_attrs.get(k) or "").strip()
+    }
     return {
         "category": category,
         "title": title,
@@ -104,6 +113,7 @@ def _normalize_analysis(raw: dict) -> dict | None:
         "customColor": _extract_custom_color(raw.get("color")),
         "brand": " ".join(str(raw.get("brand") or "").split())[:60],
         "model": " ".join(str(raw.get("model") or "").split())[:60],
+        "attributes": attributes,
         "visualTags": tags,
         "visualSummary": summary or title,
     }
@@ -152,7 +162,7 @@ def _build_vision_payload(image_bytes: bytes, mime_type: str) -> bytes:
         "generationConfig": {
             "responseMimeType": "application/json",
             "temperature": 0.2,
-            "maxOutputTokens": 300,
+            "maxOutputTokens": 500,
         },
     }
     return json.dumps(payload_dict).encode("utf-8")
