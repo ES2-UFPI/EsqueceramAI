@@ -29,6 +29,7 @@ def map_item(row) -> dict:
         "ownerAvatar": u.avatar_url,
         "pointName": p.name if p else None, "pointBuilding": p.building if p else None,
         "pointHours": p.opening_hours if p else None,
+        "pointLatitude": p.latitude if p else None, "pointLongitude": p.longitude if p else None,
         "distanceKm": None,
     }
 

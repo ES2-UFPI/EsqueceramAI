@@ -23,5 +23,5 @@
 <section class="mt-l"><div class="flex between center wrap gap"><h2 class="display" style="font-size:1.8rem">Registros recentes</h2><a class="btn btn-secondary btn-sm" href="/itens">Ver todos</a></div>
 <div class="grid g3 mt">{% for i in data.recent %}{{ item_card(i) }}{% endfor %}</div></section>
 <section class="mt-l" id="pontos"><h2 class="display" style="font-size:1.8rem">Pontos de coleta</h2>
-<div class="grid g2 mt">{% for p in points %}<div class="card pad"><h3>📍 {{ p.name }}</h3><p class="xs muted">{{ p.building }}</p><p class="sm soft mt-s">{{ p.description }}</p><p class="xs mt-s">🕒 {{ p.openingHours }}{% if p.contact %} · ✉️ {{ p.contact }}{% endif %}</p></div>{% endfor %}</div></section>
+<div class="grid g2 mt">{% for p in points %}<div class="card pad"><h3>📍 {{ p.name }}</h3><p class="xs muted">{{ p.building }}</p><p class="sm soft mt-s">{{ p.description }}</p><p class="xs mt-s">🕒 {{ p.openingHours }}{% if p.contact %} · ✉️ {{ p.contact }}{% endif %}</p>{% if p.latitude is not none and p.longitude is not none %}<p class="xs mt-s"><a class="brand bold" href="https://www.openstreetmap.org/?mlat={{ p.latitude }}&amp;mlon={{ p.longitude }}#map=18/{{ p.latitude }}/{{ p.longitude }}" target="_blank" rel="noopener noreferrer">🗺️ Ver localização no mapa ↗</a></p>{% endif %}</div>{% endfor %}</div></section>
 {% endblock %}
