@@ -335,10 +335,13 @@ def painel_pontos(user):
         f.text("description", max=400, optional=True)
         f.text("openingHours", max=120, optional=True)
         f.text("contact", max=120, optional=True)
+        f.number("latitude", lo=-90, hi=90)
+        f.number("longitude", lo=-180, hi=180)
         try:
             d = f.finish()
             create_point(name=d["name"], building=d["building"], description=d["description"] or None,
-                         openingHours=d["openingHours"] or None, contact=d["contact"] or None)
+                         openingHours=d["openingHours"] or None, contact=d["contact"] or None,
+                         latitude=d["latitude"], longitude=d["longitude"])
             audit_service.record_audit_log(user_id=user["id"], category="POINT", title="Ponto de coleta criado",
                                            body=f"Ponto '{d['name']}' ({d['building']}) cadastrado.", link="/painel/pontos")
             flash("Ponto de coleta criado.", "ok")

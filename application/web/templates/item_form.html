@@ -1,4 +1,4 @@
-{% extends "app_base.html" %}{% from "_ui.html" import err %}{% block title %}{{ 'Novo registro' if mode == 'new' else 'Editar registro' }} · Esqueceram AI{% endblock %}
+{% extends "app_base.html" %}{% from "_ui.html" import err, geo_picker %}{% block title %}{{ 'Novo registro' if mode == 'new' else 'Editar registro' }} · Esqueceram AI{% endblock %}
 {% block content %}
 <h1 class="display" style="font-size:2rem">{{ 'Novo registro' if mode == 'new' else 'Editar registro' }}</h1>
 <p class="sm muted">Quanto mais detalhes, melhor a qualidade das sugestões automáticas.</p>
@@ -50,22 +50,7 @@
   {% if user and user.role in ('OPERATOR_POST', 'ADMIN') %}
   <label class="field"><span>Localização física interna no posto (exclusivo para atendentes)</span><input class="input" name="storageLocation" maxlength="80" value="{{ values.get('storageLocation','') }}" placeholder="Ex.: Prateleira B2 · Gaveta 3 · Caixa 1">{{ err(errors,'storageLocation') }}</label>
   {% endif %}
-  <details class="card pad stack-s" style="box-shadow:none" {{ 'open' if values.get('latitude') or values.get('longitude') }}>
-    <summary class="xs bold muted" style="cursor:pointer">📍 Coordenadas geográficas (opcional — para busca por proximidade)</summary>
-    <div class="grid g2 mt-s">
-      <label class="field"><span>Latitude</span><input class="input" name="latitude" value="{{ values.get('latitude','') }}" placeholder="-5.0563">{{ err(errors,'latitude') }}</label>
-      <label class="field"><span>Longitude</span><input class="input" name="longitude" value="{{ values.get('longitude','') }}" placeholder="-42.7894">{{ err(errors,'longitude') }}</label>
-    </div>
-    <div class="flex gap-s center wrap mt-s" data-geo-box>
-      <button type="button" class="btn btn-ghost btn-sm" data-geo-locate data-geo-lat-name="latitude" data-geo-lng-name="longitude">📍 Usar minha localização atual</button>
-      <button type="button" class="btn btn-ghost btn-sm" data-geo-map-toggle aria-expanded="false">🗺️ Selecionar no mapa</button>
-      <span class="xs muted" data-geo-status></span>
-    </div>
-    <div id="item-geo-map-box" hidden class="mt-s stack-s">
-      <div id="item-geo-map" style="height:280px;border-radius:10px;border:1px solid var(--border);background:#e5e7eb"></div>
-      <span class="xs muted">Clique no mapa para marcar o ponto exato onde o item foi perdido ou encontrado.</span>
-    </div>
-  </details>
+  {{ geo_picker(values, errors) }}
   <fieldset class="card pad stack" style="box-shadow:none" data-secret-box {{ 'hidden' if values.get('type') != 'FOUND' }}>
     <legend class="eyebrow">🔐 Validação de posse (opcional)</legend>
     <p class="xs muted">Crie uma pergunta-chave que só o verdadeiro dono saberá responder ao reivindicar o item.</p>
