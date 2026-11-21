@@ -9,8 +9,8 @@ from application.repositories.engagement import (count_pending_matches, count_un
                                          list_notifications, list_recent_events, mark_all_notifications_read)
 from application.repositories.items import items_at_points
 from application.repositories.points import create_point, list_points, list_recent_point_activity
-from application.services import (audit_service, auth_service, claim_service, inventory_service, item_service,
-                                  matching_service, retention_service)
+from application.services import (ai_admin_service, audit_service, auth_service, claim_service, inventory_service,
+                                  item_service, matching_service, retention_service)
 from application.services.seed_service import DEMO_PASSWORD_HINT, DEMO_PERSONAS, ensure_seeded
 from application.services.stats_service import get_admin_overview, get_dashboard, get_public_home
 from application.validation import Form
@@ -459,3 +459,15 @@ def painel_admin_logs(user):
                            actor=actor, date_from=date_from, date_to=date_to,
                            log_type_labels=audit_service.LOG_TYPE_LABEL,
                            **shell_ctx(user), active="/painel/admin/logs")
+
+
+@bp.route("/painel/admin/ia", methods=["GET", "POST"])
+@login_required("ADMIN")
+def painel_admin_ia(user):
+    if request.method == "POST":
+        enabled = request.form.get("enabled") == "1"
+        ai_admin_service.set_ai_enabled_by_admin(user["id"], enabled)
+        flash("IA ativada." if enabled else "IA desativada pelo administrador.", "ok")
+        return redirect("/painel/admin/ia")
+    return render_template("painel_ia.html", d=ai_admin_service.get_ai_dashboard(),
+                           **shell_ctx(user), active="/painel/admin/ia")

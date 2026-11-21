@@ -1,0 +1,75 @@
+{% extends "app_base.html" %}{% from "_ui.html" import stat, bars, empty %}{% block title %}Controle de IA · Esqueceram AI{% endblock %}
+{% block content %}
+<div class="flex between center wrap gap">
+  <div>
+    <p class="eyebrow">Administração</p>
+    <h1 class="display" style="font-size:2rem">Controle e uso da IA</h1>
+    <p class="sm muted">Monitoramento do Gemini Vision (análise de fotos e comparação visual direta entre itens).</p>
+  </div>
+  <div class="flex gap-s wrap">
+    <form method="post">
+      <input type="hidden" name="enabled" value="{{ '0' if d.adminEnabled else '1' }}">
+      <button class="btn {{ 'btn-secondary' if d.adminEnabled else 'btn-primary' }} btn-sm" type="submit">
+        {{ '⏸️ Desativar IA' if d.adminEnabled else '▶️ Reativar IA' }}
+      </button>
+    </form>
+    <a class="btn btn-ghost btn-sm" href="/painel/admin">← Voltar à administração</a>
+  </div>
+</div>
+
+<div class="grid g4 stats-grid mt">
+  {{ stat('Status efetivo', 'Ativa' if d.effectiveEnabled else 'Desativada') }}
+  {{ stat('Chamadas registradas', d.totalCalls) }}
+  {{ stat('Taxa de sucesso', '%d%%'|format(d.successRate)) }}
+  {{ stat('Latência média', '%d ms'|format(d.avgLatencyMs)) }}
+</div>
+
+<section class="card pad mt">
+  <h2 class="display" style="font-size:1.1rem">Configuração atual do Gemini Vision</h2>
+  <div class="grid g3 mt-s">
+    <div><span class="xs muted">Chave API (GEMINI_API_KEY)</span><p class="bold sm">{{ 'Configurada' if d.apiKeyConfigured else 'Não configurada' }}</p></div>
+    <div><span class="xs muted">Modelo principal</span><p class="bold sm">{{ d.defaultModel }}</p></div>
+    <div><span class="xs muted">Modelos de fallback</span><p class="sm soft">{{ d.fallbackModels|join(', ') if d.fallbackModels else 'Nenhum' }}</p></div>
+  </div>
+</section>
+
+<div class="grid g3 mt">
+  <section class="card pad"><h2 class="display" style="font-size:1.1rem">Uso por operação</h2>{{ bars(d.operationBreakdown, {'ANALYZE':'Análise de foto','COMPARE':'Comparação direta','COLOR':'Comparação de cor'}) }}</section>
+  <section class="card pad"><h2 class="display" style="font-size:1.1rem">Uso por modelo</h2>{{ bars(d.modelBreakdown, {}) }}</section>
+  <section class="card pad"><h2 class="display" style="font-size:1.1rem">Resultado das chamadas</h2>{{ bars(d.statusBreakdown, {}, 'found') }}</section>
+</div>
+
+<section class="card pad mt-l">
+  <h2 class="display" style="font-size:1.2rem">Chamadas recentes à IA</h2>
+  {% if d.recentCalls %}
+  <div class="tablewrap mt">
+    <table class="t">
+      <thead>
+        <tr>
+          <th>Data/Hora</th>
+          <th>Operação</th>
+          <th>Modelo</th>
+          <th>Latência</th>
+          <th>Status</th>
+          <th>Detalhe</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for c in d.recentCalls %}
+        <tr>
+          <td class="xs muted" style="white-space:nowrap">{{ c.createdAt|datetime }}</td>
+          <td><span class="badge">{{ 'Comparação' if c.operation == 'COMPARE' else 'Análise' }}</span></td>
+          <td class="sm"><b>{{ c.model }}</b></td>
+          <td class="sm">{{ c.latencyMs }} ms</td>
+          <td><span class="badge {{ 'found' if c.success else 'lost' }}">{{ 'Sucesso' if c.success else 'Falha' }}</span></td>
+          <td class="sm soft">{{ c.detail or '—' }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  {{ empty('Nenhuma chamada registrada ainda', 'As análises de foto e comparações visuais aparecerão aqui.') }}
+  {% endif %}
+</section>
+{% endblock %}

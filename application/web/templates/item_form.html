@@ -32,8 +32,11 @@
   <label class="field"><span>Categoria</span><select class="select" name="category" data-category-select>{% for c in D.CATEGORIES %}<option value="{{ c }}" {{ 'selected' if values.get('category') == c }}>{{ D.CATEGORY_LABEL[c] }} — {{ D.CATEGORY_FIELDS[c].hint }}</option>{% endfor %}</select>{{ err(errors,'category') }}</label>
   <label class="field"><span>Título *</span><input class="input" name="title" required minlength="3" value="{{ values.get('title','') }}" placeholder="Ex.: Fone Bluetooth JBL preto">{{ err(errors,'title') }}</label>
   <label class="field"><span>Descrição *</span><textarea class="textarea" name="description" required minlength="5" placeholder="Detalhe características, estado, onde e como foi visto…">{{ values.get('description','') }}</textarea>{{ err(errors,'description') }}</label>
-  <div class="grid g3">
+  <div class="grid g2">
     <label class="field"><span>Cor</span><select class="select" name="color"><option value="">—</option>{% for c in D.COLORS %}<option {{ 'selected' if values.get('color') == c }}>{{ c }}</option>{% endfor %}</select></label>
+    <label class="field"><span>Cor exata / tonalidade (opcional)</span><input class="input" name="attributes.customColor" maxlength="40" value="{{ values.get('attributes.customColor','') }}" placeholder="Ex.: Gelo, Azul-marinho, Grafite"></label>
+  </div>
+  <div class="grid g2">
     <label class="field"><span>Marca</span><input class="input" name="brand" value="{{ values.get('brand','') }}"></label>
     <label class="field"><span>Modelo</span><input class="input" name="model" value="{{ values.get('model','') }}"></label>
   </div>

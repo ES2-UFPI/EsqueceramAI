@@ -3,6 +3,8 @@ import math
 import os
 import re
 import unicodedata
+import urllib.error
+import urllib.request
 
 from application.domain import CATEGORY_LABEL, FINAL_STATUSES
 from application.delivery.email_service import EmailError, send_match_notification
@@ -12,11 +14,14 @@ from application.repositories.engagement import (add_item_event, claim_match_not
                                          list_matches, match_notifications, update_match_status, upsert_match)
 from application.repositories.items import find_item_by_id, list_open_by_type, set_item_status
 from application.repositories.users import add_user_score, find_user_by_id
+from application.services import storage_service, vision_service
 
 log = logging.getLogger("esqueceram.matching")
 
 MATCH_THRESHOLD = 55
 NOTIFICATION_THRESHOLD = int(os.getenv("MATCH_NOTIFY_THRESHOLD", "75"))
+VISION_COMPARE_PREFILTER = 60
+VISION_COMPARE_MAX_CANDIDATES = 3
 
 STOPWORDS = {"de", "da", "do", "das", "dos", "com", "para", "por", "que", "uma", "um", "na", "no", "nas",
              "nos", "em", "e", "o", "a", "os", "as", "meu", "minha", "encontrado", "encontrada", "perdido",
@@ -61,19 +66,33 @@ def _text_tokens(item: dict) -> set[str]:
     return tokens(" ".join(str(item.get(k) or "") for k in ("title", "description", "color", "brand", "model")))
 
 
+def _full_color(item: dict) -> str:
+    base = str(item.get("color") or "").strip()
+    custom = str((item.get("attributes") or {}).get("customColor") or "").strip()
+    if base and custom and custom.lower() not in base.lower():
+        return f"{base} ({custom})"
+    return custom or base
+
+
 def _score_metadata(lost: dict, found: dict) -> tuple[int, list[str]]:
-    """Pontua compatibilidade de cor, marca e modelo."""
+    """Pontua compatibilidade de cor (incluindo cor exata via IA), marca e modelo."""
     score = 0
     reasons: list[str] = []
 
-    lc, fc = normalize(lost.get("color")), normalize(found.get("color"))
+    lc_full, fc_full = _full_color(lost), _full_color(found)
+    lc, fc = normalize(lc_full), normalize(fc_full)
     if lc and fc:
-        if lc == fc:
+        if lc == fc or normalize(lost.get("color")) and normalize(lost.get("color")) == normalize(found.get("color")):
             score += 16
-            reasons.append(f"Cor compatível: {lost['color']}")
-        elif overlap_ratio(tokens(lost.get("color")), tokens(found.get("color"))) > 0:
+            reasons.append(f"Cor compatível: {lc_full}")
+        elif overlap_ratio(tokens(lc_full), tokens(fc_full)) > 0:
             score += 8
-            reasons.append(f"Tons próximos: {lost['color']} / {found['color']}")
+            reasons.append(f"Tons próximos: {lc_full} / {fc_full}")
+        else:
+            sim = vision_service.compare_colors_ai(lc_full, fc_full)
+            if sim is not None and sim >= 60:
+                score += max(6, _round(sim * 0.14))
+                reasons.append(f"Cores próximas segundo IA ({sim}%): {lc_full} / {fc_full}")
 
     lb, fb = normalize(lost.get("brand")), normalize(found.get("brand"))
     if lb and fb:
@@ -189,6 +208,51 @@ def score_pair(lost: dict, found: dict) -> dict:
     return {"score": max(0, min(99, score)), "reasons": reasons[:5]}
 
 
+def _load_item_image_bytes(item_id: int) -> tuple[bytes, str] | None:
+    resolved = storage_service.resolve_item_image(item_id)
+    if not resolved:
+        return None
+    if resolved[0] == "bytes":
+        _, mime, data = resolved
+        return bytes(data), mime
+    if resolved[0] == "redirect":
+        _, url = resolved
+        try:
+            with urllib.request.urlopen(url, timeout=8) as resp:
+                mime = (resp.headers.get("Content-Type") or "image/jpeg").split(";")[0].strip()
+                data = resp.read(storage_service.MAX_BYTES + 1)
+                if data and len(data) <= storage_service.MAX_BYTES and mime in vision_service.SUPPORTED_MIMES:
+                    return data, mime
+        except (urllib.error.URLError, OSError, ValueError):
+            return None
+    return None
+
+
+def _apply_direct_vision_comparison(scored_pairs: list[tuple[dict, dict, dict]]) -> None:
+    """Compara diretamente as fotos dos melhores pares pré-filtrados usando Gemini Vision."""
+    if not vision_service.is_vision_enabled():
+        return
+    eligible = [pair for pair in scored_pairs if pair[2]["score"] > VISION_COMPARE_PREFILTER]
+    eligible.sort(key=lambda pair: pair[2]["score"], reverse=True)
+    cache: dict[int, tuple[bytes, str] | None] = {}
+
+    for lost, found, result in eligible[:VISION_COMPARE_MAX_CANDIDATES]:
+        if lost["id"] not in cache:
+            cache[lost["id"]] = _load_item_image_bytes(lost["id"])
+        if found["id"] not in cache:
+            cache[found["id"]] = _load_item_image_bytes(found["id"])
+        lost_img = cache[lost["id"]]
+        found_img = cache[found["id"]]
+        if not lost_img or not found_img:
+            continue
+        cmp = vision_service.compare_item_images(lost_img[0], lost_img[1], found_img[0], found_img[1])
+        if not cmp:
+            continue
+        blended = _round(result["score"] * 0.45 + cmp["similarity"] * 0.55)
+        result["score"] = max(0, min(99, max(result["score"], blended)))
+        result["reasons"] = [f"Comparação visual direta por IA ({cmp['similarity']}%): {cmp['reason']}", *result["reasons"]][:5]
+
+
 def generate_matches_for_item(item_id: int) -> int:
     """Gera/atualiza sugestões de um item e notifica os dois responsáveis."""
     item = find_item_by_id(item_id)
@@ -199,11 +263,16 @@ def generate_matches_for_item(item_id: int) -> int:
     if not candidates:
         return 0
     existing = {(m.lost_item_id, m.found_item_id) for m in find_match_pairs_for_item(item["id"])}
-    created = 0
+    scored_pairs = []
     for cand in candidates:
         lost = item if item["type"] == "LOST" else cand
         found = item if item["type"] == "FOUND" else cand
-        result = score_pair(lost, found)
+        scored_pairs.append((lost, found, score_pair(lost, found)))
+
+    _apply_direct_vision_comparison(scored_pairs)
+
+    created = 0
+    for lost, found, result in scored_pairs:
         if result["score"] < MATCH_THRESHOLD:
             continue
         match = upsert_match(lost_item_id=lost["id"], found_item_id=found["id"], score=result["score"], reasons=result["reasons"])

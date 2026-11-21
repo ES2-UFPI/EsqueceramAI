@@ -433,6 +433,7 @@
       const colorEl = document.querySelector("select[name=color]");
       if (colorEl && !colorEl.value) colorEl.value = analysis.color;
     }
+    fillIfEmpty("input[name='attributes.customColor']", analysis.customColor);
     fillIfEmpty("input[name=brand]", analysis.brand);
     fillIfEmpty("input[name=model]", analysis.model);
 
