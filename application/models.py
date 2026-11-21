@@ -6,6 +6,7 @@ from sqlalchemy import (JSON, Boolean, DateTime, Enum, Float, ForeignKey, Index,
                         LargeBinary, String, Text, UniqueConstraint, create_engine, inspect, text)
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.engine import make_url
+from sqlalchemy.exc import IntegrityError, ProgrammingError
 from sqlalchemy.orm import DeclarativeBase, Mapped, Session, mapped_column, scoped_session, sessionmaker
 from sqlalchemy.types import TypeDecorator
 
@@ -288,22 +289,11 @@ def _sync_missing_columns():
                 conn.execute(text(ddl))
 
 
-_INIT_DB_LOCK_ID = 84729103
-
-
 def init_db():
-    if engine.dialect.name == "postgresql":
-        with engine.connect() as conn:
-            conn.execute(text(f"SELECT pg_advisory_lock({_INIT_DB_LOCK_ID})"))
-            try:
-                Base.metadata.create_all(conn)
-                conn.commit()
-                _sync_missing_columns()
-                _sync_item_status_enum()
-            finally:
-                conn.execute(text(f"SELECT pg_advisory_unlock({_INIT_DB_LOCK_ID})"))
-                conn.commit()
-        return
-    Base.metadata.create_all(engine)
+    try:
+        Base.metadata.create_all(engine)
+    except (IntegrityError, ProgrammingError):
+        # Outro worker Gunicorn criou a tabela/sequence simultaneamente
+        pass
     _sync_missing_columns()
     _sync_item_status_enum()
