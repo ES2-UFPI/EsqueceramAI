@@ -6,7 +6,7 @@ from application import domain as D
 from application.delivery.models import Delivery, DeliveryEvent
 from application.models import Item, ItemEvent, Match, MatchNotification, Notification, User, db
 
-LOG_TYPES = ("ITEM", "DELIVERY", "NOTIFICATION", "AUTH", "ADMIN", "POINT", "SYSTEM")
+LOG_TYPES = ("ITEM", "DELIVERY", "NOTIFICATION", "AUTH", "ADMIN", "POINT", "AI", "SYSTEM")
 LOG_TYPE_LABEL = {
     "ITEM": "Evento de item",
     "DELIVERY": "Auditoria de entrega",
@@ -14,12 +14,14 @@ LOG_TYPE_LABEL = {
     "AUTH": "Autenticação e conta",
     "ADMIN": "Administração",
     "POINT": "Pontos de coleta",
+    "AI": "Uso de IA",
     "SYSTEM": "Sistema",
 }
 _PREFIX_TO_TYPE = {
     "[AUTH]": "AUTH",
     "[ADMIN]": "ADMIN",
     "[POINT]": "POINT",
+    "[AI_CALL]": "AI",
 }
 
 
@@ -166,9 +168,9 @@ def list_system_logs(
         entries.extend(_delivery_logs(limit))
     if selected in (None, "NOTIFICATION"):
         entries.extend(_notification_logs(limit))
-    if selected in (None, "AUTH", "ADMIN", "POINT", "SYSTEM"):
+    if selected in (None, "AUTH", "ADMIN", "POINT", "AI", "SYSTEM"):
         sys_entries = _system_logs(limit)
-        if selected in ("AUTH", "ADMIN", "POINT", "SYSTEM"):
+        if selected in ("AUTH", "ADMIN", "POINT", "AI", "SYSTEM"):
             sys_entries = [e for e in sys_entries if e["type"] == selected]
         entries.extend(sys_entries)
 
