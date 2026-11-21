@@ -283,8 +283,8 @@ def points_patch():
     payload = read_json()
     if not payload.get("id"):
         return jsonify(error="Informe o identificador do ponto."), 422
-    point = update_point(payload["id"], isActive=payload.get("isActive"), openingHours=payload.get("openingHours"),
-                         description=payload.get("description"))
+    kwargs = {k: payload[k] for k in ("name", "building", "isActive", "openingHours", "description", "contact", "latitude", "longitude") if k in payload}
+    point = update_point(payload["id"], **kwargs)
     if point:
         audit_service.record_audit_log(user_id=user["id"], category="POINT", title="Ponto de coleta atualizado",
                                        body=f"Ponto #{payload['id']} atualizado.", link="/painel/pontos")

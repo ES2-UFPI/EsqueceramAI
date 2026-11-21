@@ -32,13 +32,26 @@ def create_point(**v):
     return row
 
 
+_UNSET = object()
+
+
 def update_point(point_id: int, **v):
     row = db.get(P, point_id)
     if not row:
         return None
-    for key, attr in (("isActive", "is_active"), ("openingHours", "opening_hours"), ("description", "description")):
-        if v.get(key) is not None:
-            setattr(row, attr, v[key])
+    for key, attr in (
+        ("name", "name"),
+        ("building", "building"),
+        ("isActive", "is_active"),
+        ("openingHours", "opening_hours"),
+        ("description", "description"),
+        ("contact", "contact"),
+        ("latitude", "latitude"),
+        ("longitude", "longitude"),
+    ):
+        val = v.get(key, _UNSET)
+        if val is not _UNSET and (key not in ("name", "building", "isActive") or val is not None):
+            setattr(row, attr, val)
     db.commit()
     return row
 

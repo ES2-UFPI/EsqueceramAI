@@ -8,7 +8,8 @@ from application.errors import ApiError
 from application.repositories.engagement import (count_pending_matches, count_unread_notifications, list_matches,
                                          list_notifications, list_recent_events, mark_all_notifications_read)
 from application.repositories.items import items_at_points
-from application.repositories.points import create_point, list_points, list_recent_point_activity
+from application.repositories.points import (create_point, find_point_by_id, list_points,
+                                             list_recent_point_activity, update_point)
 from application.services import (ai_admin_service, audit_service, auth_service, claim_service, inventory_service,
                                   item_service, matching_service, retention_service)
 from application.services.seed_service import DEMO_PASSWORD_HINT, DEMO_PERSONAS, ensure_seeded
@@ -326,6 +327,19 @@ def painel_perfil(user):
 def painel_pontos(user):
     staff = user["role"] in ("ADMIN", "OPERATOR_POST")
     error, errors = None, {}
+    edit_raw = request.values.get("editar") or request.form.get("pointId") or ""
+    editing = find_point_by_id(int(edit_raw)) if (staff and edit_raw.isdigit()) else None
+    values = request.form
+    if request.method == "GET" and editing:
+        values = {
+            "name": editing.name,
+            "building": editing.building,
+            "description": editing.description or "",
+            "openingHours": editing.opening_hours or "",
+            "contact": editing.contact or "",
+            "latitude": "" if editing.latitude is None else str(editing.latitude),
+            "longitude": "" if editing.longitude is None else str(editing.longitude),
+        }
     if request.method == "POST":
         if not staff:
             return redirect("/painel?erro=permissao")
@@ -339,17 +353,25 @@ def painel_pontos(user):
         f.number("longitude", lo=-180, hi=180)
         try:
             d = f.finish()
-            create_point(name=d["name"], building=d["building"], description=d["description"] or None,
-                         openingHours=d["openingHours"] or None, contact=d["contact"] or None,
-                         latitude=d["latitude"], longitude=d["longitude"])
-            audit_service.record_audit_log(user_id=user["id"], category="POINT", title="Ponto de coleta criado",
-                                           body=f"Ponto '{d['name']}' ({d['building']}) cadastrado.", link="/painel/pontos")
-            flash("Ponto de coleta criado.", "ok")
+            if editing:
+                update_point(editing.id, name=d["name"], building=d["building"],
+                             description=d["description"] or None, openingHours=d["openingHours"] or None,
+                             contact=d["contact"] or None, latitude=d["latitude"], longitude=d["longitude"])
+                audit_service.record_audit_log(user_id=user["id"], category="POINT", title="Ponto de coleta atualizado",
+                                               body=f"Ponto '{d['name']}' ({d['building']}) atualizado.", link="/painel/pontos")
+                flash("Ponto de coleta atualizado.", "ok")
+            else:
+                create_point(name=d["name"], building=d["building"], description=d["description"] or None,
+                             openingHours=d["openingHours"] or None, contact=d["contact"] or None,
+                             latitude=d["latitude"], longitude=d["longitude"])
+                audit_service.record_audit_log(user_id=user["id"], category="POINT", title="Ponto de coleta criado",
+                                               body=f"Ponto '{d['name']}' ({d['building']}) cadastrado.", link="/painel/pontos")
+                flash("Ponto de coleta criado.", "ok")
             return redirect("/painel/pontos")
         except ApiError as exc:
             error, errors = exc.message, exc.details
     return render_template("painel_pontos.html", points=list_points(not staff), staff=staff, error=error, errors=errors,
-                           values=request.form, **shell_ctx(user), active="/painel/pontos")
+                           values=values, editing=editing, **shell_ctx(user), active="/painel/pontos")
 
 @bp.get("/painel/operador")
 @login_required("OPERATOR_POST", "ADMIN")
