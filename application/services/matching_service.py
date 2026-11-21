@@ -20,7 +20,7 @@ log = logging.getLogger("esqueceram.matching")
 
 MATCH_THRESHOLD = 55
 NOTIFICATION_THRESHOLD = int(os.getenv("MATCH_NOTIFY_THRESHOLD", "75"))
-VISION_COMPARE_PREFILTER = 30
+VISION_COMPARE_PREFILTER = 60
 VISION_COMPARE_MAX_CANDIDATES = 3
 
 STOPWORDS = {"de", "da", "do", "das", "dos", "com", "para", "por", "que", "uma", "um", "na", "no", "nas",
@@ -232,7 +232,7 @@ def _apply_direct_vision_comparison(scored_pairs: list[tuple[dict, dict, dict]])
     """Compara diretamente as fotos dos melhores pares pré-filtrados usando Gemini Vision."""
     if not vision_service.is_vision_enabled():
         return
-    eligible = [pair for pair in scored_pairs if pair[2]["score"] >= VISION_COMPARE_PREFILTER]
+    eligible = [pair for pair in scored_pairs if pair[2]["score"] > VISION_COMPARE_PREFILTER]
     eligible.sort(key=lambda pair: pair[2]["score"], reverse=True)
     cache: dict[int, tuple[bytes, str] | None] = {}
 
