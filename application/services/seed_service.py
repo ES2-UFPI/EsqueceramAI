@@ -49,6 +49,8 @@ def _p(key, name, email, phone, role, score, label, description, persona=False):
 
 
 DEMO_PEOPLE = [
+    _p("arthur", "Arthur Rabelo", "rabeloarthur13@gmail.com", "(86) 99999-0000", "USER", 100, "Comunidade",
+       "Conta rápida de teste do Arthur.", True),
     _p("ana", "Ana Beatriz Lima", "ana@ufpi.edu.br", "(86) 99911-2233", "USER", 145, "Comunidade",
        "Estudante com itens perdidos e correspondências pendentes.", True),
     _p("carlos", "Carlos Eduardo Rocha", "carlos@ufpi.edu.br", "(86) 98844-7710", "USER", 90, "Comunidade",
