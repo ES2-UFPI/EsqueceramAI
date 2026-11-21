@@ -62,3 +62,10 @@ jobs:
 
       - name: Run frontend JS tests
         run: node --test tests/frontend/app.test.mjs
+
+      - name: Validate JS obfuscation build
+        run: |
+          cp application/web/static/app.js /tmp/app.orig.js
+          npx --yes javascript-obfuscator /tmp/app.orig.js --output application/web/static/app.js --compact true --self-defending false
+          node --test tests/frontend/app.test.mjs
+          mv /tmp/app.orig.js application/web/static/app.js

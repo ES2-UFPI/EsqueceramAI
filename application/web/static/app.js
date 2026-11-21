@@ -1,1 +1,621 @@
-function a0_0x3ad0(_0x1834f3,_0x52049d){_0x1834f3=_0x1834f3-0xac;const _0x1d7a0d=a0_0x1d7a();let _0x3ad063=_0x1d7a0d[_0x1834f3];return _0x3ad063;}(function(_0x19ee16,_0x856e95){const _0xbf2d63=a0_0x3ad0,_0x42f696=_0x19ee16();while(!![]){try{const _0x5c69ce=parseInt(_0xbf2d63(0x119))/0x1+parseInt(_0xbf2d63(0x174))/0x2+-parseInt(_0xbf2d63(0xff))/0x3*(-parseInt(_0xbf2d63(0x139))/0x4)+parseInt(_0xbf2d63(0x108))/0x5*(parseInt(_0xbf2d63(0x12b))/0x6)+-parseInt(_0xbf2d63(0xf9))/0x7+parseInt(_0xbf2d63(0xe2))/0x8*(-parseInt(_0xbf2d63(0x194))/0x9)+-parseInt(_0xbf2d63(0x102))/0xa;if(_0x5c69ce===_0x856e95)break;else _0x42f696['push'](_0x42f696['shift']());}catch(_0x5208a){_0x42f696['push'](_0x42f696['shift']());}}}(a0_0x1d7a,0xee5f4),(function(){function _0x4b591f(){const _0x403ac6=a0_0x3ad0,_0x55c78a=document[_0x403ac6(0xda)](_0x403ac6(0x155));_0x55c78a[_0x403ac6(0x11d)]=_0x403ac6(0x127),document[_0x403ac6(0x104)][_0x403ac6(0xfc)](_0x55c78a);function _0x3005a9(_0x2d8198,_0x48aec8,_0x33cfce){const _0x2de0a8=_0x403ac6,_0x476dbb=document[_0x2de0a8(0xda)](_0x2de0a8(0x155));_0x476dbb['className']='toast'+(_0x33cfce?_0x2de0a8(0x178):''),_0x476dbb[_0x2de0a8(0x190)]='<b></b>'+(_0x48aec8?_0x2de0a8(0xe4):''),_0x476dbb['querySelector']('b')[_0x2de0a8(0xdd)]=_0x2d8198;if(_0x48aec8)_0x476dbb[_0x2de0a8(0x18b)](_0x2de0a8(0x15a))[_0x2de0a8(0xdd)]=_0x48aec8;_0x55c78a[_0x2de0a8(0xfc)](_0x476dbb),setTimeout(()=>_0x476dbb[_0x2de0a8(0x177)](),0x1194);}window[_0x403ac6(0x162)]=_0x3005a9,document['querySelectorAll'](_0x403ac6(0x185))[_0x403ac6(0x114)](_0xb0ddbd=>_0x3005a9(_0xb0ddbd['dataset']['msg'],'',_0xb0ddbd[_0x403ac6(0x110)][_0x403ac6(0x19d)]===_0x403ac6(0x161)));try{const _0x45de75=sessionStorage[_0x403ac6(0xc5)](_0x403ac6(0x162));_0x45de75&&(sessionStorage[_0x403ac6(0xac)](_0x403ac6(0x162)),_0x3005a9(_0x45de75));}catch(_0x53c9f1){}return _0x3005a9;}async function _0x22fd38(_0xf997db,_0x558c7e,_0x3628b8){const _0x541855=a0_0x3ad0,_0x16034c=await fetch(_0xf997db,{'method':_0x558c7e,'headers':_0x3628b8?{'Content-Type':_0x541855(0xdf)}:undefined,'body':_0x3628b8?JSON[_0x541855(0xeb)](_0x3628b8):undefined}),_0x40c697=await _0x16034c[_0x541855(0xd0)]()['catch'](()=>({}));if(!_0x16034c['ok'])throw new Error(_0x40c697[_0x541855(0x161)]||'Não\x20foi\x20possível\x20concluir\x20a\x20ação.');return _0x40c697;}function _0x138745(_0x1f733d){const _0x5f0f96=a0_0x3ad0;document[_0x5f0f96(0xba)](_0x5f0f96(0xc9),async _0x25a25b=>{const _0x399907=_0x5f0f96,_0x5a8f8b=_0x25a25b[_0x399907(0x111)]['closest'](_0x399907(0x18e));if(!_0x5a8f8b)return;_0x25a25b[_0x399907(0xef)]();if(_0x5a8f8b['dataset'][_0x399907(0x133)]&&!window[_0x399907(0x133)](_0x5a8f8b[_0x399907(0x110)][_0x399907(0x133)]))return;_0x5a8f8b[_0x399907(0xdb)]=!![];try{await _0x22fd38(_0x5a8f8b[_0x399907(0x110)][_0x399907(0x176)],_0x5a8f8b[_0x399907(0x110)][_0x399907(0x165)]||'POST',_0x5a8f8b[_0x399907(0x110)][_0x399907(0x104)]?JSON[_0x399907(0x137)](_0x5a8f8b[_0x399907(0x110)]['body']):null);try{sessionStorage['setItem']('toast',_0x5a8f8b[_0x399907(0x110)][_0x399907(0x173)]||'Ação\x20concluída');}catch(_0x584a07){}if(_0x5a8f8b['dataset']['redirect'])location[_0x399907(0x125)]=_0x5a8f8b[_0x399907(0x110)]['redirect'];else location['reload']();}catch(_0x55963a){_0x1f733d(_0x399907(0x150),_0x55963a[_0x399907(0xb5)],!![]),_0x5a8f8b[_0x399907(0xdb)]=![];}});}function _0x391c5a(_0x33a438){const _0x341023=a0_0x3ad0;document['addEventListener'](_0x341023(0x11b),async _0x391e4b=>{const _0x1582f4=_0x341023,_0x39f52=_0x391e4b['target'][_0x1582f4(0xc1)](_0x1582f4(0x16a));if(!_0x39f52)return;try{await _0x22fd38(_0x1582f4(0x14d),_0x1582f4(0x10e),{'userId':+_0x39f52[_0x1582f4(0x110)]['roleUser'],'role':_0x39f52['value']}),_0x33a438(_0x1582f4(0x164),_0x1582f4(0xcb)+_0x39f52['value']);}catch(_0xae8798){_0x33a438(_0x1582f4(0x17a),_0xae8798['message'],!![]),location[_0x1582f4(0x153)]();}});}function _0x4d2e43(){const _0x44085a=a0_0x3ad0;function _0x40dab1(_0x5bd700){const _0x3f1b8a=a0_0x3ad0,_0x17ce5d=_0x5bd700[_0x3f1b8a(0xc1)](_0x3f1b8a(0xe6));return{'form':_0x5bd700['closest'](_0x3f1b8a(0x147)),'status':_0x17ce5d&&_0x17ce5d[_0x3f1b8a(0x18b)]('[data-geo-status]')};}function _0x41d871(_0x73d31f,_0x4140e6){const _0x3a7323=a0_0x3ad0,{status:_0x1a8b69}=_0x40dab1(_0x73d31f);if(_0x1a8b69)_0x1a8b69[_0x3a7323(0xdd)]=_0x4140e6;}function _0x39514f(_0x1f1410,_0x2c1f72,_0xec8295){const _0xad1cc7=a0_0x3ad0,{form:_0x2d3ba8}=_0x40dab1(_0x1f1410),_0x5e11af=_0x2d3ba8[_0xad1cc7(0x18b)](_0xad1cc7(0x157))||_0x1f1410,_0x1df6dc=_0x2d3ba8[_0xad1cc7(0xdc)][_0x5e11af[_0xad1cc7(0x110)][_0xad1cc7(0xf8)]||_0xad1cc7(0x115)],_0x340fdf=_0x2d3ba8[_0xad1cc7(0xdc)][_0x5e11af['dataset'][_0xad1cc7(0x11c)]||_0xad1cc7(0xde)];_0x1df6dc[_0xad1cc7(0x12c)]=Number(_0x2c1f72)[_0xad1cc7(0x163)](0x6),_0x340fdf['value']=Number(_0xec8295)['toFixed'](0x6);if(_0x2d3ba8['elements']['raio']){if(!_0x2d3ba8[_0xad1cc7(0xdc)][_0xad1cc7(0x154)]['value'])_0x2d3ba8[_0xad1cc7(0xdc)][_0xad1cc7(0x154)][_0xad1cc7(0x12c)]='1';if(_0x2d3ba8[_0xad1cc7(0xdc)][_0xad1cc7(0x112)])_0x2d3ba8['elements'][_0xad1cc7(0x112)][_0xad1cc7(0x12c)]=_0xad1cc7(0xd2);_0x2d3ba8[_0xad1cc7(0x152)]();}}document[_0x44085a(0xba)](_0x44085a(0xc9),_0x4dbde7=>{const _0x570706=_0x44085a,_0x39a23f=_0x4dbde7[_0x570706(0x111)][_0x570706(0xc1)](_0x570706(0x19f));if(_0x39a23f){_0x4dbde7[_0x570706(0xef)]();const {form:_0x3ee291}=_0x40dab1(_0x39a23f);_0x3ee291['elements'][_0x570706(0x115)][_0x570706(0x12c)]='',_0x3ee291[_0x570706(0xdc)]['lng']['value']='',_0x3ee291['elements'][_0x570706(0x154)]['value']='',_0x3ee291[_0x570706(0x152)]();return;}const _0x288a96=_0x4dbde7[_0x570706(0x111)][_0x570706(0xc1)](_0x570706(0x157));if(!_0x288a96)return;if(!navigator[_0x570706(0x188)]){_0x41d871(_0x288a96,_0x570706(0x144));return;}_0x288a96['disabled']=!![],_0x41d871(_0x288a96,_0x570706(0xe1)),navigator[_0x570706(0x188)]['getCurrentPosition'](_0x4186df=>{const _0xe1409f=_0x570706;_0x41d871(_0x288a96,'Localização\x20preenchida\x20(precisão\x20de\x20cerca\x20de\x20'+Math['round'](_0x4186df['coords'][_0xe1409f(0xcd)])+'\x20m).'),_0x288a96[_0xe1409f(0xdb)]=![],_0x39514f(_0x288a96,_0x4186df[_0xe1409f(0xf0)]['latitude'],_0x4186df[_0xe1409f(0xf0)]['longitude']);},_0x4428b6=>{const _0x4e7dcf=_0x570706;_0x41d871(_0x288a96,_0x4428b6[_0x4e7dcf(0xcf)]===0x1?'Permissão\x20negada.\x20Informe\x20as\x20coordenadas\x20ou\x20escolha\x20um\x20ponto\x20de\x20coleta.':'Não\x20foi\x20possível\x20obter\x20a\x20localização.'),_0x288a96[_0x4e7dcf(0xdb)]=![];},{'enableHighAccuracy':!![],'timeout':0x2710,'maximumAge':0xea60});}),document['addEventListener'](_0x44085a(0x11b),_0x36759c=>{const _0x15133a=_0x44085a,_0x1ae559=_0x36759c['target'][_0x15133a(0xc1)](_0x15133a(0x166));if(!_0x1ae559||!_0x1ae559[_0x15133a(0x12c)])return;const _0x1dd5b8=_0x1ae559[_0x15133a(0x160)][0x0];_0x39514f(_0x1ae559,_0x1dd5b8[_0x15133a(0x110)][_0x15133a(0x115)],_0x1dd5b8[_0x15133a(0x110)]['lng']);});const _0x172d09=document[_0x44085a(0x18b)]('[data-geo-map-toggle]'),_0x206800=document['getElementById'](_0x44085a(0x132)),_0x3876ac=document[_0x44085a(0x18a)](_0x44085a(0xca));if(_0x172d09&&_0x206800&&_0x3876ac){let _0x59d208=null,_0x52ade4=null;function _0x593c39(_0x4e968a){const _0x254e92=_0x44085a;if(window['L']){_0x4e968a(window['L']);return;}if(!document['getElementById'](_0x254e92(0xe9))){const _0x342592=document[_0x254e92(0xda)]('link');_0x342592['id']=_0x254e92(0xe9),_0x342592['rel']=_0x254e92(0xf5),_0x342592[_0x254e92(0x125)]='https://unpkg.com/leaflet@1.9.4/dist/leaflet.css',document[_0x254e92(0xd7)][_0x254e92(0xfc)](_0x342592);}const _0x10263f=document[_0x254e92(0xda)](_0x254e92(0x182));_0x10263f[_0x254e92(0xad)]=_0x254e92(0x123),_0x10263f['onload']=()=>window['L']&&_0x4e968a(window['L']),_0x10263f[_0x254e92(0xbc)]=()=>_0x41d871(_0x172d09,_0x254e92(0x10f)),document[_0x254e92(0xd7)]['appendChild'](_0x10263f);}_0x172d09[_0x44085a(0xba)](_0x44085a(0xc9),()=>{const _0x4fe2a2=_0x44085a,_0x2cfee9=_0x206800[_0x4fe2a2(0x17e)];_0x206800['hidden']=!_0x2cfee9,_0x172d09[_0x4fe2a2(0x148)](_0x4fe2a2(0x11a),_0x2cfee9?_0x4fe2a2(0xec):_0x4fe2a2(0xe7));if(!_0x2cfee9)return;_0x593c39(_0x36f19f=>{const _0x48d7e1=_0x4fe2a2,{form:_0x1cdb94}=_0x40dab1(_0x172d09),_0x216d8c=parseFloat(_0x1cdb94&&_0x1cdb94[_0x48d7e1(0xdc)][_0x48d7e1(0xc3)]?_0x1cdb94[_0x48d7e1(0xdc)]['latitude'][_0x48d7e1(0x12c)]:''),_0x32d3e2=parseFloat(_0x1cdb94&&_0x1cdb94[_0x48d7e1(0xdc)][_0x48d7e1(0x151)]?_0x1cdb94[_0x48d7e1(0xdc)][_0x48d7e1(0x151)]['value']:''),_0x3cc131=Number[_0x48d7e1(0x195)](_0x216d8c)&&Number[_0x48d7e1(0x195)](_0x32d3e2),_0x948d57=_0x3cc131?[_0x216d8c,_0x32d3e2]:[-5.0563,-42.7894];if(!_0x59d208){_0x59d208=_0x36f19f[_0x48d7e1(0x16d)](_0x3876ac)['setView'](_0x948d57,0x10),_0x36f19f[_0x48d7e1(0xbb)](_0x48d7e1(0x184),{'attribution':_0x48d7e1(0x13a),'maxZoom':0x13})['addTo'](_0x59d208);if(_0x3cc131)_0x52ade4=_0x36f19f[_0x48d7e1(0x171)](_0x948d57)[_0x48d7e1(0x140)](_0x59d208);_0x59d208['on'](_0x48d7e1(0xc9),_0x502b09=>{const _0x47e3f7=_0x48d7e1,{lat:_0x3310d8,lng:_0x12665d}=_0x502b09['latlng'];if(_0x52ade4)_0x52ade4['setLatLng']([_0x3310d8,_0x12665d]);else _0x52ade4=_0x36f19f[_0x47e3f7(0x171)]([_0x3310d8,_0x12665d])[_0x47e3f7(0x140)](_0x59d208);_0x39514f(_0x172d09,_0x3310d8,_0x12665d),_0x41d871(_0x172d09,_0x47e3f7(0x18c)['concat'](_0x3310d8[_0x47e3f7(0x163)](0x6),',\x20')['concat'](_0x12665d[_0x47e3f7(0x163)](0x6),').'));});}else{_0x59d208[_0x48d7e1(0x196)]();if(_0x3cc131){_0x59d208[_0x48d7e1(0x124)](_0x948d57,0x10);if(_0x52ade4)_0x52ade4[_0x48d7e1(0x18d)](_0x948d57);else _0x52ade4=_0x36f19f[_0x48d7e1(0x171)](_0x948d57)[_0x48d7e1(0x140)](_0x59d208);}}});});}}function _0xa7014a(){const _0x118a72=a0_0x3ad0,_0xbaafcc=document['querySelector'](_0x118a72(0x146));if(_0xbaafcc){const _0x20c271=()=>document['querySelectorAll'](_0x118a72(0xc0))[_0x118a72(0x114)](_0x2f66ca=>{const _0x58b962=_0x118a72,_0x553a80=_0x2f66ca[_0x58b962(0x110)][_0x58b962(0x141)]===_0xbaafcc['value'];_0x2f66ca[_0x58b962(0x17e)]=!_0x553a80,_0x2f66ca['querySelectorAll'](_0x58b962(0x181))[_0x58b962(0x114)](_0x647cbc=>_0x647cbc[_0x58b962(0xdb)]=!_0x553a80);});_0xbaafcc[_0x118a72(0xba)](_0x118a72(0x11b),_0x20c271),_0x20c271();}const _0x3ed32d=document['querySelector']('[data-secret-box]');if(_0x3ed32d){const _0x5c5369=()=>{const _0x516304=_0x118a72,_0x5be8a9=document[_0x516304(0x18b)](_0x516304(0x113)),_0x525406=!_0x5be8a9||_0x5be8a9['checked'];_0x3ed32d[_0x516304(0x17e)]=!_0x525406,_0x3ed32d[_0x516304(0x17f)](_0x516304(0x19e))[_0x516304(0x114)](_0x2ba797=>_0x2ba797[_0x516304(0xdb)]=!_0x525406);};document[_0x118a72(0x17f)]('[data-record-type]')[_0x118a72(0x114)](_0x31691f=>_0x31691f[_0x118a72(0xba)](_0x118a72(0x11b),_0x5c5369)),_0x5c5369();}}function _0x36206a(){const _0x218145=a0_0x3ad0,_0x32fe82=document[_0x218145(0x18b)](_0x218145(0x10a)),_0xea74a2=document['querySelector'](_0x218145(0xb7)),_0x456d90=_0x1e155c=>{const _0xed7026=_0x218145;if(!_0x32fe82)return;_0x32fe82['classList']['toggle'](_0xed7026(0x199),_0x1e155c),_0x32fe82[_0xed7026(0x148)]('aria-hidden',_0x1e155c?_0xed7026(0xe7):_0xed7026(0xec));if(_0xea74a2)_0xea74a2[_0xed7026(0x135)][_0xed7026(0x16e)](_0xed7026(0x199),_0x1e155c);document['querySelectorAll'](_0xed7026(0x120))[_0xed7026(0x114)](_0x50cf09=>_0x50cf09['setAttribute'](_0xed7026(0x11a),_0x1e155c?_0xed7026(0xec):_0xed7026(0xe7)));};document[_0x218145(0xba)](_0x218145(0xc9),_0x14ab38=>{const _0x2e7138=_0x218145;if(_0x14ab38[_0x2e7138(0x111)]['closest'](_0x2e7138(0x120))){_0x456d90(!_0x32fe82[_0x2e7138(0x135)][_0x2e7138(0xed)](_0x2e7138(0x199)));return;}(_0x14ab38[_0x2e7138(0x111)][_0x2e7138(0xc1)](_0x2e7138(0x13c))||_0x32fe82&&_0x32fe82['classList'][_0x2e7138(0xed)](_0x2e7138(0x199))&&_0x14ab38[_0x2e7138(0x111)]['closest'](_0x2e7138(0x129)))&&_0x456d90(![]);const _0x5aab19=_0x14ab38[_0x2e7138(0x111)][_0x2e7138(0xc1)](_0x2e7138(0xe5));if(_0x5aab19){const _0x53bf7d=document['querySelector'](_0x2e7138(0xd9));if(_0x53bf7d){const _0x1c90b4=_0x53bf7d[_0x2e7138(0x135)][_0x2e7138(0x16e)]('open');_0x5aab19[_0x2e7138(0x148)](_0x2e7138(0x11a),_0x1c90b4?_0x2e7138(0xec):'false');}}}),document[_0x218145(0xba)](_0x218145(0x128),_0x3286e5=>{const _0x209e9c=_0x218145;if(_0x3286e5[_0x209e9c(0xae)]===_0x209e9c(0x170))_0x456d90(![]);});}function _0x3166e0(){const _0xa9e451=a0_0x3ad0,_0x46010a=document[_0xa9e451(0x18b)]('[data-item-form]'),_0x4c8085=document[_0xa9e451(0x18a)]('item-image-input'),_0x5a990f=document['getElementById'](_0xa9e451(0x14a)),_0x105bf9=document[_0xa9e451(0x18a)](_0xa9e451(0xcc)),_0x149caa=document[_0xa9e451(0x18a)](_0xa9e451(0x192)),_0x4664d6=document[_0xa9e451(0x18a)]('item-photo-clear'),_0x3f87ae=_0xa9e451(0x12f);let _0x54cfc0=null;function _0x11e543(){try{sessionStorage['removeItem'](_0x3f87ae);}catch(_0x23cff2){}}function _0x1052b1(_0x53b339){const _0x52723d=_0xa9e451;if(!_0x53b339||typeof FileReader===_0x52723d(0x15b))return;try{const _0x1288f2=new FileReader();_0x1288f2['onload']=()=>{const _0x807476=_0x52723d;try{sessionStorage['setItem'](_0x3f87ae,JSON[_0x807476(0xeb)]({'name':_0x53b339['name']||_0x807476(0x186),'type':_0x53b339['type']||'image/jpeg','dataUrl':_0x1288f2['result']}));}catch(_0xf2941f){}},_0x1288f2[_0x52723d(0x189)](_0x53b339);}catch(_0x44dba8){}}function _0x262411(){const _0xbd85ff=_0xa9e451;if(!_0x46010a||_0x46010a[_0xbd85ff(0x110)][_0xbd85ff(0x156)]!=='1'){_0x11e543();return;}if(!_0x4c8085||_0x4c8085['files']&&_0x4c8085[_0xbd85ff(0x107)]['length'])return;try{const _0xd5b3aa=sessionStorage[_0xbd85ff(0xc5)](_0x3f87ae);if(!_0xd5b3aa)return;const _0x5c6073=JSON['parse'](_0xd5b3aa);if(!_0x5c6073||!_0x5c6073['dataUrl'])return;const _0x4a4e9f=_0x5c6073[_0xbd85ff(0xc7)][_0xbd85ff(0x121)](',');if(_0x4a4e9f['length']!==0x2)return;const _0x4c25bf=atob(_0x4a4e9f[0x1]),_0x22bb8b=new Uint8Array(_0x4c25bf['length']);for(let _0x2a6bb8=0x0;_0x2a6bb8<_0x4c25bf['length'];_0x2a6bb8+=0x1)_0x22bb8b[_0x2a6bb8]=_0x4c25bf[_0xbd85ff(0xe0)](_0x2a6bb8);const _0x263ffd=new File([_0x22bb8b],_0x5c6073[_0xbd85ff(0xfe)]||'foto.jpg',{'type':_0x5c6073[_0xbd85ff(0x116)]||'image/jpeg'});_0xb674a4(_0x263ffd,![]);}catch(_0x41efba){}}function _0xeae975(_0x163c25){const _0x4b69d6=_0xa9e451;if(!_0x5a990f||!_0x105bf9)return;_0x54cfc0&&(URL[_0x4b69d6(0xc6)](_0x54cfc0),_0x54cfc0=null);if(!_0x163c25){_0x5a990f[_0x4b69d6(0x17e)]=!![],_0x105bf9[_0x4b69d6(0x10c)]('src');return;}_0x54cfc0=URL[_0x4b69d6(0x172)](_0x163c25),_0x105bf9[_0x4b69d6(0xad)]=_0x54cfc0;if(_0x149caa)_0x149caa[_0x4b69d6(0xdd)]=''[_0x4b69d6(0x15f)](_0x163c25[_0x4b69d6(0xfe)]||_0x4b69d6(0xfd),_0x4b69d6(0xf7))[_0x4b69d6(0x15f)](Math[_0x4b69d6(0x179)](0x1,Math[_0x4b69d6(0x103)]((_0x163c25[_0x4b69d6(0xfb)]||0x0)/0x400)),_0x4b69d6(0xea));_0x5a990f[_0x4b69d6(0x17e)]=![];}function _0xb674a4(_0x581b43,_0x8b0a04=!![]){const _0x3a85a3=_0xa9e451;if(!_0x4c8085||!_0x581b43)return;if(typeof DataTransfer!==_0x3a85a3(0x15b)){const _0x1b197a=new DataTransfer();_0x1b197a[_0x3a85a3(0x197)]['add'](_0x581b43),_0x4c8085[_0x3a85a3(0x107)]=_0x1b197a[_0x3a85a3(0x107)];}if(_0x8b0a04)_0x1052b1(_0x581b43);_0xeae975(_0x581b43);}_0x4c8085&&_0x4c8085['addEventListener'](_0xa9e451(0x11b),()=>{const _0xd32857=_0xa9e451,_0xb4c5bb=_0x4c8085[_0xd32857(0x107)][0x0];if(_0xb4c5bb)_0x1052b1(_0xb4c5bb);else _0x11e543();_0xeae975(_0xb4c5bb);});_0x4664d6&&_0x4664d6[_0xa9e451(0xba)](_0xa9e451(0xc9),()=>{const _0x5787fd=_0xa9e451;if(_0x4c8085)_0x4c8085[_0x5787fd(0x12c)]='';_0x11e543(),_0xeae975(null);});_0x262411();const _0x1ba29d=document[_0xa9e451(0x18a)](_0xa9e451(0xb4)),_0x2370c0=document['getElementById'](_0xa9e451(0xd6)),_0x421ee3=document[_0xa9e451(0x18a)]('item-cam-video'),_0x17f0e8=document[_0xa9e451(0x18a)]('item-cam-shot'),_0x3ae691=document[_0xa9e451(0x18a)](_0xa9e451(0xb2)),_0x5d4cc7=document[_0xa9e451(0x18a)](_0xa9e451(0x180));let _0x570762=null;function _0x16c0a9(){const _0x189ea3=_0xa9e451;if(_0x570762)_0x570762[_0x189ea3(0x15e)]()[_0x189ea3(0x114)](_0x3bfe93=>_0x3bfe93[_0x189ea3(0x106)]());_0x570762=null;if(_0x2370c0)_0x2370c0[_0x189ea3(0x17e)]=!![];}if(_0x5d4cc7)_0x5d4cc7['addEventListener']('change',()=>_0x5d4cc7[_0xa9e451(0x107)][0x0]&&_0xb674a4(_0x5d4cc7[_0xa9e451(0x107)][0x0]));_0x1ba29d&&_0x1ba29d[_0xa9e451(0xba)]('click',async()=>{const _0x4db215=_0xa9e451;try{if(!navigator['mediaDevices']||!navigator[_0x4db215(0x109)]['getUserMedia'])throw new Error(_0x4db215(0x134));_0x570762=await navigator[_0x4db215(0x109)]['getUserMedia']({'video':{'facingMode':_0x4db215(0x11e)},'audio':![]}),_0x421ee3['srcObject']=_0x570762,_0x2370c0[_0x4db215(0x17e)]=![];}catch(_0x299ea2){if(_0x5d4cc7)_0x5d4cc7['click']();}});if(_0x3ae691)_0x3ae691['addEventListener']('click',_0x16c0a9);_0x17f0e8&&_0x17f0e8[_0xa9e451(0xba)](_0xa9e451(0xc9),()=>{const _0x117705=_0xa9e451,_0x215105=document[_0x117705(0xda)](_0x117705(0x126));_0x215105[_0x117705(0x17c)]=_0x421ee3[_0x117705(0x13b)]||0x500,_0x215105[_0x117705(0xd3)]=_0x421ee3[_0x117705(0x101)]||0x2d0,_0x215105['getContext']('2d')[_0x117705(0x158)](_0x421ee3,0x0,0x0,_0x215105[_0x117705(0x17c)],_0x215105[_0x117705(0xd3)]),_0x215105[_0x117705(0xe3)](_0x505287=>{const _0x114473=_0x117705;if(_0x505287)_0xb674a4(new File([_0x505287],_0x114473(0xb6),{'type':_0x114473(0xb3)}));_0x16c0a9();},_0x117705(0xb3),0.9);});}function _0x5d32d3(_0x15bf81){const _0x510328=a0_0x3ad0,_0x43ab63=(_0x4e49b6,_0x2e2e5c)=>{const _0x22addb=a0_0x3ad0,_0x239167=document[_0x22addb(0x18b)](_0x4e49b6);if(_0x239167&&_0x2e2e5c&&!_0x239167[_0x22addb(0x12c)]['trim']())_0x239167[_0x22addb(0x12c)]=_0x2e2e5c;};if(_0x15bf81['category']){const _0x489dd4=document[_0x510328(0x18b)]('[data-category-select]');_0x489dd4&&(_0x489dd4[_0x510328(0x12c)]=_0x15bf81[_0x510328(0x131)],_0x489dd4[_0x510328(0xf1)](new Event(_0x510328(0x11b))));}_0x43ab63(_0x510328(0xf3),_0x15bf81['title']),_0x43ab63('textarea[name=description]',_0x15bf81[_0x510328(0x19a)]||_0x15bf81[_0x510328(0x168)]);if(_0x15bf81['color']){const _0xca68e9=document[_0x510328(0x18b)]('select[name=color]');if(_0xca68e9&&!_0xca68e9[_0x510328(0x12c)])_0xca68e9[_0x510328(0x12c)]=_0x15bf81[_0x510328(0x14b)];}_0x43ab63(_0x510328(0x145),_0x15bf81[_0x510328(0x15c)]),_0x43ab63(_0x510328(0xf6),_0x15bf81[_0x510328(0xd1)]);const _0x52cd3b=_0x15bf81['attributes']&&typeof _0x15bf81[_0x510328(0x16c)]==='object'?_0x15bf81['attributes']:{};for(const [_0x57af43,_0x4d7b53]of Object[_0x510328(0x118)](_0x52cd3b)){if(_0x4d7b53)_0x43ab63(_0x510328(0xb0)[_0x510328(0x15f)](_0x57af43,'\x27]'),String(_0x4d7b53));}const _0x10100c=Array['isArray'](_0x15bf81[_0x510328(0x19c)])?_0x15bf81[_0x510328(0x19c)]['filter'](Boolean):[],_0x4f0621=_0x10100c[_0x510328(0xc8)](',\x20');if(_0x4f0621){if(_0x15bf81['category']==='ACCESSORY')_0x43ab63(_0x510328(0x12e),_0x4f0621);else{if(_0x15bf81['category']==='ELECTRONIC')_0x43ab63(_0x510328(0x14e),_0x4f0621);else{if(_0x15bf81[_0x510328(0x131)]==='DOCUMENT')_0x43ab63(_0x510328(0x14c),_0x15bf81[_0x510328(0x136)]||_0x4f0621);}}}const _0x335754=document[_0x510328(0x18b)](_0x510328(0xbd));_0x335754&&(_0x335754['innerHTML']='',_0x10100c[_0x510328(0x114)](_0x1ed2b4=>{const _0x291691=_0x510328,_0x4d97dc=document['createElement'](_0x291691(0xe8));_0x4d97dc['className']=_0x291691(0xaf),_0x4d97dc['textContent']='#'[_0x291691(0x15f)](_0x1ed2b4),_0x335754[_0x291691(0xfc)](_0x4d97dc);}),_0x335754['hidden']=_0x10100c[_0x510328(0x149)]===0x0);}function _0x249586(_0x1bfcef){const _0x59bea0=a0_0x3ad0,_0x34fb08=document['querySelector'](_0x59bea0(0xfa));if(!_0x34fb08)return;const _0x5f3bf6=document[_0x59bea0(0x18b)](_0x59bea0(0xf4)),_0x3f19ec=document[_0x59bea0(0x18b)](_0x59bea0(0x175));_0x34fb08[_0x59bea0(0xba)](_0x59bea0(0xc9),async()=>{const _0x2997f6=_0x59bea0,_0x45d52e=_0x3f19ec&&_0x3f19ec['files']&&_0x3f19ec[_0x2997f6(0x107)][0x0];if(!_0x45d52e){if(_0x5f3bf6)_0x5f3bf6[_0x2997f6(0xdd)]=_0x2997f6(0x122);return;}_0x34fb08['disabled']=!![];if(_0x5f3bf6)_0x5f3bf6['textContent']=_0x2997f6(0x187);try{const _0x377b5b=new FormData();_0x377b5b[_0x2997f6(0xb1)](_0x2997f6(0xb9),_0x45d52e);const _0x310f5f=await fetch(_0x2997f6(0xd5),{'method':_0x2997f6(0x130),'body':_0x377b5b}),_0x3709cb=await _0x310f5f[_0x2997f6(0xd0)]()[_0x2997f6(0x167)](()=>({}));if(!_0x310f5f['ok']||!_0x3709cb[_0x2997f6(0x117)])throw new Error(_0x3709cb[_0x2997f6(0x161)]||_0x2997f6(0x17d));_0x5d32d3(_0x3709cb[_0x2997f6(0x117)]),_0x5f3bf6&&(_0x5f3bf6[_0x2997f6(0xdd)]=_0x3709cb[_0x2997f6(0x117)]['visualSummary']?'IA:\x20'['concat'](_0x3709cb[_0x2997f6(0x117)][_0x2997f6(0x168)]):'Campos\x20sugeridos\x20preenchidos!'),_0x1bfcef(_0x2997f6(0xc4));}catch(_0x5819b8){if(_0x5f3bf6)_0x5f3bf6[_0x2997f6(0xdd)]=_0x5819b8[_0x2997f6(0xb5)];_0x1bfcef(_0x5819b8[_0x2997f6(0xb5)],!![]);}finally{_0x34fb08[_0x2997f6(0xdb)]=![];}});}function _0x538e72(_0x404c30){const _0xaeea9f=a0_0x3ad0,_0x155747=document[_0xaeea9f(0x18b)](_0xaeea9f(0x17b)),_0x26865a=document[_0xaeea9f(0x18b)](_0xaeea9f(0x19b)),_0x2cf993=document[_0xaeea9f(0x104)]&&document[_0xaeea9f(0x104)][_0xaeea9f(0x110)]&&document[_0xaeea9f(0x104)]['dataset']['userAuthed']==='1',_0xe10e6d=typeof Notification!==_0xaeea9f(0x15b),_0x8150c0=_0xaeea9f(0x16f);let _0x21c80e=null;function _0x32a0a7(){const _0xd40be5=_0xaeea9f;try{const _0x5b16db=localStorage[_0xd40be5(0xc5)](_0x8150c0),_0x30ac83=_0x5b16db?JSON['parse'](_0x5b16db):[];return Array[_0xd40be5(0xd8)](_0x30ac83)?_0x30ac83:[];}catch(_0x729fec){return[];}}function _0x398fc0(_0x47d771){const _0x2615e9=_0xaeea9f;try{localStorage[_0x2615e9(0x169)](_0x8150c0,JSON[_0x2615e9(0xeb)](_0x47d771[_0x2615e9(0x13d)](-0x64)));}catch(_0x20ac2c){}}function _0x5b622b(){const _0x208a49=_0xaeea9f;if(!_0x26865a&&!_0x155747)return;if(!_0xe10e6d){if(_0x26865a)_0x26865a['textContent']=_0x208a49(0x10b);if(_0x155747)_0x155747[_0x208a49(0xdb)]=!![];return;}if(Notification[_0x208a49(0x14f)]===_0x208a49(0xce)){if(_0x26865a)_0x26865a['textContent']=_0x208a49(0x198);if(_0x155747)_0x155747[_0x208a49(0xdd)]=_0x208a49(0x138);}else{if(Notification[_0x208a49(0x14f)]===_0x208a49(0x12a)){if(_0x26865a)_0x26865a[_0x208a49(0xdd)]='Notificações\x20bloqueadas\x20nas\x20permissões\x20do\x20navegador.';}else _0x26865a&&(_0x26865a[_0x208a49(0xdd)]=_0x208a49(0x18f));}}async function _0x53476e(_0x224509){const _0x463c80=_0xaeea9f,_0x4bf27f={'body':_0x224509[_0x463c80(0x104)]||'','icon':'/static/logo-esqueceram-ai.png','tag':'esqueceram-notif-'[_0x463c80(0x15f)](_0x224509['id']),'data':{'url':_0x224509[_0x463c80(0x143)]||'/painel/notificacoes'}};if(_0x21c80e&&typeof _0x21c80e[_0x463c80(0xee)]===_0x463c80(0x142)){await _0x21c80e[_0x463c80(0xee)](_0x224509[_0x463c80(0x136)]||'Esqueceram\x20AI',_0x4bf27f);return;}const _0xac927=new Notification(_0x224509[_0x463c80(0x136)]||_0x463c80(0xf2),_0x4bf27f);_0xac927[_0x463c80(0x100)]=()=>{const _0x4b7fc5=_0x463c80;if(_0x4bf27f[_0x4b7fc5(0x183)][_0x4b7fc5(0x159)])location[_0x4b7fc5(0x125)]=_0x4bf27f[_0x4b7fc5(0x183)][_0x4b7fc5(0x159)];};}async function _0xc863da(){const _0x5623ae=_0xaeea9f;if(!_0x2cf993||!_0xe10e6d||Notification[_0x5623ae(0x14f)]!==_0x5623ae(0xce))return;try{const _0x5bf51f=await _0x22fd38(_0x5623ae(0x10d),_0x5623ae(0x13e)),_0xab1574=(_0x5bf51f[_0x5623ae(0x191)]||[])['filter'](_0x5da56f=>!_0x5da56f[_0x5623ae(0xd4)]);if(!_0xab1574[_0x5623ae(0x149)])return;const _0x48aca0=new Set(_0x32a0a7()),_0x27d08d=_0xab1574[_0x5623ae(0x193)](_0x4a27ee=>!_0x48aca0[_0x5623ae(0x12d)](_0x4a27ee['id']));if(!_0x27d08d[_0x5623ae(0x149)])return;for(const _0x461147 of _0x27d08d){await _0x53476e(_0x461147),_0x48aca0[_0x5623ae(0xb8)](_0x461147['id']);}_0x398fc0(Array[_0x5623ae(0xc2)](_0x48aca0));}catch(_0xf8975f){}}typeof navigator!==_0xaeea9f(0x15b)&&navigator[_0xaeea9f(0xbf)]&&typeof navigator[_0xaeea9f(0xbf)][_0xaeea9f(0x11f)]===_0xaeea9f(0x142)&&navigator[_0xaeea9f(0xbf)][_0xaeea9f(0x11f)]('/sw.js')[_0xaeea9f(0x15d)](_0x22aa7e=>{_0x21c80e=_0x22aa7e,_0xc863da();})[_0xaeea9f(0x167)](()=>{}),_0x5b622b(),_0x155747&&_0xe10e6d&&_0x155747['addEventListener']('click',async()=>{const _0xe6452b=_0xaeea9f;try{const _0x9a4144=await Notification[_0xe6452b(0x105)]();_0x5b622b();if(_0x9a4144===_0xe6452b(0xce))_0x404c30('Notificações\x20ativadas\x20no\x20dispositivo.'),await _0xc863da();else _0x9a4144===_0xe6452b(0x12a)&&_0x404c30(_0xe6452b(0x16b),_0xe6452b(0xbe),!![]);}catch(_0x112898){_0x404c30(_0xe6452b(0x13f),_0x112898[_0xe6452b(0xb5)],!![]);}}),_0x2cf993&&_0xe10e6d&&(_0xc863da(),setInterval(_0xc863da,0x4e20));}function _0x1ed20e(){const _0x4077b2=_0x4b591f();_0x138745(_0x4077b2),_0x391c5a(_0x4077b2),_0x4d2e43(),_0xa7014a(),_0x36206a(),_0x3166e0(),_0x249586(_0x4077b2),_0x538e72(_0x4077b2);}_0x1ed20e();}()));function a0_0x1d7a(){const _0x15b271=['length','item-photo-preview-box','color','input[name=\x27attributes.documentType\x27]','/api/admin/users','input[name=\x27attributes.compatibility\x27]','permission','Algo\x20deu\x20errado','longitude','requestSubmit','reload','raio','div','hasError','[data-geo-locate]','drawImage','url','small','undefined','brand','then','getTracks','concat','selectedOptions','error','toast','toFixed','Permissão\x20atualizada','method','[data-geo-point]','catch','visualSummary','setItem','[data-role-user]','Permissão\x20negada','attributes','map','toggle','esqueceram_seen_notifs','Escape','marker','createObjectURL','success','3238436CTMAJq','input[name=image]','api','remove','\x20bad','max','Não\x20foi\x20possível\x20alterar','[data-push-enable]','width','Não\x20foi\x20possível\x20analisar\x20a\x20foto.','hidden','querySelectorAll','item-image-capture','input','script','data','https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png','.flash','foto.jpg','Analisando\x20foto\x20com\x20IA...','geolocation','readAsDataURL','getElementById','querySelector','Ponto\x20selecionado\x20no\x20mapa\x20(','setLatLng','[data-api]','Ative\x20para\x20receber\x20alertas\x20no\x20navegador\x20ou\x20celular.','innerHTML','notifications','item-photo-meta','filter','1746thbuLG','isFinite','invalidateSize','items','Notificações\x20no\x20dispositivo\x20ativadas\x20para\x20novos\x20avisos.','open','description','[data-push-status]','visualTags','tone','input,\x20textarea','[data-geo-clear]','removeItem','src','key','chip','input[name=\x27attributes.','append','item-cam-close','image/jpeg','item-cam-open','message','item-capturado.jpg','[data-drawer-backdrop]','add','image','addEventListener','tileLayer','onerror','[data-vision-tags]','Libere\x20as\x20notificações\x20nas\x20configurações\x20do\x20navegador.','serviceWorker','[data-category-group]','closest','from','latitude','Campos\x20sugeridos\x20pela\x20IA\x20a\x20partir\x20da\x20foto.','getItem','revokeObjectURL','dataUrl','join','click','item-geo-map','Novo\x20papel:\x20','item-photo-preview','accuracy','granted','code','json','model','proximity','height','isRead','/api/vision/analyze','item-cam-box','head','isArray','[data-public-nav]','createElement','disabled','elements','textContent','lng','application/json','charCodeAt','Obtendo\x20localização…','27176UomvBE','toBlob','<small></small>','[data-public-nav-toggle]','[data-geo-box]','false','span','leaflet-css','\x20KB','stringify','true','contains','showNotification','preventDefault','coords','dispatchEvent','Esqueceram\x20AI','input[name=title]','[data-vision-status]','stylesheet','input[name=model]','\x20·\x20','geoLatName','7848855wvuQbM','[data-vision-analyze]','size','appendChild','foto','name','195ldGghb','onclick','videoHeight','11672110AXGNfW','round','body','requestPermission','stop','files','886015WXsGnV','mediaDevices','[data-drawer]','Este\x20navegador\x20não\x20suporta\x20notificações\x20nativas.','removeAttribute','/api/notifications','PATCH','Não\x20foi\x20possível\x20carregar\x20o\x20mapa.\x20Informe\x20as\x20coordenadas\x20manualmente.','dataset','target','ordem','[data-record-type][value=\x27FOUND\x27]','forEach','lat','type','analysis','entries','247788ZUZvqK','aria-expanded','change','geoLngName','className','environment','register','[data-drawer-toggle]','split','Selecione\x20uma\x20foto\x20antes\x20de\x20analisar\x20com\x20a\x20IA.','https://unpkg.com/leaflet@1.9.4/dist/leaflet.js','setView','href','canvas','toasts','keydown','[data-drawer]\x20a.nav','denied','30cZplpf','value','has','input[name=\x27attributes.visualDetails\x27]','esqueceram_pending_photo','POST','category','item-geo-map-box','confirm','sem\x20camera','classList','title','parse','🔔\x20Notificações\x20ativadas','72052RROxpi','&copy;\x20OpenStreetMap','videoWidth','[data-drawer-close]','slice','GET','Não\x20foi\x20possível\x20ativar\x20as\x20notificações.','addTo','categoryGroup','function','link','Seu\x20navegador\x20não\x20permite\x20obter\x20a\x20localização.','input[name=brand]','[data-category-select]','form','setAttribute'];a0_0x1d7a=function(){return _0x15b271;};return a0_0x1d7a();}
+/* Ações do painel: chamam a API REST (cookie de sessão) e recarregam a página. */
+(function () {
+  function initToasts() {
+    const box = document.createElement("div");
+    box.className = "toasts";
+    document.body.appendChild(box);
+
+    function toast(title, desc, bad) {
+      const t = document.createElement("div");
+      t.className = "toast" + (bad ? " bad" : "");
+      t.innerHTML = "<b></b>" + (desc ? "<small></small>" : "");
+      t.querySelector("b").textContent = title;
+      if (desc) t.querySelector("small").textContent = desc;
+      box.appendChild(t);
+      setTimeout(() => t.remove(), 4500);
+    }
+
+    window.toast = toast;
+    document.querySelectorAll(".flash").forEach((f) => toast(f.dataset.msg, "", f.dataset.tone === "error"));
+    try {
+      const msg = sessionStorage.getItem("toast");
+      if (msg) {
+        sessionStorage.removeItem("toast");
+        toast(msg);
+      }
+    } catch (e) {}
+    return toast;
+  }
+
+  async function apiCall(url, method, body) {
+    const resp = await fetch(url, {
+      method,
+      headers: body ? { "Content-Type": "application/json" } : undefined,
+      body: body ? JSON.stringify(body) : undefined,
+    });
+    const payload = await resp.json().catch(() => ({}));
+    if (!resp.ok) throw new Error(payload.error || "Não foi possível concluir a ação.");
+    return payload;
+  }
+
+  function initApiActions(toast) {
+    document.addEventListener("click", async (ev) => {
+      const btn = ev.target.closest("[data-api]");
+      if (!btn) return;
+      ev.preventDefault();
+      if (btn.dataset.confirm && !window.confirm(btn.dataset.confirm)) return;
+      btn.disabled = true;
+      try {
+        await apiCall(btn.dataset.api, btn.dataset.method || "POST", btn.dataset.body ? JSON.parse(btn.dataset.body) : null);
+        try {
+          sessionStorage.setItem("toast", btn.dataset.success || "Ação concluída");
+        } catch (e) {}
+        if (btn.dataset.redirect) location.href = btn.dataset.redirect;
+        else location.reload();
+      } catch (e) {
+        toast("Algo deu errado", e.message, true);
+        btn.disabled = false;
+      }
+    });
+  }
+
+  function initRoleSelector(toast) {
+    document.addEventListener("change", async (ev) => {
+      const select = ev.target.closest("[data-role-user]");
+      if (!select) return;
+      try {
+        await apiCall("/api/admin/users", "PATCH", { userId: +select.dataset.roleUser, role: select.value });
+        toast("Permissão atualizada", "Novo papel: " + select.value);
+      } catch (e) {
+        toast("Não foi possível alterar", e.message, true);
+        location.reload();
+      }
+    });
+  }
+
+  // Preenche latitude/longitude pelo GPS ou por um ponto de coleta
+  function initGeoLocation() {
+    function geoBox(el) {
+      const box = el.closest("[data-geo-box]");
+      return { form: el.closest("form"), status: box && box.querySelector("[data-geo-status]") };
+    }
+
+    function geoSay(el, text) {
+      const { status } = geoBox(el);
+      if (status) status.textContent = text;
+    }
+
+    function geoApply(el, lat, lng) {
+      const { form } = geoBox(el);
+      const btn = form.querySelector("[data-geo-locate]") || el;
+      const latEl = form.elements[btn.dataset.geoLatName || "lat"];
+      const lngEl = form.elements[btn.dataset.geoLngName || "lng"];
+      latEl.value = Number(lat).toFixed(6);
+      lngEl.value = Number(lng).toFixed(6);
+      if (form.elements.raio) {
+        // formulário de busca: define raio e ordem padrão e já pesquisa
+        if (!form.elements.raio.value) form.elements.raio.value = "1";
+        if (form.elements.ordem) form.elements.ordem.value = "proximity";
+        form.requestSubmit();
+      }
+    }
+
+    document.addEventListener("click", (ev) => {
+      const clear = ev.target.closest("[data-geo-clear]");
+      if (clear) {
+        ev.preventDefault();
+        const { form } = geoBox(clear);
+        form.elements.lat.value = "";
+        form.elements.lng.value = "";
+        form.elements.raio.value = "";
+        form.requestSubmit();
+        return;
+      }
+      const btn = ev.target.closest("[data-geo-locate]");
+      if (!btn) return;
+      if (!navigator.geolocation) {
+        geoSay(btn, "Seu navegador não permite obter a localização.");
+        return;
+      }
+      btn.disabled = true;
+      geoSay(btn, "Obtendo localização…");
+      navigator.geolocation.getCurrentPosition(
+        (pos) => {
+          geoSay(btn, "Localização preenchida (precisão de cerca de " + Math.round(pos.coords.accuracy) + " m).");
+          btn.disabled = false;
+          geoApply(btn, pos.coords.latitude, pos.coords.longitude);
+        },
+        (err) => {
+          geoSay(
+            btn,
+            err.code === 1
+              ? "Permissão negada. Informe as coordenadas ou escolha um ponto de coleta."
+              : "Não foi possível obter a localização."
+          );
+          btn.disabled = false;
+        },
+        { enableHighAccuracy: true, timeout: 10000, maximumAge: 60000 }
+      );
+    });
+
+    document.addEventListener("change", (ev) => {
+      const sel = ev.target.closest("[data-geo-point]");
+      if (!sel || !sel.value) return;
+      const opt = sel.selectedOptions[0];
+      geoApply(sel, opt.dataset.lat, opt.dataset.lng);
+    });
+
+    const mapToggle = document.querySelector("[data-geo-map-toggle]");
+    const mapBox = document.getElementById("item-geo-map-box");
+    const mapContainer = document.getElementById("item-geo-map");
+    if (mapToggle && mapBox && mapContainer) {
+      let mapInstance = null;
+      let mapMarker = null;
+
+      function ensureLeaflet(cb) {
+        if (window.L) {
+          cb(window.L);
+          return;
+        }
+        if (!document.getElementById("leaflet-css")) {
+          const css = document.createElement("link");
+          css.id = "leaflet-css";
+          css.rel = "stylesheet";
+          css.href = "https://unpkg.com/leaflet@1.9.4/dist/leaflet.css";
+          document.head.appendChild(css);
+        }
+        const script = document.createElement("script");
+        script.src = "https://unpkg.com/leaflet@1.9.4/dist/leaflet.js";
+        script.onload = () => window.L && cb(window.L);
+        script.onerror = () => geoSay(mapToggle, "Não foi possível carregar o mapa. Informe as coordenadas manualmente.");
+        document.head.appendChild(script);
+      }
+
+      mapToggle.addEventListener("click", () => {
+        const opening = mapBox.hidden;
+        mapBox.hidden = !opening;
+        mapToggle.setAttribute("aria-expanded", opening ? "true" : "false");
+        if (!opening) return;
+
+        ensureLeaflet((L) => {
+          const { form } = geoBox(mapToggle);
+          const latVal = parseFloat(form && form.elements.latitude ? form.elements.latitude.value : "");
+          const lngVal = parseFloat(form && form.elements.longitude ? form.elements.longitude.value : "");
+          const hasCoords = Number.isFinite(latVal) && Number.isFinite(lngVal);
+          const center = hasCoords ? [latVal, lngVal] : [-5.0563, -42.7894];
+
+          if (!mapInstance) {
+            mapInstance = L.map(mapContainer).setView(center, 16);
+            L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+              attribution: "&copy; OpenStreetMap",
+              maxZoom: 19,
+            }).addTo(mapInstance);
+            if (hasCoords) mapMarker = L.marker(center).addTo(mapInstance);
+            mapInstance.on("click", (ev) => {
+              const { lat, lng } = ev.latlng;
+              if (mapMarker) mapMarker.setLatLng([lat, lng]);
+              else mapMarker = L.marker([lat, lng]).addTo(mapInstance);
+              geoApply(mapToggle, lat, lng);
+              geoSay(mapToggle, `Ponto selecionado no mapa (${lat.toFixed(6)}, ${lng.toFixed(6)}).`);
+            });
+          } else {
+            mapInstance.invalidateSize();
+            if (hasCoords) {
+              mapInstance.setView(center, 16);
+              if (mapMarker) mapMarker.setLatLng(center);
+              else mapMarker = L.marker(center).addTo(mapInstance);
+            }
+          }
+        });
+      });
+    }
+  }
+
+  function initDynamicFormFields() {
+    // Campos dinâmicos por categoria no formulário de item
+    const categorySelect = document.querySelector("[data-category-select]");
+    if (categorySelect) {
+      const syncCategory = () =>
+        document.querySelectorAll("[data-category-group]").forEach((group) => {
+          const on = group.dataset.categoryGroup === categorySelect.value;
+          group.hidden = !on;
+          group.querySelectorAll("input").forEach((input) => (input.disabled = !on));
+        });
+      categorySelect.addEventListener("change", syncCategory);
+      syncCategory();
+    }
+
+    // Validação de posse só existe para itens encontrados
+    const secretBox = document.querySelector("[data-secret-box]");
+    if (secretBox) {
+      const syncSecret = () => {
+        const found = document.querySelector("[data-record-type][value='FOUND']");
+        const on = !found || found.checked;
+        secretBox.hidden = !on;
+        secretBox.querySelectorAll("input, textarea").forEach((input) => (input.disabled = !on));
+      };
+      document.querySelectorAll("[data-record-type]").forEach((radio) => radio.addEventListener("change", syncSecret));
+      syncSecret();
+    }
+  }
+
+  // Menu retrátil no mobile (drawer do painel e menu do cabeçalho público)
+  function initMobileDrawers() {
+    const drawer = document.querySelector("[data-drawer]");
+    const backdrop = document.querySelector("[data-drawer-backdrop]");
+    const setDrawer = (open) => {
+      if (!drawer) return;
+      drawer.classList.toggle("open", open);
+      drawer.setAttribute("aria-hidden", open ? "false" : "true");
+      if (backdrop) backdrop.classList.toggle("open", open);
+      document.querySelectorAll("[data-drawer-toggle]").forEach((btn) => btn.setAttribute("aria-expanded", open ? "true" : "false"));
+    };
+
+    document.addEventListener("click", (ev) => {
+      if (ev.target.closest("[data-drawer-toggle]")) {
+        setDrawer(!drawer.classList.contains("open"));
+        return;
+      }
+      if (ev.target.closest("[data-drawer-close]") || (drawer && drawer.classList.contains("open") && ev.target.closest("[data-drawer] a.nav"))) {
+        setDrawer(false);
+      }
+      const pubBtn = ev.target.closest("[data-public-nav-toggle]");
+      if (pubBtn) {
+        const nav = document.querySelector("[data-public-nav]");
+        if (nav) {
+          const open = nav.classList.toggle("open");
+          pubBtn.setAttribute("aria-expanded", open ? "true" : "false");
+        }
+      }
+    });
+
+    document.addEventListener("keydown", (ev) => {
+      if (ev.key === "Escape") setDrawer(false);
+    });
+  }
+
+  function initPhotoCapture() {
+    const itemForm = document.querySelector("[data-item-form]");
+    const itemImgInput = document.getElementById("item-image-input");
+    const itemPreviewBox = document.getElementById("item-photo-preview-box");
+    const itemPreview = document.getElementById("item-photo-preview");
+    const itemMeta = document.getElementById("item-photo-meta");
+    const itemClear = document.getElementById("item-photo-clear");
+    const PENDING_PHOTO_KEY = "esqueceram_pending_photo";
+    let itemPreviewUrl = null;
+
+    function clearPendingPhoto() {
+      try {
+        sessionStorage.removeItem(PENDING_PHOTO_KEY);
+      } catch (e) {}
+    }
+
+    function savePendingPhoto(file) {
+      if (!file || typeof FileReader === "undefined") return;
+      try {
+        const reader = new FileReader();
+        reader.onload = () => {
+          try {
+            sessionStorage.setItem(PENDING_PHOTO_KEY, JSON.stringify({
+              name: file.name || "foto.jpg",
+              type: file.type || "image/jpeg",
+              dataUrl: reader.result,
+            }));
+          } catch (e) {}
+        };
+        reader.readAsDataURL(file);
+      } catch (e) {}
+    }
+
+    function restorePendingPhoto() {
+      if (!itemForm || itemForm.dataset.hasError !== "1") {
+        clearPendingPhoto();
+        return;
+      }
+      if (!itemImgInput || (itemImgInput.files && itemImgInput.files.length)) return;
+      try {
+        const raw = sessionStorage.getItem(PENDING_PHOTO_KEY);
+        if (!raw) return;
+        const saved = JSON.parse(raw);
+        if (!saved || !saved.dataUrl) return;
+        const parts = saved.dataUrl.split(",");
+        if (parts.length !== 2) return;
+        const bin = atob(parts[1]);
+        const bytes = new Uint8Array(bin.length);
+        for (let i = 0; i < bin.length; i += 1) bytes[i] = bin.charCodeAt(i);
+        const restored = new File([bytes], saved.name || "foto.jpg", { type: saved.type || "image/jpeg" });
+        setItemPhoto(restored, false);
+      } catch (e) {}
+    }
+
+    function showItemPhoto(file) {
+      if (!itemPreviewBox || !itemPreview) return;
+      if (itemPreviewUrl) {
+        URL.revokeObjectURL(itemPreviewUrl);
+        itemPreviewUrl = null;
+      }
+      if (!file) {
+        itemPreviewBox.hidden = true;
+        itemPreview.removeAttribute("src");
+        return;
+      }
+      itemPreviewUrl = URL.createObjectURL(file);
+      itemPreview.src = itemPreviewUrl;
+      if (itemMeta) itemMeta.textContent = `${file.name || "foto"} · ${Math.max(1, Math.round((file.size || 0) / 1024))} KB`;
+      itemPreviewBox.hidden = false;
+    }
+
+    function setItemPhoto(file, shouldSave = true) {
+      if (!itemImgInput || !file) return;
+      if (typeof DataTransfer !== "undefined") {
+        const dt = new DataTransfer();
+        dt.items.add(file);
+        itemImgInput.files = dt.files;
+      }
+      if (shouldSave) savePendingPhoto(file);
+      showItemPhoto(file);
+    }
+
+    if (itemImgInput) {
+      itemImgInput.addEventListener("change", () => {
+        const file = itemImgInput.files[0];
+        if (file) savePendingPhoto(file);
+        else clearPendingPhoto();
+        showItemPhoto(file);
+      });
+    }
+    if (itemClear) {
+      itemClear.addEventListener("click", () => {
+        if (itemImgInput) itemImgInput.value = "";
+        clearPendingPhoto();
+        showItemPhoto(null);
+      });
+    }
+    restorePendingPhoto();
+
+    const camOpen = document.getElementById("item-cam-open");
+    const camBox = document.getElementById("item-cam-box");
+    const camVideo = document.getElementById("item-cam-video");
+    const camShot = document.getElementById("item-cam-shot");
+    const camClose = document.getElementById("item-cam-close");
+    const camFallback = document.getElementById("item-image-capture");
+    let camStream = null;
+
+    function stopCam() {
+      if (camStream) camStream.getTracks().forEach((track) => track.stop());
+      camStream = null;
+      if (camBox) camBox.hidden = true;
+    }
+
+    if (camFallback) camFallback.addEventListener("change", () => camFallback.files[0] && setItemPhoto(camFallback.files[0]));
+    if (camOpen) {
+      camOpen.addEventListener("click", async () => {
+        try {
+          if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) throw new Error("sem camera");
+          camStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" }, audio: false });
+          camVideo.srcObject = camStream;
+          camBox.hidden = false;
+        } catch (e) {
+          if (camFallback) camFallback.click();
+        }
+      });
+    }
+    if (camClose) camClose.addEventListener("click", stopCam);
+    if (camShot) {
+      camShot.addEventListener("click", () => {
+        const canvas = document.createElement("canvas");
+        canvas.width = camVideo.videoWidth || 1280;
+        canvas.height = camVideo.videoHeight || 720;
+        canvas.getContext("2d").drawImage(camVideo, 0, 0, canvas.width, canvas.height);
+        canvas.toBlob((blob) => {
+          if (blob) setItemPhoto(new File([blob], "item-capturado.jpg", { type: "image/jpeg" }));
+          stopCam();
+        }, "image/jpeg", 0.9);
+      });
+    }
+  }
+
+  function applyVisionSuggestions(analysis) {
+    const fillIfEmpty = (selector, value) => {
+      const el = document.querySelector(selector);
+      if (el && value && !el.value.trim()) el.value = value;
+    };
+    if (analysis.category) {
+      const catEl = document.querySelector("[data-category-select]");
+      if (catEl) {
+        catEl.value = analysis.category;
+        catEl.dispatchEvent(new Event("change"));
+      }
+    }
+    fillIfEmpty("input[name=title]", analysis.title);
+    fillIfEmpty("textarea[name=description]", analysis.description || analysis.visualSummary);
+    if (analysis.color) {
+      const colorEl = document.querySelector("select[name=color]");
+      if (colorEl && !colorEl.value) colorEl.value = analysis.color;
+    }
+    fillIfEmpty("input[name=brand]", analysis.brand);
+    fillIfEmpty("input[name=model]", analysis.model);
+
+    const attrs = analysis.attributes && typeof analysis.attributes === "object" ? analysis.attributes : {};
+    for (const [key, val] of Object.entries(attrs)) {
+      if (val) fillIfEmpty(`input[name='attributes.${key}']`, String(val));
+    }
+
+    const tags = Array.isArray(analysis.visualTags) ? analysis.visualTags.filter(Boolean) : [];
+    const tagsText = tags.join(", ");
+    if (tagsText) {
+      if (analysis.category === "ACCESSORY") fillIfEmpty("input[name='attributes.visualDetails']", tagsText);
+      else if (analysis.category === "ELECTRONIC") fillIfEmpty("input[name='attributes.compatibility']", tagsText);
+      else if (analysis.category === "DOCUMENT") fillIfEmpty("input[name='attributes.documentType']", analysis.title || tagsText);
+    }
+
+    const tagsBox = document.querySelector("[data-vision-tags]");
+    if (tagsBox) {
+      tagsBox.innerHTML = "";
+      tags.forEach((tag) => {
+        const chip = document.createElement("span");
+        chip.className = "chip";
+        chip.textContent = `#${tag}`;
+        tagsBox.appendChild(chip);
+      });
+      tagsBox.hidden = tags.length === 0;
+    }
+  }
+
+  function initVisionAnalyze(toast) {
+    const visionBtn = document.querySelector("[data-vision-analyze]");
+    if (!visionBtn) return;
+    const statusEl = document.querySelector("[data-vision-status]");
+    const fileInput = document.querySelector("input[name=image]");
+
+    visionBtn.addEventListener("click", async () => {
+      const file = fileInput && fileInput.files && fileInput.files[0];
+      if (!file) {
+        if (statusEl) statusEl.textContent = "Selecione uma foto antes de analisar com a IA.";
+        return;
+      }
+      visionBtn.disabled = true;
+      if (statusEl) statusEl.textContent = "Analisando foto com IA...";
+      try {
+        const formData = new FormData();
+        formData.append("image", file);
+        const resp = await fetch("/api/vision/analyze", { method: "POST", body: formData });
+        const data = await resp.json().catch(() => ({}));
+        if (!resp.ok || !data.analysis) throw new Error(data.error || "Não foi possível analisar a foto.");
+        applyVisionSuggestions(data.analysis);
+        if (statusEl) {
+          statusEl.textContent = data.analysis.visualSummary
+            ? `IA: ${data.analysis.visualSummary}`
+            : "Campos sugeridos preenchidos!";
+        }
+        toast("Campos sugeridos pela IA a partir da foto.");
+      } catch (e) {
+        if (statusEl) statusEl.textContent = e.message;
+        toast(e.message, true);
+      } finally {
+        visionBtn.disabled = false;
+      }
+    });
+  }
+
+  function initBrowserPush(toast) {
+    const pushBtn = document.querySelector("[data-push-enable]");
+    const pushStatus = document.querySelector("[data-push-status]");
+    const isAuthed = document.body && document.body.dataset && document.body.dataset.userAuthed === "1";
+    const hasNotificationApi = typeof Notification !== "undefined";
+    const SEEN_KEY = "esqueceram_seen_notifs";
+    let swReg = null;
+
+    function getSeenIds() {
+      try {
+        const raw = localStorage.getItem(SEEN_KEY);
+        const parsed = raw ? JSON.parse(raw) : [];
+        return Array.isArray(parsed) ? parsed : [];
+      } catch (e) {
+        return [];
+      }
+    }
+
+    function saveSeenIds(ids) {
+      try {
+        localStorage.setItem(SEEN_KEY, JSON.stringify(ids.slice(-100)));
+      } catch (e) {}
+    }
+
+    function updatePushStatus() {
+      if (!pushStatus && !pushBtn) return;
+      if (!hasNotificationApi) {
+        if (pushStatus) pushStatus.textContent = "Este navegador não suporta notificações nativas.";
+        if (pushBtn) pushBtn.disabled = true;
+        return;
+      }
+      if (Notification.permission === "granted") {
+        if (pushStatus) pushStatus.textContent = "Notificações no dispositivo ativadas para novos avisos.";
+        if (pushBtn) pushBtn.textContent = "🔔 Notificações ativadas";
+      } else if (Notification.permission === "denied") {
+        if (pushStatus) pushStatus.textContent = "Notificações bloqueadas nas permissões do navegador.";
+      } else if (pushStatus) {
+        pushStatus.textContent = "Ative para receber alertas no navegador ou celular.";
+      }
+    }
+
+    async function showNativeNotification(notif) {
+      const options = {
+        body: notif.body || "",
+        icon: "/static/logo-esqueceram-ai.png",
+        tag: `esqueceram-notif-${notif.id}`,
+        data: { url: notif.link || "/painel/notificacoes" },
+      };
+      if (swReg && typeof swReg.showNotification === "function") {
+        await swReg.showNotification(notif.title || "Esqueceram AI", options);
+        return;
+      }
+      const n = new Notification(notif.title || "Esqueceram AI", options);
+      n.onclick = () => {
+        if (options.data.url) location.href = options.data.url;
+      };
+    }
+
+    async function checkUnreadNotifications() {
+      if (!isAuthed || !hasNotificationApi || Notification.permission !== "granted") return;
+      try {
+        const data = await apiCall("/api/notifications", "GET");
+        const unread = (data.notifications || []).filter((n) => !n.isRead);
+        if (!unread.length) return;
+        const seen = new Set(getSeenIds());
+        const fresh = unread.filter((n) => !seen.has(n.id));
+        if (!fresh.length) return;
+        for (const notif of fresh) {
+          await showNativeNotification(notif);
+          seen.add(notif.id);
+        }
+        saveSeenIds(Array.from(seen));
+      } catch (e) {}
+    }
+
+    if (typeof navigator !== "undefined" && navigator.serviceWorker && typeof navigator.serviceWorker.register === "function") {
+      navigator.serviceWorker.register("/sw.js").then((reg) => {
+        swReg = reg;
+        checkUnreadNotifications();
+      }).catch(() => {});
+    }
+
+    updatePushStatus();
+
+    if (pushBtn && hasNotificationApi) {
+      pushBtn.addEventListener("click", async () => {
+        try {
+          const perm = await Notification.requestPermission();
+          updatePushStatus();
+          if (perm === "granted") {
+            toast("Notificações ativadas no dispositivo.");
+            await checkUnreadNotifications();
+          } else if (perm === "denied") {
+            toast("Permissão negada", "Libere as notificações nas configurações do navegador.", true);
+          }
+        } catch (e) {
+          toast("Não foi possível ativar as notificações.", e.message, true);
+        }
+      });
+    }
+
+    if (isAuthed && hasNotificationApi) {
+      checkUnreadNotifications();
+      setInterval(checkUnreadNotifications, 20000);
+    }
+  }
+
+  function init() {
+    const toast = initToasts();
+    initApiActions(toast);
+    initRoleSelector(toast);
+    initGeoLocation();
+    initDynamicFormFields();
+    initMobileDrawers();
+    initPhotoCapture();
+    initVisionAnalyze(toast);
+    initBrowserPush(toast);
+  }
+
+  init();
+})();
