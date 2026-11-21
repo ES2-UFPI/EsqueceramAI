@@ -3,7 +3,7 @@
 <h1 class="display" style="font-size:2rem">{{ 'Novo registro' if mode == 'new' else 'Editar registro' }}</h1>
 <p class="sm muted">Quanto mais detalhes, melhor a qualidade das sugestões automáticas.</p>
 {% if error %}<div class="alert error mt">{{ error }}</div>{% endif %}
-<form method="post" enctype="multipart/form-data" class="card pad mt stack" style="max-width:820px">
+<form method="post" enctype="multipart/form-data" class="card pad mt stack" style="max-width:820px" data-item-form data-has-error="{{ '1' if error or errors else '0' }}">
   <div><span class="eyebrow">Tipo de registro</span><div class="flex gap mt-s">{% for t in D.RECORD_TYPES %}<label class="chip"><input type="radio" name="type" value="{{ t }}" data-record-type {{ 'checked' if values.get('type') == t }}> {{ 'Perdi um item' if t == 'LOST' else 'Encontrei um item' }}</label>{% endfor %}</div>{{ err(errors,'type') }}</div>
   <section class="photo-upload-card stack-s">
     <label class="field"><span>Foto do item (JPG, PNG ou WebP, até 3 MB){% if item and item.imageSrc %} — enviar outra substitui a atual{% endif %}</span><input class="input" type="file" id="item-image-input" name="image" accept="image/jpeg,image/png,image/webp">{{ err(errors,'image') }}</label>
@@ -52,7 +52,15 @@
       <label class="field"><span>Latitude</span><input class="input" name="latitude" value="{{ values.get('latitude','') }}" placeholder="-5.0563">{{ err(errors,'latitude') }}</label>
       <label class="field"><span>Longitude</span><input class="input" name="longitude" value="{{ values.get('longitude','') }}" placeholder="-42.7894">{{ err(errors,'longitude') }}</label>
     </div>
-    <div class="flex gap center wrap mt-s" data-geo-box><button type="button" class="btn btn-ghost btn-sm" data-geo-locate data-geo-lat-name="latitude" data-geo-lng-name="longitude">📍 Usar minha localização atual</button><span class="xs muted" data-geo-status></span></div>
+    <div class="flex gap-s center wrap mt-s" data-geo-box>
+      <button type="button" class="btn btn-ghost btn-sm" data-geo-locate data-geo-lat-name="latitude" data-geo-lng-name="longitude">📍 Usar minha localização atual</button>
+      <button type="button" class="btn btn-ghost btn-sm" data-geo-map-toggle aria-expanded="false">🗺️ Selecionar no mapa</button>
+      <span class="xs muted" data-geo-status></span>
+    </div>
+    <div id="item-geo-map-box" hidden class="mt-s stack-s">
+      <div id="item-geo-map" style="height:280px;border-radius:10px;border:1px solid var(--border);background:#e5e7eb"></div>
+      <span class="xs muted">Clique no mapa para marcar o ponto exato onde o item foi perdido ou encontrado.</span>
+    </div>
   </details>
   <fieldset class="card pad stack" style="box-shadow:none" data-secret-box {{ 'hidden' if values.get('type') != 'FOUND' }}>
     <legend class="eyebrow">🔐 Validação de posse (opcional)</legend>
