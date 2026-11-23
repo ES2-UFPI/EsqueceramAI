@@ -122,6 +122,34 @@ def _issue_code(d: m.Delivery) -> str:
     return code
 
 
+def _validate_delivery_form(form: dict, document_file):
+    f = Form(form)
+    item_id = f.number("itemId", integer=True, positive=True)
+    if item_id is None and "itemId" not in f.errors:
+        f.errors["itemId"] = ["Selecione o item a ser entregue."]
+
+    name = f.text("recipientName", min=5, min_msg="Informe o nome completo do retirante.", max=120)
+    if name and len(name.split()) < 2:
+        f.errors.setdefault("recipientName", []).append("Informe nome e sobrenome.")
+
+    cpf_digits = None
+    if f.text("cpf", min=1, min_msg="Informe o CPF do retirante."):
+        cpf_digits, cpf_error = validate_cpf(f.data["cpf"])
+        if cpf_error:
+            f.errors.setdefault("cpf", []).append(cpf_error)
+
+    f.email("email", "Informe um e-mail válido para receber o código.")
+
+    document = None
+    try:
+        document = validate_document(document_file)
+    except ApiError as exc:
+        f.errors["document"] = [exc.message]
+
+    data = f.finish()  # levanta 422 com todos os erros de uma vez
+    return item_id, data, cpf_digits, document
+
+
 def start_delivery(user: dict, form: dict, document_file) -> dict:
     _require_attendant(user)
     registration = repo.get_registration(user["id"])
@@ -129,25 +157,7 @@ def start_delivery(user: dict, form: dict, document_file) -> dict:
         raise ApiError("Cadastre sua matrícula de atendente antes de registrar entregas.", 409,
                        {"registrationNumber": ["Matrícula não cadastrada."]})
 
-    f = Form(form)
-    item_id = f.number("itemId", integer=True, positive=True)
-    if item_id is None and "itemId" not in f.errors:
-        f.errors["itemId"] = ["Selecione o item a ser entregue."]
-    name = f.text("recipientName", min=5, min_msg="Informe o nome completo do retirante.", max=120)
-    if name and len(name.split()) < 2:
-        f.errors.setdefault("recipientName", []).append("Informe nome e sobrenome.")
-    cpf_digits = None
-    if f.text("cpf", min=1, min_msg="Informe o CPF do retirante."):
-        cpf_digits, cpf_error = validate_cpf(f.data["cpf"])
-        if cpf_error:
-            f.errors.setdefault("cpf", []).append(cpf_error)
-    f.email("email", "Informe um e-mail válido para receber o código.")
-    document = None
-    try:
-        document = validate_document(document_file)
-    except ApiError as exc:
-        f.errors["document"] = [exc.message]
-    data = f.finish()  # levanta 422 com todos os erros de uma vez
+    item_id, data, cpf_digits, document = _validate_delivery_form(form, document_file)
 
     item = _check_item_available(item_id)
     _check_no_conflicting_delivery(item_id)
@@ -187,6 +197,21 @@ def _ensure_pending(d: m.Delivery):
         raise ApiError("Esta entrega foi cancelada ou expirou. Inicie uma nova.", 409)
 
 
+def _handle_invalid_code(d: m.Delivery):
+    d.code_attempts += 1
+    left = sec.MAX_ATTEMPTS - d.code_attempts
+
+    if left <= 0:
+        d.status = m.CANCELLED
+        repo.save(d)
+        repo.add_event(d.id, "LOCKED", "Entrega cancelada após tentativas incorretas")
+        raise ApiError("Muitas tentativas incorretas. A entrega foi cancelada por segurança; inicie uma nova.", 429)
+
+    repo.save(d)
+    repo.add_event(d.id, "CODE_WRONG", f"Código incorreto ({d.code_attempts}/{sec.MAX_ATTEMPTS})")
+    raise ApiError(f"Código incorreto. Restam {left} tentativa(s).", 422, {"code": [f"Código incorreto. Restam {left}."]})
+
+
 def _receipt_data(d: m.Delivery, document_sha256: str, confirmed_at) -> ReceiptData:
     return ReceiptData(delivery_id=d.id, created_at=d.created_at, confirmed_at=confirmed_at, item_code=d.item_code,
                        item_title=d.item_title, point_name=d.point_name, recipient_name=d.recipient_name,
@@ -206,16 +231,7 @@ def confirm_delivery(user: dict, delivery_id: int, code: str) -> m.Delivery:
         raise ApiError("O código expirou. Reenvie um novo código ao retirante.", 410, {"code": ["Código expirado."]})
 
     if not sec.verify_code(d.id, code, d.code_hash):
-        d.code_attempts += 1
-        left = sec.MAX_ATTEMPTS - d.code_attempts
-        if left <= 0:
-            d.status = m.CANCELLED
-            repo.save(d)
-            repo.add_event(d.id, "LOCKED", "Entrega cancelada após tentativas incorretas")
-            raise ApiError("Muitas tentativas incorretas. A entrega foi cancelada por segurança; inicie uma nova.", 429)
-        repo.save(d)
-        repo.add_event(d.id, "CODE_WRONG", f"Código incorreto ({d.code_attempts}/{sec.MAX_ATTEMPTS})")
-        raise ApiError(f"Código incorreto. Restam {left} tentativa(s).", 422, {"code": [f"Código incorreto. Restam {left}."]})
+        _handle_invalid_code(d)
 
     item = find_item_by_id(d.item_id) if d.item_id else None
     if not item or item["status"] not in ("OPEN", "RESERVED"):
@@ -306,7 +322,7 @@ def delivery_dict(d: m.Delivery, *, detail: bool = False) -> dict:
     if detail:
         doc, receipt = repo.get_document(d.id), repo.get_receipt(d.id)
         item = find_item_by_id(d.item_id) if d.item_id else None
-        out["itemStatus"] = item["status"] if item else None  # status final do item (DELIVERED após a conclusão)
+        out["itemStatus"] = item["status"] if item else None
         out["documentSha256"] = doc.sha256 if doc else None
         out["verificationCode"] = receipt.verification_code if receipt else None
         out["events"] = [{"action": e.action, "detail": e.detail, "createdAt": e.created_at} for e in repo.list_events(d.id)]
