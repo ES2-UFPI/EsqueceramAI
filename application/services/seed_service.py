@@ -51,8 +51,8 @@ def _p(key, name, email, phone, role, score, label, description, persona=False):
 DEMO_PEOPLE = [
     _p("arthur", "Arthur Rabelo", "rabeloarthur13@gmail.com", "(86) 99810-9632", "USER", 100, "Comunidade",
        "Conta rápida de teste do Arthur.", True),
-    _p("caua", "Cauã Martins", "martincaua443@gmail.com", "(99) 98519-3499", "PONTO_COLETA", 100, "Operador de ponto",
-           "Conta rápida de teste do Cauã.", True),
+    _p("caua", "Cauã Martins", "martincaua443@gmail.com", "(99) 98519-3499", "OPERATOR_POST", 100, "Operador de ponto",
+       "Conta rápida de teste do Cauã.", True),
     _p("ana", "Ana Beatriz Lima", "ana@ufpi.edu.br", "(86) 99911-2233", "USER", 145, "Comunidade",
        "Estudante com itens perdidos e correspondências pendentes.", True),
     _p("carlos", "Carlos Eduardo Rocha", "carlos@ufpi.edu.br", "(86) 98844-7710", "USER", 90, "Comunidade",
