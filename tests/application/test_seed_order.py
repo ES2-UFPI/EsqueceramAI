@@ -35,15 +35,18 @@ def run(scenario):
     return tuple(int(x) for x in out.stdout.split()[-3:])
 
 
+DEMO_USERS = 8  # contas em DEMO_PEOPLE (inclui a persona extra "arthur")
+
+
 def test_demo_login_on_empty_database_populates_items_and_points():
     users, items, points = run("demo_first")
-    assert users == 7 and items == 18 and points == 4
+    assert users == DEMO_USERS and items == 18 and points == 4
 
 
 def test_home_first_unchanged():
-    assert run("home_first") == (7, 18, 4)
+    assert run("home_first") == (DEMO_USERS, 18, 4)
 
 
 def test_real_data_is_never_polluted_with_demo_items():
     users, items, points = run("real_user_first")
-    assert users == 8 and items == 0 and points == 0         # usuário real: só as contas demo são garantidas
+    assert users == DEMO_USERS + 1 and items == 0 and points == 0   # usuário real: só as contas demo são garantidas
