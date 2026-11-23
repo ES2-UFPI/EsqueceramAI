@@ -12,7 +12,7 @@ from application.repositories.points import (create_point, find_point_by_id, lis
                                              list_recent_point_activity, update_point)
 from application.services import (ai_admin_service, audit_service, auth_service, claim_service, inventory_service,
                                   item_service, matching_service, retention_service)
-from application.services.seed_service import DEMO_PASSWORD_HINT, DEMO_PERSONAS, ensure_seeded
+from application.services.seed_service import DEMO_PASSWORD_HINT, ensure_seeded, list_demo_personas
 from application.services.stats_service import get_admin_overview, get_dashboard, get_public_home
 from application.validation import Form
 
@@ -92,7 +92,7 @@ def entrar():
     nxt = safe_next(request.values.get("next"))
     if get_current_user() and request.method == "GET":
         return redirect(nxt)
-    ctx = {"next": nxt, "personas": DEMO_PERSONAS, "values": {}, "error": None, "errors": {}}
+    ctx = {"next": nxt, "personas": list_demo_personas(), "values": {}, "error": None, "errors": {}}
     if request.method == "POST":
         try:
             if request.form.get("persona"):

@@ -11,12 +11,16 @@ def find_user_by_id(user_id: int):
     return db.get(User, user_id)
 
 
-def create_user(*, name, email, password_hash, phone=None, role="USER"):
+def create_user(*, name, email, password_hash, phone=None, role="USER", demo=False):
     row = User(name=name.strip(), email=email.strip().lower(), password_hash=password_hash,
-               phone=(phone or "").strip() or None, role=role)
+               phone=(phone or "").strip() or None, role=role, demo=demo)
     db.add(row)
     db.commit()
     return row
+
+
+def list_demo_users() -> list[User]:
+    return list(db.scalars(select(User).where(User.demo.is_(True), User.is_active.is_(True)).order_by(User.id)))
 
 
 def update_user_profile(user_id: int, *, name, phone, avatar_url):
