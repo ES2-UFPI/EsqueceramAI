@@ -66,16 +66,17 @@ def test_item_hero_image_uses_object_fit_contain_to_avoid_cropping(client):
 def test_arthur_is_first_in_quick_login_list(client):
     html = client.get("/entrar").get_data(as_text=True)
     assert 'name="persona" value="arthur"' in html
-    assert html.index('value="arthur"') < html.index('value="arthur"')
+    assert html.index('value="arthur"') < html.index('value="ana"')
 
     login = client.post("/api/auth/demo", json={"persona": "rabeloarthur13@gmail.com"})
     assert login.status_code == 200
     assert login.json["user"]["email"] == "rabeloarthur13@gmail.com"
 
+
 def test_caua_is_second_in_quick_login_list(client):
     html = client.get("/entrar").get_data(as_text=True)
     assert 'name="persona" value="caua"' in html
-    assert html.index('value="caua"') < html.index('value="caua"')
+    assert html.index('value="arthur"') < html.index('value="caua"') < html.index('value="ana"')
 
     login = client.post("/api/auth/demo", json={"persona": "martincaua443@gmail.com"})
     assert login.status_code == 200
