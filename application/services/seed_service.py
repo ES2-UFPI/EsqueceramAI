@@ -49,15 +49,17 @@ def _p(key, name, email, phone, role, score, label, description, persona=False):
 
 
 DEMO_PEOPLE = [
-    _p("arthur", "Arthur Rabelo", "rabeloarthur13@gmail.com", "(86) 99999-0000", "USER", 100, "Comunidade",
+    _p("arthur", "Arthur Rabelo", "rabeloarthur13@gmail.com", "(86) 99810-9632", "USER", 100, "Comunidade",
        "Conta rápida de teste do Arthur.", True),
+    _p("caua", "Cauã Martins", "martincaua443@gmail.com", "(99) 98519-3499", "PONTO_COLETA", 100, "Operador de ponto de coleta",
+           "Conta rápida de teste do Cauã.", True),
     _p("ana", "Ana Beatriz Lima", "ana@ufpi.edu.br", "(86) 99911-2233", "USER", 145, "Comunidade",
        "Estudante com itens perdidos e correspondências pendentes.", True),
     _p("carlos", "Carlos Eduardo Rocha", "carlos@ufpi.edu.br", "(86) 98844-7710", "USER", 90, "Comunidade",
        "Estudante que registra itens encontrados.", True),
-    _p("maria", "Maria de Sousa", "maria@ufpi.edu.br", "(86) 99622-1188", "USER", 55, "Comunidade", "Estudante da comunidade."),
-    _p("joao", "João Pedro Alves", "joao@ufpi.edu.br", "(86) 99433-0021", "USER", 25, "Comunidade", "Estudante da comunidade."),
-    _p("lucas", "Lucas Ferreira", "lucas@ufpi.edu.br", "(86) 99277-4455", "USER", 70, "Comunidade", "Estudante da comunidade."),
+    # _p("maria", "Maria de Sousa", "maria@ufpi.edu.br", "(86) 99622-1188", "USER", 55, "Comunidade", "Estudante da comunidade."),
+    # _p("joao", "João Pedro Alves", "joao@ufpi.edu.br", "(86) 99433-0021", "USER", 25, "Comunidade", "Estudante da comunidade."),
+    # _p("lucas", "Lucas Ferreira", "lucas@ufpi.edu.br", "(86) 99277-4455", "USER", 70, "Comunidade", "Estudante da comunidade."),
     _p("renata", "Renata Nunes", "operador@ufpi.edu.br", "(86) 3215-5590", "OPERATOR_POST", 210, "Operador de ponto",
        "Equipe dos pontos de coleta e devoluções.", True),
     _p("marcos", "Marcos Vinícius", "admin@ufpi.edu.br", "(86) 3215-5500", "ADMIN", 320, "Administrador",
