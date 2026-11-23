@@ -122,6 +122,34 @@ def _issue_code(d: m.Delivery) -> str:
     return code
 
 
+def _validate_delivery_form(form: dict, document_file):
+    f = Form(form)
+    item_id = f.number("itemId", integer=True, positive=True)
+    if item_id is None and "itemId" not in f.errors:
+        f.errors["itemId"] = ["Selecione o item a ser entregue."]
+
+    name = f.text("recipientName", min=5, min_msg="Informe o nome completo do retirante.", max=120)
+    if name and len(name.split()) < 2:
+        f.errors.setdefault("recipientName", []).append("Informe nome e sobrenome.")
+
+    cpf_digits = None
+    if f.text("cpf", min=1, min_msg="Informe o CPF do retirante."):
+        cpf_digits, cpf_error = validate_cpf(f.data["cpf"])
+        if cpf_error:
+            f.errors.setdefault("cpf", []).append(cpf_error)
+
+    f.email("email", "Informe um e-mail válido para receber o código.")
+
+    document = None
+    try:
+        document = validate_document(document_file)
+    except ApiError as exc:
+        f.errors["document"] = [exc.message]
+
+    data = f.finish()  # levanta 422 com todos os erros de uma vez
+    return item_id, data, cpf_digits, document
+
+
 def start_delivery(user: dict, form: dict, document_file) -> dict:
     _require_attendant(user)
     registration = repo.get_registration(user["id"])
@@ -129,25 +157,7 @@ def start_delivery(user: dict, form: dict, document_file) -> dict:
         raise ApiError("Cadastre sua matrícula de atendente antes de registrar entregas.", 409,
                        {"registrationNumber": ["Matrícula não cadastrada."]})
 
-    f = Form(form)
-    item_id = f.number("itemId", integer=True, positive=True)
-    if item_id is None and "itemId" not in f.errors:
-        f.errors["itemId"] = ["Selecione o item a ser entregue."]
-    name = f.text("recipientName", min=5, min_msg="Informe o nome completo do retirante.", max=120)
-    if name and len(name.split()) < 2:
-        f.errors.setdefault("recipientName", []).append("Informe nome e sobrenome.")
-    cpf_digits = None
-    if f.text("cpf", min=1, min_msg="Informe o CPF do retirante."):
-        cpf_digits, cpf_error = validate_cpf(f.data["cpf"])
-        if cpf_error:
-            f.errors.setdefault("cpf", []).append(cpf_error)
-    f.email("email", "Informe um e-mail válido para receber o código.")
-    document = None
-    try:
-        document = validate_document(document_file)
-    except ApiError as exc:
-        f.errors["document"] = [exc.message]
-    data = f.finish()  # levanta 422 com todos os erros de uma vez
+    item_id, data, cpf_digits, document = _validate_delivery_form(form, document_file)
 
     item = _check_item_available(item_id)
     _check_no_conflicting_delivery(item_id)
