@@ -9,7 +9,7 @@ from application.models import User, db
 from application.repositories.engagement import add_item_event, create_notification, list_matches
 from application.repositories.items import count_items, create_item, find_item_by_id, set_item_status
 from application.repositories.points import count_points, create_point
-from application.repositories.users import add_user_score, create_user, find_user_by_email
+from application.repositories.users import add_user_score, create_user, find_user_by_email, list_demo_users
 from application.services.matching_service import decide_match, generate_matches_for_item
 
 DEMO_PASSWORD = "esqueceram123"
@@ -74,15 +74,20 @@ _seeded = False
 
 def ensure_demo_accounts() -> dict[str, int]:
     """Cria contas demo ausentes (idempotente). Retorna {persona: user_id}."""
+    has_demo = db.scalar(select(User.id).where(User.demo.is_(True)).limit(1)) is not None
     ids = {}
     for person in DEMO_PEOPLE:
         existing = find_user_by_email(person["email"])
         if existing:
+            if not has_demo and person["persona"] and not existing.demo:
+                existing.demo = True
+                db.commit()
             ids[person["key"]] = existing.id
             continue
         try:
             created = create_user(name=person["name"], email=person["email"], phone=person["phone"],
-                                  password_hash=hash_password(DEMO_PASSWORD), role=person["role"])
+                                  password_hash=hash_password(DEMO_PASSWORD), role=person["role"],
+                                  demo=person["persona"])
             ids[person["key"]] = created.id
             if person["score"]:
                 add_user_score(created.id, person["score"])
@@ -276,3 +281,9 @@ def ensure_seeded():
 def find_demo_persona(persona: str | None) -> dict:
     n = (persona or "").strip().lower()
     return next((p for p in DEMO_PERSONAS if p["key"] == n or p["email"] == n), DEMO_PERSONAS[0])
+
+
+def list_demo_personas() -> list[dict]:
+    from application.domain import ROLE_LABEL
+    ensure_demo_accounts()
+    return [{"key": u.email, "name": u.name, "label": ROLE_LABEL.get(u.role, u.role)} for u in list_demo_users()]

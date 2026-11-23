@@ -15,7 +15,7 @@ from application.repositories.users import list_users, set_user_active, set_user
 from application.services import (audit_service, auth_service, claim_service, inventory_service, item_service,
                                   storage_service, vision_service)
 from application.services.matching_service import decide_match
-from application.services.seed_service import DEMO_PASSWORD_HINT, ensure_seeded, find_demo_persona
+from application.services.seed_service import DEMO_PASSWORD_HINT, DEMO_PERSONAS, ensure_seeded
 from application.services.storage_service import resolve_item_image, validate_image
 from application.validation import Form
 
@@ -39,7 +39,8 @@ def auth_post(action):
     if action == "demo":
         payload = request.get_json(silent=True) or {}
         user = auth_service.login_demo_user(payload.get("persona"))
-        return jsonify(user=user, persona=find_demo_persona(payload.get("persona"))["key"], hint=DEMO_PASSWORD_HINT)
+        persona_key = next((p["key"] for p in DEMO_PERSONAS if p["email"] == user["email"]), user["email"])
+        return jsonify(user=user, persona=persona_key, hint=DEMO_PASSWORD_HINT)
     if action == "recover":
         return jsonify(auth_service.recover_password(read_json()))
     if action == "logout":

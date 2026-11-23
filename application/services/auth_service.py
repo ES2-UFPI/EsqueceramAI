@@ -11,11 +11,11 @@ from application.models import utcnow
 from application.repositories.engagement import create_notification
 from application.repositories.users import (create_password_reset_token, create_user,
                                     find_user_by_email, find_user_by_id,
-                                    find_valid_password_reset_token,
+                                    find_valid_password_reset_token, list_demo_users,
                                     mark_password_reset_token_used, update_user_password,
                                     update_user_profile)
 from application.services.audit_service import record_audit_log
-from application.services.seed_service import ensure_demo_accounts, ensure_seeded, find_demo_persona
+from application.services.seed_service import DEMO_PERSONAS, ensure_demo_accounts, ensure_seeded, find_demo_persona
 from application.validation import Form
 
 
@@ -66,19 +66,22 @@ def login_demo_user(persona: str | None) -> dict:
     """Acesso de 1 clique às contas whitelisted. Desativável com DEMO_LOGIN_DISABLED=true."""
     if os.getenv("DEMO_LOGIN_DISABLED", "").lower() == "true":
         raise ApiError("O acesso de demonstração está desativado neste ambiente.", 403)
-    selected = find_demo_persona(persona)
     try:
         ensure_demo_accounts()
         ensure_seeded()
     except Exception as exc:  # noqa: BLE001
         print("[auth] demo seeding failed", exc)
-    user = find_user_by_email(selected["email"])
+    target = (persona or "").strip().lower()
+    user = find_user_by_email(target) if "@" in target else None
     if not user:
-        ids = ensure_demo_accounts()
-        uid = ids.get(selected["key"])
-        user = find_user_by_id(uid) if uid else None
-    if not user:
-        raise ApiError("Não foi possível preparar a conta de demonstração.", 503)
+        if target:
+            selected = next((p for p in DEMO_PERSONAS if p["key"] == target), None)
+            user = find_user_by_email(selected["email"]) if selected else None
+        else:
+            demo_users = list_demo_users()
+            user = demo_users[0] if demo_users else find_user_by_email(find_demo_persona(None)["email"])
+    if not user or not user.demo:
+        raise ApiError("Conta de demonstração não encontrada.", 404)
     if not user.is_active:
         raise ApiError("A conta de demonstração está desativada.", 403)
     create_session(user.id)

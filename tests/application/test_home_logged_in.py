@@ -6,7 +6,7 @@ def test_home_shows_guest_actions_when_logged_out(client):
     assert resp.status_code == 200
     html = resp.get_data(as_text=True)
 
-    for needle in ('href="/entrar"', 'href="/cadastrar"', "Testar sem cadastro"):
+    for needle in ('href="/entrar"', 'href="/cadastrar"'):
         assert needle in html, needle
 
     for absent in ("Achei um item", "Perdi um item", "＋ Novo registro", 'action="/sair"'):

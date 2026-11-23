@@ -8,8 +8,6 @@
   <div class="flex gap-s wrap center mt-s"><span class="xs muted bold">Atalhos:</span>{% for c in D.CATEGORIES %}<a class="chip" href="/itens?categoria={{ c }}">{{ D.CATEGORY_LABEL[c] }}</a>{% endfor %}<a class="chip" href="/itens?tipo=LOST">Perdidos</a><a class="chip" href="/itens?tipo=FOUND">Encontrados</a></div></form>
   {% if user %}
   <div class="flex gap-s wrap mt panel-actions"><a class="btn btn-secondary" href="/painel/itens/novo?tipo=FOUND">Achei um item</a><a class="btn btn-primary" href="/painel/itens/novo?tipo=LOST">Perdi um item</a><a class="btn btn-ghost" href="/painel">Ir para o painel →</a></div>
-  {% else %}
-  <p class="mt"><a class="chip" href="/entrar">✨ Testar sem cadastro: acesso rápido de demonstração em 1 clique →</a></p>
   {% endif %}
 </section>
 <section class="grid g4 stats-grid">
