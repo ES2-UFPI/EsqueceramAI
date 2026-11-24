@@ -62,10 +62,21 @@ def test_cpf_and_form_validation(app, make_item, sent_codes, attendant):
 
 def test_item_rules(app, make_item, sent_codes, attendant):
     assert start(attendant, make_item(kind="LOST")).status_code == 422          # só itens encontrados
-    assert start(attendant, make_item(with_point=False)).status_code == 422     # precisa estar num ponto
     assert start(attendant, make_item(status="RETURNED")).status_code == 409
     assert start(attendant, make_item(status="ARCHIVED")).status_code == 409
     assert start(attendant, 999999).status_code == 404
+
+
+def test_delivery_receipt_works_without_collection_point(app, make_item, sent_codes, attendant):
+    item = make_item(with_point=False)
+    r = start(attendant, item)
+    assert r.status_code == 201
+    did = r.get_json()["delivery"]["id"]
+    conf = attendant.post(f"/api/deliveries/{did}/confirm", json={"code": sent_codes[-1]["code"]})
+    assert conf.status_code == 200
+    assert conf.get_json()["delivery"]["status"] == "COMPLETED"
+    pdf = attendant.get(f"/api/deliveries/{did}/receipt")
+    assert pdf.status_code == 200 and pdf.data.startswith(b"%PDF")
 
 
 # ---------------------------------------------------------- fluxo completo

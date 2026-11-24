@@ -11,7 +11,7 @@ from application.delivery.receipt import ReceiptData, build_receipt_pdf, receipt
 from application.domain import item_code
 from application.errors import ApiError, forbidden, not_found
 from application.models import atomic, utcnow
-from application.repositories.items import find_item_by_id, items_at_points
+from application.repositories.items import find_item_by_id, list_items
 from application.services.item_service import change_item_status
 from application.validation import Form
 
@@ -67,8 +67,10 @@ def set_registration(user: dict, number: str) -> str:
 
 
 def deliverable_items() -> list[dict]:
-    """Itens encontrados, em ponto de coleta, ainda aguardando retirada."""
-    return [i for i in items_at_points() if i["type"] == "FOUND" and i["status"] in ("OPEN", "RESERVED")]
+    """Itens encontrados ainda aguardando retirada."""
+    open_items = list_items({"type": "FOUND", "status": "OPEN", "pageSize": 50})["items"]
+    reserved_items = list_items({"type": "FOUND", "status": "RESERVED", "pageSize": 50})["items"]
+    return open_items + reserved_items
 
 
 def _check_item_available(item_id: int) -> dict:
@@ -77,8 +79,6 @@ def _check_item_available(item_id: int) -> dict:
         raise not_found("Item")
     if item["type"] != "FOUND":
         raise ApiError("Apenas itens encontrados podem ser entregues no posto.", 422, {"itemId": ["Item não é do tipo encontrado."]})
-    if item["pointId"] is None:
-        raise ApiError("O item não está vinculado a um ponto de coleta.", 422, {"itemId": ["Item sem ponto de coleta."]})
     if item["status"] not in ("OPEN", "RESERVED"):
         raise ApiError("Este item não está disponível para entrega (já devolvido ou arquivado).", 409)
     return item
