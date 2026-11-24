@@ -164,11 +164,45 @@ def test_visitante_ve_o_item_mas_precisa_entrar_para_responder(app, make_pair):
 
 
 def test_outro_usuario_nao_pode_decidir(app, make_pair):
-    from application.services.seed_service import DEMO_PASSWORD
     lost_id, found_id = _make_pair(make_pair)
     match = matching_service.upsert_match(lost_item_id=lost_id, found_item_id=found_id, score=90, reasons=["Mesma cor"])
-    client = app.test_client()
-    assert client.post("/api/auth/login", json={"email": "maria@ufpi.edu.br", "password": DEMO_PASSWORD}).status_code == 200
+    client = persona_client(app, "ana@ufpi.edu.br")
 
     assert client.patch(f"/api/matches/{match.id}", json={"action": "confirm"}).status_code == 403
     assert db.get(Match, match.id).status == "PENDING"
+
+
+def test_finder_cannot_confirm_ownership_on_match(app, make_pair, make_item):
+    lost_id, _ = _make_pair(make_pair)
+    found_id = make_item(kind="FOUND", with_point=False, owner="ana@ufpi.edu.br")
+    match = matching_service.upsert_match(lost_item_id=lost_id, found_item_id=found_id, score=90, reasons=["Mesma cor"])
+    finder = persona_client(app, "ana@ufpi.edu.br")
+
+    page = finder.get(f"/correspondencias/{match.id}").get_data(as_text=True)
+    assert "É o meu item, confirmar" not in page
+    assert finder.patch(f"/api/matches/{match.id}", json={"action": "confirm"}).status_code == 403
+    assert db.get(Match, match.id).status == "PENDING"
+
+
+def test_returned_item_cannot_be_archived_and_confirmed_archive_syncs(app, make_pair):
+    lost_id, found_id = _make_pair(make_pair)
+    match = matching_service.upsert_match(lost_item_id=lost_id, found_item_id=found_id, score=90, reasons=["Mesma cor"])
+    owner = persona_client(app, "carlos@ufpi.edu.br")
+    assert owner.patch(f"/api/matches/{match.id}", json={"action": "confirm"}).status_code == 200
+    assert owner.patch(f"/api/items/{lost_id}", json={"status": "ARCHIVED"}).status_code == 200
+    assert db.get(Item, found_id).status == "ARCHIVED"
+
+    lost2, _ = _make_pair(make_pair)
+    assert owner.patch(f"/api/items/{lost2}", json={"status": "RETURNED"}).status_code == 200
+    assert owner.patch(f"/api/items/{lost2}", json={"status": "ARCHIVED"}).status_code == 409
+    html = owner.get(f"/itens/{lost2}").get_data(as_text=True)
+    assert "Arquivar registro" not in html
+    assert "Marcar como devolvido" not in html
+
+
+def test_public_url_always_has_host(monkeypatch):
+    from application.delivery.email_service import public_url
+    monkeypatch.delenv("APP_BASE_URL", raising=False)
+    monkeypatch.delenv("RENDER_EXTERNAL_URL", raising=False)
+    url = public_url("/correspondencias/1")
+    assert url.startswith("https://") and url.endswith("/correspondencias/1")
