@@ -57,7 +57,7 @@
       </section>
       {% endif %}
     {% elif user and not is_owner and item.status not in ('RETURNED', 'DELIVERED') and not d.hasSecret %}<p class="alert xs">ℹ️ Encontrou este item? Confirme a correspondência e combine a entrega com {{ item.ownerName|firstname }}.</p>{% endif %}
-    {% if user and user.role == 'OPERATOR_POST' and item.type == 'FOUND' and item.pointName and item.status in ('OPEN','RESERVED') %}<a class="btn btn-accent btn-block" href="/painel/entregas/nova?item={{ item.id }}">📝 Registrar entrega (CPF e documento)</a>{% endif %}
+    {% if user and user.role == 'OPERATOR_POST' and item.type == 'FOUND' and item.status in ('OPEN','RESERVED') %}<a class="btn btn-accent btn-block" href="/painel/entregas/nova?item={{ item.id }}">📝 Registrar entrega (CPF e documento)</a>{% endif %}
     {% if d.canManage %}
       <a class="btn btn-secondary btn-block" href="/painel/itens/{{ item.id }}/editar">✏️ Editar registro</a>
       {% if item.status not in ('RETURNED', 'DELIVERED', 'ARCHIVED') %}{{ api_button('Marcar como devolvido' if item.type == 'FOUND' else 'Registrar recuperação', '/api/items/%d'|format(item.id), 'PATCH', {'status':'RETURNED'}, 'primary', success='Devolução registrada. Pontuação atualizada!', block=True, small=False) }}{% endif %}

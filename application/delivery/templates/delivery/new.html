@@ -16,7 +16,7 @@
   <p class="xs muted">Atendente: <b>{{ user.name }}</b> · matrícula <b>{{ registration }}</b></p>
   <label class="field"><span>Item a ser entregue</span>
     <select class="select" name="itemId" required><option value="">Selecione…</option>
-    {% for i in items %}<option value="{{ i.id }}" {{ 'selected' if values.get('itemId')|string == i.id|string }}>{{ i.id|code }} — {{ i.title }} ({{ i.pointName }})</option>{% endfor %}</select>
+    {% for i in items %}<option value="{{ i.id }}" {{ 'selected' if values.get('itemId')|string == i.id|string }}>{{ i.id|code }} — {{ i.title }}{% if i.pointName %} ({{ i.pointName }}){% endif %}</option>{% endfor %}</select>
     {{ err(errors,'itemId') }}{% if not items %}<span class="err">Nenhum item aguardando retirada nos pontos de coleta.</span>{% endif %}</label>
   <div class="grid g2">
     {{ field('Nome completo do retirante','recipientName',values,errors,'text','Como consta no documento',True) }}

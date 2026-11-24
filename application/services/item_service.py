@@ -144,7 +144,7 @@ def change_item_status(user: dict, item_id: int, status: str, note: str | None =
     staff = user["role"] in ("ADMIN", "OPERATOR_POST")
     if not is_owner and not staff:
         raise forbidden("Sem permissão para alterar o status.")
-    if not is_owner and user["role"] == "OPERATOR_POST" and current["pointId"] is None:
+    if not is_owner and user["role"] == "OPERATOR_POST" and current["pointId"] is None and status != "DELIVERED":
         raise forbidden("Operadores gerenciam apenas itens entregues em pontos de coleta.")
     if current["status"] in FINAL_STATUSES and status != current["status"]:
         raise ApiError("Este item já foi devolvido ou entregue e não pode mudar de status.", 409)
