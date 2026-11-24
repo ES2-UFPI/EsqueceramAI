@@ -624,6 +624,70 @@
     }
   }
 
+  function initMatchChats(toast) {
+    document.querySelectorAll("[data-match-chat]").forEach((box) => {
+      const matchId = box.dataset.matchChat;
+      const logEl = box.querySelector("[data-chat-log]");
+      const form = box.querySelector("[data-chat-form]");
+      const input = form && form.querySelector("input[name='body']");
+      if (!matchId || !logEl || !form || !input) return;
+
+      const render = (messages) => {
+        if (!messages.length) {
+          logEl.innerHTML = '<p class="xs muted">Nenhuma mensagem ainda. Envie a primeira para combinar a entrega.</p>';
+          return;
+        }
+        logEl.innerHTML = "";
+        messages.forEach((m) => {
+          const item = document.createElement("div");
+          item.className = "chat-msg" + (m.isMine ? " mine" : "");
+          const meta = document.createElement("div");
+          meta.className = "xs muted";
+          meta.textContent = `${m.senderName} (${m.senderRole})`;
+          const body = document.createElement("div");
+          body.className = "sm";
+          body.textContent = m.body;
+          item.append(meta, body);
+          logEl.appendChild(item);
+        });
+        logEl.scrollTop = logEl.scrollHeight;
+      };
+
+      const load = async () => {
+        try {
+          const r = await fetch(`/api/matches/${matchId}/messages`, { credentials: "same-origin" });
+          if (!r.ok) return;
+          const d = await r.json();
+          render(d.messages || []);
+        } catch (e) {}
+      };
+
+      form.addEventListener("submit", async (e) => {
+        e.preventDefault();
+        const text = input.value.trim();
+        if (!text) return;
+        const btn = form.querySelector("button[type='submit']");
+        if (btn) btn.disabled = true;
+        try {
+          const d = await apiFetch(`/api/matches/${matchId}/messages`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ body: text }),
+          });
+          input.value = "";
+          await load();
+        } catch (err) {
+          toast("Não foi possível enviar", err.message, true);
+        } finally {
+          if (btn) btn.disabled = false;
+        }
+      });
+
+      load();
+      setInterval(() => { if (!document.hidden) load(); }, 5000);
+    });
+  }
+
   function init() {
     const toast = initToasts();
     initApiActions(toast);
@@ -634,6 +698,7 @@
     initPhotoCapture();
     initVisionAnalyze(toast);
     initBrowserPush(toast);
+    initMatchChats(toast);
   }
 
   init();

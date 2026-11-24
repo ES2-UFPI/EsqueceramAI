@@ -10,7 +10,7 @@ from application.repositories.engagement import (count_pending_matches, count_un
 from application.repositories.items import items_at_points
 from application.repositories.points import (create_point, find_point_by_id, list_points,
                                              list_recent_point_activity, update_point)
-from application.services import (ai_admin_service, audit_service, auth_service, claim_service, inventory_service,
+from application.services import (ai_admin_service, audit_service, auth_service, chat_service, claim_service, inventory_service,
                                   item_service, matching_service, retention_service)
 from application.services.seed_service import DEMO_PASSWORD_HINT, ensure_seeded, list_demo_personas
 from application.services.stats_service import get_admin_overview, get_dashboard, get_public_home
@@ -190,7 +190,10 @@ def item_detalhe(item_id):
         return render_not_found()
     pending = [m for m in detail["matches"] if m["status"] == "PENDING"]
     confirmed = any(m["status"] == "CONFIRMED" for m in detail["matches"])
+    chat_match = next((m for m in detail["matches"] if chat_service.can_access_match_chat(viewer, m)), None)
+    chat_has_point = bool(chat_match and chat_service._found_has_point(chat_match))
     return render_template("item_detalhe.html", d=detail, item=detail["item"], pending=pending, confirmed=confirmed,
+                           chat_match=chat_match, chat_has_point=chat_has_point,
                            is_staff=bool(viewer and viewer["role"] in ("ADMIN", "OPERATOR_POST")),
                            is_owner=bool(viewer and viewer["id"] == detail["item"]["userId"]),
                            challenge_question=claim_service.question_for(viewer, detail["item"]))
@@ -219,7 +222,10 @@ def correspondencia(match_id):
     is_owner = bool(viewer and viewer["id"] in (match["lost"]["ownerId"], match["found"]["ownerId"]))
     is_staff = bool(viewer and viewer["role"] in ("ADMIN", "OPERATOR_POST"))
     can_confirm = bool(viewer and (viewer["id"] == match["lost"]["ownerId"] or is_staff))
+    can_chat = chat_service.can_access_match_chat(viewer, match)
+    has_point = chat_service._found_has_point(match)
     return render_template("match_decisao.html", m=match, can=is_owner or is_staff, can_confirm=can_confirm,
+                           can_chat=can_chat, has_point=has_point,
                            needs_login=viewer is None and match["status"] == "PENDING")
 
 @bp.get("/painel")
@@ -296,8 +302,9 @@ def painel_matches(user):
     staff = user["role"] in ("ADMIN", "OPERATOR_POST")
     scope_global = staff and request.args.get("escopo") == "global"
     matches = list_matches(user_id=None if scope_global else user["id"], status=status, limit=50)
+    chat_ids = {m["id"] for m in matches if chat_service.can_access_match_chat(user, m)}
     return render_template("painel_matches.html", matches=matches, status=status, scope_global=scope_global, staff=staff,
-                           **shell_ctx(user), active="/painel/matches")
+                           chat_ids=chat_ids, **shell_ctx(user), active="/painel/matches")
 
 @bp.route("/painel/notificacoes", methods=["GET", "POST"])
 @login_required()

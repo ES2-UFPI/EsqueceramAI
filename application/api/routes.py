@@ -12,7 +12,7 @@ from application.repositories.engagement import (count_unread_notifications, lis
 from application.repositories.items import item_row_json, items_at_points
 from application.repositories.points import create_point, list_points, point_json, update_point
 from application.repositories.users import list_users, set_user_active, set_user_role
-from application.services import (audit_service, auth_service, claim_service, inventory_service, item_service,
+from application.services import (audit_service, auth_service, chat_service, claim_service, inventory_service, item_service,
                                   storage_service, vision_service)
 from application.services.matching_service import decide_match
 from application.services.seed_service import DEMO_PASSWORD_HINT, DEMO_PERSONAS, ensure_seeded
@@ -225,6 +225,16 @@ def matches_patch(match_id):
     if payload.get("action") not in ("confirm", "reject"):
         raise ApiError("Ação inválida. Use 'confirm' ou 'reject'.", 422)
     return jsonify(decide_match(user, match_id, payload["action"], payload.get("note")))
+
+@bp.get("/matches/<int:match_id>/messages")
+@controller
+def match_messages_get(match_id):
+    return jsonify(chat_service.list_match_messages(api_user(), match_id))
+
+@bp.post("/matches/<int:match_id>/messages")
+@controller
+def match_messages_post(match_id):
+    return jsonify(message=chat_service.send_match_message(api_user(), match_id, read_json())), 201
 
 # ---------------------------------------------------------- notificações
 @bp.get("/notifications")

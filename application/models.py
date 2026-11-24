@@ -162,6 +162,16 @@ class MatchNotification(Base):
     created_at: Mapped[datetime] = mapped_column(UTCDateTime, default=utcnow)
     sent_at: Mapped[datetime | None] = mapped_column(UTCDateTime, nullable=True)
 
+
+class MatchMessage(Base):
+    __tablename__ = "match_messages"
+    __table_args__ = (Index("match_messages_match_idx", "match_id", "created_at"),)
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    match_id: Mapped[int] = mapped_column(ForeignKey("matches.id", ondelete="CASCADE"))
+    sender_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"))
+    body: Mapped[str] = mapped_column(Text)
+    created_at: Mapped[datetime] = mapped_column(UTCDateTime, default=utcnow)
+
 class ItemSecret(Base):
     __tablename__ = "item_secrets"
     item_id: Mapped[int] = mapped_column(ForeignKey("items.id", ondelete="CASCADE"), primary_key=True)

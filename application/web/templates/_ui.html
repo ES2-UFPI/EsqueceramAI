@@ -65,3 +65,18 @@
   </details>
 </section>
 {% endmacro %}
+{% macro match_chat(match_id, has_point) %}
+<section class="card pad stack-s mt" data-match-chat="{{ match_id }}">
+  <div class="flex between center wrap gap-s">
+    <div>
+      <p class="eyebrow">💬 Chat rápido da entrega</p>
+      <p class="xs muted">{{ 'Conversa entre quem encontrou e a equipe do posto de coleta.' if has_point else 'Conversa direta entre quem perdeu e quem encontrou para acertar a entrega.' }}</p>
+    </div>
+  </div>
+  <div class="chat-log stack-s" data-chat-log><p class="xs muted">Carregando mensagens…</p></div>
+  <form class="flex gap-s" data-chat-form>
+    <input class="input grow" name="body" maxlength="500" required placeholder="Combine local, horário ou detalhes da entrega…">
+    <button class="btn btn-primary btn-sm" type="submit">Enviar</button>
+  </form>
+</section>
+{% endmacro %}

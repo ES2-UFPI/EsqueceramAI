@@ -1,4 +1,4 @@
-{% extends "base.html" %}{% from "_ui.html" import match_badge, score, thumb, api_button, empty %}{% block title %}Correspondência · Esqueceram AI{% endblock %}
+{% extends "base.html" %}{% from "_ui.html" import match_badge, score, thumb, api_button, empty, match_chat %}{% block title %}Correspondência · Esqueceram AI{% endblock %}
 {% block content %}
 {% set notify = m.notifications|selectattr('status', 'equalto', 'SENT')|list %}
 <div class="card pad" style="max-width:760px;margin:0 auto">
@@ -41,6 +41,7 @@
     {% endif %}
   {% else %}
     <div class="card mt" style="box-shadow:none">{{ empty('Correspondência já respondida', 'Já existe uma decisão para esta sugestão. Veja o histórico no painel de correspondências.') }}</div>
+    {% if can_chat %}{{ match_chat(m.id, has_point) }}{% endif %}
     <a class="btn btn-secondary btn-block mt-s" href="/painel/matches">Abrir painel de correspondências</a>
   {% endif %}
 </div>
