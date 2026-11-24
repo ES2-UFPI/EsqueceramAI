@@ -35,7 +35,8 @@ def test_registration_required_and_validated(app, make_item, sent_codes):
     c = persona_client(app, "operador@ufpi.edu.br")
     db.query(m.AttendantProfile).delete(); db.commit()
     r = start(c, make_item())
-    assert r.status_code == 409 and "matrícula" in r.get_json()["error"].lower()
+    assert r.status_code == 201
+    assert r.get_json()["delivery"]["attendantRegistration"].startswith("ATD-")
     assert c.put("/api/attendant/registration", json={"registrationNumber": "ab"}).status_code == 422
     assert c.put("/api/attendant/registration", json={"registrationNumber": "atd 01!"}).status_code == 422
     r = c.put("/api/attendant/registration", json={"registrationNumber": "atd-2024-0117"})

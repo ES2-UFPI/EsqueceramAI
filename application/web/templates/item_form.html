@@ -60,6 +60,6 @@
     </div>
     {% if has_secret %}<label class="chip"><input type="checkbox" name="secretClear" value="1"> Remover a pergunta-chave deste registro</label>{% endif %}
   </fieldset>
-  <div class="flex gap wrap form-actions"><button class="btn btn-primary btn-lg">{{ 'Publicar registro' if mode == 'new' else 'Salvar alterações' }}</button><a class="btn btn-ghost btn-lg" href="{{ '/painel/itens' if mode == 'new' else '/itens/%d'|format(item.id) }}">Cancelar</a></div>
+  <div class="flex gap wrap form-actions center"><button class="btn btn-primary btn-lg" data-submit-btn>{{ 'Publicar registro' if mode == 'new' else 'Salvar alterações' }}</button><span class="spinner" data-submit-spinner hidden aria-hidden="true"></span><a class="btn btn-ghost btn-lg" href="{{ '/painel/itens' if mode == 'new' else '/itens/%d'|format(item.id) }}">Cancelar</a></div>
 </form>
 {% endblock %}

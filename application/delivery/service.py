@@ -52,6 +52,20 @@ def get_registration(user: dict) -> str | None:
     return repo.get_registration(user["id"])
 
 
+def ensure_registration(user: dict) -> str:
+    _require_attendant(user)
+    existing = repo.get_registration(user["id"])
+    if existing:
+        return existing
+    auto = f"ATD-{user['id']:04d}"
+    try:
+        repo.set_registration(user["id"], auto)
+    except repo.RegistrationTaken:
+        auto = f"OP-{user['id']}"
+        repo.set_registration(user["id"], auto)
+    return auto
+
+
 def set_registration(user: dict, number: str) -> str:
     _require_attendant(user)
     number = (number or "").strip().upper()
@@ -124,10 +138,7 @@ def _issue_code(d: m.Delivery) -> str:
 
 def start_delivery(user: dict, form: dict, document_file) -> dict:
     _require_attendant(user)
-    registration = repo.get_registration(user["id"])
-    if not registration:
-        raise ApiError("Cadastre sua matrícula de atendente antes de registrar entregas.", 409,
-                       {"registrationNumber": ["Matrícula não cadastrada."]})
+    registration = ensure_registration(user)
 
     f = Form(form)
     item_id = f.number("itemId", integer=True, positive=True)

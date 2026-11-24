@@ -688,6 +688,22 @@
     });
   }
 
+  function initItemFormSubmit() {
+    const form = document.querySelector("[data-item-form]");
+    if (!form) return;
+    const btn = form.querySelector("[data-submit-btn]");
+    const spinner = form.querySelector("[data-submit-spinner]");
+    if (!btn) return;
+    form.addEventListener("submit", (e) => {
+      if (btn.disabled) {
+        e.preventDefault();
+        return;
+      }
+      btn.disabled = true;
+      if (spinner) spinner.hidden = false;
+    });
+  }
+
   function init() {
     const toast = initToasts();
     initApiActions(toast);
@@ -699,6 +715,7 @@
     initVisionAnalyze(toast);
     initBrowserPush(toast);
     initMatchChats(toast);
+    initItemFormSubmit();
   }
 
   init();
