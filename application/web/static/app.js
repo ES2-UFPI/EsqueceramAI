@@ -226,14 +226,17 @@
     }
 
     // Campos exclusivos de itens encontrados (ponto de coleta e validação de posse)
-    const foundOnlyBoxes = document.querySelectorAll("[data-secret-box], [data-found-only]");
+    const secretBox = document.querySelector("[data-secret-box]");
+    const foundOnlyBoxes = Array.from(document.querySelectorAll("[data-found-only]") || []);
+    if (secretBox) foundOnlyBoxes.unshift(secretBox);
     if (foundOnlyBoxes.length) {
       const syncFoundOnly = () => {
         const found = document.querySelector("[data-record-type][value='FOUND']");
         const on = !found || found.checked;
         foundOnlyBoxes.forEach((box) => {
           box.hidden = !on;
-          box.querySelectorAll("input, select, textarea").forEach((input) => (input.disabled = !on));
+          (box.querySelectorAll("input, textarea") || []).forEach((el) => (el.disabled = !on));
+          (box.querySelectorAll("select") || []).forEach((el) => (el.disabled = !on));
         });
       };
       document.querySelectorAll("[data-record-type]").forEach((radio) => radio.addEventListener("change", syncFoundOnly));
