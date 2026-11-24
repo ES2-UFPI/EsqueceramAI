@@ -32,7 +32,7 @@ def test_chat_requires_confirmed_match_and_direct_participants(app, make_item):
     assert 'data-match-chat="' not in operador.get(f"/correspondencias/{match.id}").get_data(as_text=True)
 
 
-def test_chat_with_collection_point_restricts_to_finder_and_operators(app, make_item):
+def test_chat_with_collection_point_restricts_to_finder_and_operators(app, make_item, _capture_emails):
     lost_id = make_item(kind="LOST", with_point=False, owner="ana@ufpi.edu.br")
     found_id = make_item(kind="FOUND", with_point=True, owner="carlos@ufpi.edu.br")
     match = matching_service.upsert_match(lost_item_id=lost_id, found_item_id=found_id, score=92, reasons=["Mesma marca"])
@@ -48,11 +48,21 @@ def test_chat_with_collection_point_restricts_to_finder_and_operators(app, make_
     assert admin.get(f"/api/matches/{match.id}/messages").status_code == 403
     assert 'data-match-chat="' not in ana.get(f"/itens/{lost_id}").get_data(as_text=True)
 
+    before_emails = len(_capture_emails)
     r1 = carlos.post(f"/api/matches/{match.id}/messages", json={"body": "Levo ao posto hoje a tarde."})
     assert r1.status_code == 201
+    assert len(_capture_emails) > before_emails
+
+    # Operador abre o chat (fica ativo/lendo na hora): resposta do Carlos não precisa reenviar e-mail
+    assert operador.get(f"/api/matches/{match.id}/messages").status_code == 200
     r2 = operador.post(f"/api/matches/{match.id}/messages", json={"body": "Recebido, estaremos ate 18h."})
     assert r2.status_code == 201
 
+    assert carlos.get(f"/api/matches/{match.id}/messages").status_code == 200
+    before_live = len(_capture_emails)
+    assert operador.post(f"/api/matches/{match.id}/messages", json={"body": "Pode vir agora."}).status_code == 201
+    assert len(_capture_emails) == before_live
+
     msgs = carlos.get(f"/api/matches/{match.id}/messages").get_json()["messages"]
-    assert len(msgs) == 2
+    assert len(msgs) == 3
     assert 'data-match-chat="' in operador.get(f"/correspondencias/{match.id}").get_data(as_text=True)

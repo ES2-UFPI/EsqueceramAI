@@ -643,7 +643,8 @@
           item.className = "chat-msg" + (m.isMine ? " mine" : "");
           const meta = document.createElement("div");
           meta.className = "xs muted";
-          meta.textContent = `${m.senderName} (${m.senderRole})`;
+          const hhmm = m.createdAt ? new Date(m.createdAt).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" }) : "";
+          meta.textContent = `${m.senderName} (${m.senderRole})${hhmm ? " · " + hhmm : ""}`;
           const body = document.createElement("div");
           body.className = "sm";
           body.textContent = m.body;
@@ -669,11 +670,14 @@
         const btn = form.querySelector("button[type='submit']");
         if (btn) btn.disabled = true;
         try {
-          const d = await apiFetch(`/api/matches/${matchId}/messages`, {
+          const res = await fetch(`/api/matches/${matchId}/messages`, {
             method: "POST",
+            credentials: "same-origin",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ body: text }),
           });
+          const data = await res.json().catch(() => ({}));
+          if (!res.ok) throw new Error(data.error || "Erro ao enviar mensagem.");
           input.value = "";
           await load();
         } catch (err) {

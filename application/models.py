@@ -170,7 +170,17 @@ class MatchMessage(Base):
     match_id: Mapped[int] = mapped_column(ForeignKey("matches.id", ondelete="CASCADE"))
     sender_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"))
     body: Mapped[str] = mapped_column(Text)
+    read_at: Mapped[datetime | None] = mapped_column(UTCDateTime, nullable=True)
     created_at: Mapped[datetime] = mapped_column(UTCDateTime, default=utcnow)
+
+
+class MatchChatPresence(Base):
+    __tablename__ = "match_chat_presence"
+    __table_args__ = (UniqueConstraint("match_id", "user_id", name="match_chat_presence_unique"),)
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    match_id: Mapped[int] = mapped_column(ForeignKey("matches.id", ondelete="CASCADE"))
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"))
+    last_seen_at: Mapped[datetime] = mapped_column(UTCDateTime, default=utcnow)
 
 class ItemSecret(Base):
     __tablename__ = "item_secrets"
