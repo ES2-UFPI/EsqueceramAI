@@ -69,3 +69,20 @@ def test_item_detail_renders_mailto_and_whatsapp_links_when_logged_in(app, make_
     html = authed.get(f"/itens/{item_id}").get_data(as_text=True)
     assert 'href="mailto:carlos@ufpi.edu.br"' in html
     assert 'href="https://wa.me/5586988447710"' in html
+
+
+def test_collection_point_field_is_hidden_for_lost_and_ignored_on_submit(app):
+    authed = persona_client(app, "ana@ufpi.edu.br")
+    lost_html = authed.get("/painel/itens/novo?tipo=LOST").get_data(as_text=True)
+    assert 'data-found-only hidden' in lost_html
+    found_html = authed.get("/painel/itens/novo?tipo=FOUND").get_data(as_text=True)
+    assert 'Vai entregar em um posto de coleta?' in found_html
+    assert 'data-found-only hidden' not in found_html
+
+    from application.services.item_service import parse_item_form
+    parsed = parse_item_form({
+        "type": "LOST", "category": "ELECTRONIC", "title": "Fone perdido teste",
+        "description": "Descricao longa o suficiente para teste", "location": "Biblioteca",
+        "occurredAt": "2026-11-23", "pointId": "1",
+    })
+    assert parsed["pointId"] is None

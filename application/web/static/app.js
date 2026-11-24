@@ -225,17 +225,22 @@
       syncCategory();
     }
 
-    // Validação de posse só existe para itens encontrados
+    // Campos exclusivos de itens encontrados (ponto de coleta e validação de posse)
     const secretBox = document.querySelector("[data-secret-box]");
-    if (secretBox) {
-      const syncSecret = () => {
+    const foundOnlyBoxes = Array.from(document.querySelectorAll("[data-found-only]") || []);
+    if (secretBox) foundOnlyBoxes.unshift(secretBox);
+    if (foundOnlyBoxes.length) {
+      const syncFoundOnly = () => {
         const found = document.querySelector("[data-record-type][value='FOUND']");
         const on = !found || found.checked;
-        secretBox.hidden = !on;
-        secretBox.querySelectorAll("input, textarea").forEach((input) => (input.disabled = !on));
+        foundOnlyBoxes.forEach((box) => {
+          box.hidden = !on;
+          (box.querySelectorAll("input, textarea") || []).forEach((el) => (el.disabled = !on));
+          (box.querySelectorAll("select") || []).forEach((el) => (el.disabled = !on));
+        });
       };
-      document.querySelectorAll("[data-record-type]").forEach((radio) => radio.addEventListener("change", syncSecret));
-      syncSecret();
+      document.querySelectorAll("[data-record-type]").forEach((radio) => radio.addEventListener("change", syncFoundOnly));
+      syncFoundOnly();
     }
   }
 
