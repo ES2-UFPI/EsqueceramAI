@@ -2,6 +2,33 @@ from sqlalchemy import func, select
 
 from application.models import CollectionPoint, Item, db
 
+_UNSET = object()
+
+_FIELD_MAP = {
+    "name": "name",
+    "building": "building",
+    "description": "description",
+    "openingHours": "opening_hours",
+    "contact": "contact",
+    "latitude": "latitude",
+    "longitude": "longitude",
+    "isActive": "is_active",
+}
+
+_NON_NULL_FIELDS = {"name", "building", "isActive"}
+
+
+def _map_point_fields(values: dict, allowed_keys: tuple[str, ...], *, skip_none: bool = False) -> dict:
+    mapped = {}
+    for key in allowed_keys:
+        val = values.get(key, _UNSET)
+        if val is _UNSET:
+            continue
+        if (skip_none or key in _NON_NULL_FIELDS) and val is None:
+            continue
+        mapped[_FIELD_MAP[key]] = val
+    return mapped
+
 
 def point_json(point: CollectionPoint) -> dict:
     return {
@@ -52,40 +79,27 @@ def find_point_by_id(point_id: int):
 
 
 def create_point(**values):
-    row = CollectionPoint(
-        name=values["name"],
-        building=values["building"],
-        description=values.get("description"),
-        opening_hours=values.get("openingHours"),
-        contact=values.get("contact"),
-        latitude=values.get("latitude"),
-        longitude=values.get("longitude"),
+    fields = _map_point_fields(
+        values,
+        ("name", "building", "description", "openingHours", "contact", "latitude", "longitude"),
+        skip_none=True,
     )
+    row = CollectionPoint(**fields)
     db.add(row)
     db.commit()
     return row
-
-
-_UNSET = object()
 
 
 def update_point(point_id: int, **values):
     row = db.get(CollectionPoint, point_id)
     if not row:
         return None
-    for key, attr in (
-        ("name", "name"),
-        ("building", "building"),
-        ("isActive", "is_active"),
-        ("openingHours", "opening_hours"),
-        ("description", "description"),
-        ("contact", "contact"),
-        ("latitude", "latitude"),
-        ("longitude", "longitude"),
-    ):
-        val = values.get(key, _UNSET)
-        if val is not _UNSET and (key not in ("name", "building", "isActive") or val is not None):
-            setattr(row, attr, val)
+    fields = _map_point_fields(
+        values,
+        ("name", "building", "isActive", "openingHours", "description", "contact", "latitude", "longitude"),
+    )
+    for attr, val in fields.items():
+        setattr(row, attr, val)
     db.commit()
     return row
 
