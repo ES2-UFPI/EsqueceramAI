@@ -33,7 +33,7 @@
     </label>
     <label class="field">
       <span>Buscar nos logs</span>
-      <input class="input" name="q" value="{{ q }}" placeholder="Item, e-mail, erro ou detalhe...">
+      <input class="input" name="q" value="{{ q }}" placeholder="Item, e-mail, IP, erro ou detalhe...">
     </label>
     <label class="field">
       <span>De</span>
@@ -62,6 +62,7 @@
           <th>Detalhe</th>
           <th>Status</th>
           <th>Responsável</th>
+          <th>IP</th>
           <th></th>
         </tr>
       </thead>
@@ -74,6 +75,7 @@
           <td class="sm soft">{{ entry.detail }}</td>
           <td><span class="badge">{{ entry.status }}</span></td>
           <td class="sm">{{ entry.actor }}</td>
+          <td class="xs muted" style="white-space:nowrap">{{ entry.ipAddress or '—' }}</td>
           <td><a class="btn btn-ghost btn-sm" href="{{ entry.link }}">Abrir</a></td>
         </tr>
         {% endfor %}

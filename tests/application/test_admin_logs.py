@@ -114,3 +114,17 @@ def test_admin_logs_records_auth_admin_and_point_actions_with_filters(app):
     # Filter by future date range returns empty
     empty_logs = admin.get("/painel/admin/logs?de=2099-01-01&ate=2099-12-31").get_data(as_text=True)
     assert "Nenhum log encontrado" in empty_logs
+
+
+def test_admin_logs_records_and_displays_client_ip(app):
+    admin = persona_client(app, "admin@ufpi.edu.br")
+    res = admin.post(
+        "/api/points",
+        json={"name": "Ponto IP Audit", "building": "Bloco X"},
+        headers={"X-Forwarded-For": "203.0.113.42, 10.0.0.1"},
+    )
+    assert res.status_code == 201
+
+    html = admin.get("/painel/admin/logs?q=203.0.113.42").get_data(as_text=True)
+    assert "203.0.113.42" in html
+    assert "Ponto IP Audit" in html

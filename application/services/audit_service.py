@@ -1,5 +1,6 @@
 """Registro e consulta consolidada de logs de auditoria e eventos do sistema."""
 from datetime import datetime, time, timezone
+from flask import has_request_context, request
 from sqlalchemy import select
 
 from application import domain as D
@@ -25,10 +26,21 @@ _PREFIX_TO_TYPE = {
 }
 
 
-def record_audit_log(*, user_id: int, category: str, title: str, body: str, link: str | None = None) -> None:
+def _client_ip() -> str | None:
+    if not has_request_context():
+        return None
+    forwarded = request.headers.get("X-Forwarded-For", "")
+    ip = forwarded.split(",")[0].strip() if forwarded else (request.remote_addr or "").strip()
+    return ip[:64] or None
+
+
+def record_audit_log(*, user_id: int, category: str, title: str, body: str,
+                     link: str | None = None, ip_address: str | None = None) -> None:
     """Registra uma ação do sistema na tabela notifications (is_read=True para não gerar alerta)."""
     prefix = f"[{category}] " if category in ("AUTH", "ADMIN", "POINT") else ""
-    db.add(Notification(user_id=user_id, type="SYSTEM", title=f"{prefix}{title}", body=body, link=link, is_read=True))
+    ip = ip_address if ip_address is not None else _client_ip()
+    db.add(Notification(user_id=user_id, type="SYSTEM", title=f"{prefix}{title}",
+                        body=body, link=link, ip_address=ip, is_read=True))
     db.commit()
 
 
@@ -49,6 +61,7 @@ def _item_logs(limit: int) -> list[dict]:
             "detail": ev.note or D.STATUS_LABEL.get(ev.status, ev.status),
             "status": D.STATUS_LABEL.get(ev.status, ev.status),
             "actor": actor_name or "Sistema",
+            "ipAddress": None,
             "createdAt": ev.created_at,
             "link": f"/itens/{ev.item_id}",
         })
@@ -72,6 +85,7 @@ def _delivery_logs(limit: int) -> list[dict]:
             "detail": ev.detail or ev.action,
             "status": ev.action,
             "actor": attendant_name or "Atendente",
+            "ipAddress": None,
             "createdAt": ev.created_at,
             "link": f"/painel/entregas/{ev.delivery_id}",
         })
@@ -98,6 +112,7 @@ def _notification_logs(limit: int) -> list[dict]:
             "detail": detail,
             "status": notif.status,
             "actor": user_name,
+            "ipAddress": None,
             "createdAt": notif.created_at,
             "link": f"/itens/{lost_item_id}",
         })
@@ -129,6 +144,7 @@ def _system_logs(limit: int) -> list[dict]:
             "detail": f"{notif.body} ({user_email})",
             "status": log_type,
             "actor": user_name,
+            "ipAddress": notif.ip_address,
             "createdAt": notif.created_at,
             "link": notif.link or "/painel/admin",
         })
@@ -193,6 +209,7 @@ def list_system_logs(
             or query in e["detail"].lower()
             or query in e["actor"].lower()
             or query in e["status"].lower()
+            or query in (e.get("ipAddress") or "").lower()
         ]
 
     entries.sort(key=lambda e: _ensure_utc(e["createdAt"]), reverse=True)
