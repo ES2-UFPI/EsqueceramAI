@@ -29,6 +29,26 @@
   </div></details>
   <datalist id="locs">{% for l in D.CAMPUS_LOCATIONS %}<option value="{{ l }}">{% endfor %}{% for p in points %}<option value="{{ p.name }}">{% endfor %}</datalist>
 </form>
-{% if result["items"] %}<div class="grid g3 mt">{% for i in result["items"] %}{{ item_card(i) }}{% endfor %}</div>{{ pager(result, base) }}
+<div class="flex gap-s wrap mt">
+  <a class="chip {{ 'badge brand' if not f.get('tipo') }}" href="/itens?{{ qs(base, tipo=None, pagina=None) }}">Todos</a>
+  <a class="chip {{ 'badge brand' if f.get('tipo') == 'LOST' }}" href="/itens?{{ qs(base, tipo='LOST', pagina=None) }}">Perdidos</a>
+  <a class="chip {{ 'badge brand' if f.get('tipo') == 'FOUND' }}" href="/itens?{{ qs(base, tipo='FOUND', pagina=None) }}">Encontrados</a>
+</div>
+{% if result["items"] %}
+  {% if not f.get('tipo') %}
+    {% set lost_items = result["items"]|selectattr('type', 'equalto', 'LOST')|list %}
+    {% set found_items = result["items"]|selectattr('type', 'equalto', 'FOUND')|list %}
+    {% if lost_items %}
+      <h2 class="display mt-l" style="font-size:1.4rem">Itens perdidos <span class="xs muted">({{ lost_items|length }})</span></h2>
+      <div class="grid g3 mt-s">{% for i in lost_items %}{{ item_card(i) }}{% endfor %}</div>
+    {% endif %}
+    {% if found_items %}
+      <h2 class="display mt-l" style="font-size:1.4rem">Itens encontrados <span class="xs muted">({{ found_items|length }})</span></h2>
+      <div class="grid g3 mt-s">{% for i in found_items %}{{ item_card(i) }}{% endfor %}</div>
+    {% endif %}
+  {% else %}
+    <div class="grid g3 mt">{% for i in result["items"] %}{{ item_card(i) }}{% endfor %}</div>
+  {% endif %}
+  {{ pager(result, base) }}
 {% else %}<div class="card mt">{{ empty('Nenhum item encontrado','Ajuste os filtros ou registre o seu item.','/painel/itens/novo','Registrar item') }}</div>{% endif %}
 {% endblock %}

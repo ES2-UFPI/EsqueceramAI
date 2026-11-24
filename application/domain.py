@@ -40,7 +40,7 @@ ROLE_LABEL = {"USER": "Comunidade", "OPERATOR_POST": "Operador de ponto", "ADMIN
 CATEGORY_FIELDS = {
     "ELECTRONIC": {
         "label": "Eletrônico",
-        "hint": "Aparelhos e equipamentos, como celulares, notebooks e fones.",
+        "hint": "Aparelhos e equipamentos, como celulares, notebooks, fones e smartwatches.",
         "fields": [
             {"name": "serialNumber", "label": "Número de série (opcional)", "placeholder": "Ex.: SN-8821-XP"},
             {"name": "compatibility", "label": "Características técnicas", "placeholder": "Ex.: carregador USB-C, 128 GB"},
@@ -56,7 +56,7 @@ CATEGORY_FIELDS = {
     },
     "ACCESSORY": {
         "label": "Acessório",
-        "hint": "Itens de uso pessoal, como mochilas, garrafas, chaves e óculos.",
+        "hint": "Itens de uso pessoal não eletrônicos, como mochilas, garrafas, chaves e óculos.",
         "fields": [
             {"name": "material", "label": "Material (opcional)", "placeholder": "Ex.: couro sintético"},
             {"name": "visualDetails", "label": "Detalhes visuais", "placeholder": "Ex.: alça rasgada, adesivos coloridos"},

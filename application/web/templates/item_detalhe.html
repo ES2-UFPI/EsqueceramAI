@@ -67,7 +67,7 @@
     {% endif %}
   </div></section>
   <section class="card pad"><p class="eyebrow">Responsável</p><div class="flex gap center mt-s"><span class="badge brand">{{ item.ownerName|initials }}</span><div><p class="bold sm">{{ item.ownerName }}</p><p class="xs muted">{{ D.ROLE_LABEL[item.ownerRole] }}</p></div></div>
-  {% if user %}<p class="xs soft mt-s">✉️ {{ item.ownerEmail }}{% if item.ownerPhone %}<br>📞 {{ item.ownerPhone }}{% endif %}</p>{% endif %}</section>
+  {% if user %}<p class="xs soft mt-s">✉️ <a class="brand bold" href="mailto:{{ item.ownerEmail }}">{{ item.ownerEmail }}</a>{% if item.ownerPhone %}{% set wa = item.ownerPhone|wa %}<br>📞 {% if wa %}<a class="brand bold" href="https://wa.me/{{ wa }}" target="_blank" rel="noopener noreferrer">{{ item.ownerPhone }}</a>{% else %}{{ item.ownerPhone }}{% endif %}{% endif %}</p>{% endif %}</section>
   {% if item.pointName %}<section class="card pad"><p class="eyebrow">Ponto de coleta</p><p class="bold sm mt-s">📍 {{ item.pointName }}</p><p class="xs muted">{{ item.pointBuilding }}</p>{% if item.pointHours %}<p class="xs soft">🕒 {{ item.pointHours }}</p>{% endif %}{% if item.pointLatitude is not none and item.pointLongitude is not none %}<p class="xs mt-s"><a class="brand bold" href="https://www.openstreetmap.org/?mlat={{ item.pointLatitude }}&amp;mlon={{ item.pointLongitude }}#map=18/{{ item.pointLatitude }}/{{ item.pointLongitude }}" target="_blank" rel="noopener noreferrer">🗺️ Ver localização do posto no mapa ↗</a></p>{% endif %}</section>{% endif %}
   {% if is_staff and item.pointName %}
   <section class="card pad stack-s">

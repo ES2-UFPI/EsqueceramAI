@@ -34,7 +34,16 @@ def mask_email(email: str) -> str:
 
 
 def app_base_url() -> str:
-    return (os.getenv("APP_BASE_URL") or "").rstrip("/")
+    configured = (os.getenv("APP_BASE_URL") or os.getenv("RENDER_EXTERNAL_URL") or "").strip().rstrip("/")
+    if configured:
+        return configured
+    try:
+        from flask import has_request_context, request
+        if has_request_context():
+            return request.url_root.rstrip("/")
+    except Exception:
+        pass
+    return "https://esqueceramai.onrender.com"
 
 
 def public_url(path: str) -> str:

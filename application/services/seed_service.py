@@ -1,3 +1,4 @@
+import os
 import threading
 from contextlib import contextmanager
 from datetime import datetime, timedelta, timezone
@@ -74,14 +75,10 @@ _seeded = False
 
 def ensure_demo_accounts() -> dict[str, int]:
     """Cria contas demo ausentes (idempotente). Retorna {persona: user_id}."""
-    has_demo = db.scalar(select(User.id).where(User.demo.is_(True)).limit(1)) is not None
     ids = {}
     for person in DEMO_PEOPLE:
         existing = find_user_by_email(person["email"])
         if existing:
-            if not has_demo and person["persona"] and not existing.demo:
-                existing.demo = True
-                db.commit()
             ids[person["key"]] = existing.id
             continue
         try:
@@ -284,6 +281,7 @@ def find_demo_persona(persona: str | None) -> dict:
 
 
 def list_demo_personas() -> list[dict]:
+    if os.getenv("DEMO_LOGIN_DISABLED", "").lower() == "true":
+        return []
     from application.domain import ROLE_LABEL
-    ensure_demo_accounts()
     return [{"key": u.email, "name": u.name, "label": ROLE_LABEL.get(u.role, u.role)} for u in list_demo_users()]
