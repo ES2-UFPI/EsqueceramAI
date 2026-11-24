@@ -23,8 +23,12 @@ jobs:
           pip install -r requirements.txt
 
       - name: Executar rotina diária de caducidade
-        if: ${{ secrets.DATABASE_URL != '' }}
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
           SECRET_KEY: ${{ secrets.SECRET_KEY }}
-        run: python -m application.jobs.stale_items --json
+        run: |
+          if [ -z "$DATABASE_URL" ]; then
+            echo "DATABASE_URL não configurada; pulando execução."
+            exit 0
+          fi
+          python -m application.jobs.stale_items --json
