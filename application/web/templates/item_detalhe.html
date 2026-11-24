@@ -1,4 +1,4 @@
-{% extends "base.html" %}{% from "_ui.html" import type_badge, status_badge, inventory_badge, match_badge, score, thumb, api_button, empty %}{% block title %}{{ item.title }} · Esqueceram AI{% endblock %}
+{% extends "base.html" %}{% from "_ui.html" import type_badge, status_badge, inventory_badge, match_badge, score, thumb, api_button, empty, match_chat %}{% block title %}{{ item.title }} · Esqueceram AI{% endblock %}
 {% block content %}
 <nav class="xs muted mb"><a href="/">Início</a> › <a href="/itens">Explorar</a> › <a href="/itens?tipo={{ item.type }}">{{ D.RECORD_TYPE_LABEL[item.type] }}</a> › <b class="soft">{{ item.title }}</b></nav>
 <div class="grid split">
@@ -35,6 +35,7 @@
     {% if can %}<div class="flex gap-s wrap mt-s">{% if can_confirm %}{{ api_button('✓ Confirmar correspondência', '/api/matches/%d'|format(m.id), 'PATCH', {'action':'confirm'}, 'primary', success='Correspondência confirmada! Os itens foram reservados.') }}{% endif %}{{ api_button('Descartar', '/api/matches/%d'|format(m.id), 'PATCH', {'action':'reject'}, success='Sugestão descartada.') }}</div>
     {% elif not user and m.status == 'PENDING' %}<p class="xs muted mt-s"><a class="brand bold" href="/entrar?next=/itens/{{ item.id }}">Entre na plataforma</a> para confirmar ou descartar esta correspondência.</p>{% endif %}
   </li>{% endfor %}</ul>{% endif %}</section>
+  {% if chat_match %}{{ match_chat(chat_match.id, chat_has_point) }}{% endif %}
 
   <section class="card pad"><h2 class="display" style="font-size:1.2rem">🕒 Histórico do registro</h2>
   {% if d.timeline %}<ol class="timeline mt">{% for e in d.timeline %}<li><p class="bold sm">{{ e.note }}</p><p class="xs muted">{{ e.createdAt|datetime }}{% if e.actorName %} · {{ e.actorName }}{% endif %} · {{ e.status }}</p></li>{% endfor %}</ol>{% else %}<p class="xs muted mt-s">Nenhum evento registrado.</p>{% endif %}</section>
