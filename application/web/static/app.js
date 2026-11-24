@@ -239,6 +239,19 @@
       document.querySelectorAll("[data-record-type]").forEach((radio) => radio.addEventListener("change", syncFoundOnly));
       syncFoundOnly();
     }
+
+    const locInput = document.querySelector("[data-location-group] input[name='location']");
+    const latInput = document.querySelector("input[name='latitude']");
+    const lngInput = document.querySelector("input[name='longitude']");
+    if (locInput && latInput && lngInput) {
+      const syncLocRequired = () => {
+        const hasCoords = Boolean(latInput.value.trim() && lngInput.value.trim());
+        locInput.required = !hasCoords;
+      };
+      latInput.addEventListener("input", syncLocRequired);
+      lngInput.addEventListener("input", syncLocRequired);
+      syncLocRequired();
+    }
   }
 
   // Menu retrátil no mobile (drawer do painel e menu do cabeçalho público)

@@ -86,3 +86,18 @@ def test_collection_point_field_is_hidden_for_lost_and_ignored_on_submit(app):
         "occurredAt": "2026-11-23", "pointId": "1",
     })
     assert parsed["pointId"] is None
+
+    coords_only = parse_item_form({
+        "type": "LOST", "category": "ELECTRONIC", "title": "Fone com coordenadas",
+        "description": "Descricao longa o suficiente para teste",
+        "latitude": "-5.0563", "longitude": "-42.7894", "occurredAt": "2026-11-23",
+    })
+    assert coords_only["latitude"] == -5.0563 and coords_only["longitude"] == -42.7894
+
+    import pytest
+    from application.errors import ApiError
+    with pytest.raises(ApiError):
+        parse_item_form({
+            "type": "LOST", "category": "ELECTRONIC", "title": "Fone sem local",
+            "description": "Descricao longa o suficiente para teste", "occurredAt": "2026-11-23",
+        })

@@ -63,6 +63,8 @@ def set_storage_location(user: dict | None, item_id: int, storage_location: str 
     note = (f"Localização física interna definida: {cleaned}." if cleaned
             else "Localização física interna removida.")
     add_item_event(item_id=item_id, actor_id=user["id"], status=item["status"], note=note)
+    from application.services.item_service import _sync_confirmed_items
+    _sync_confirmed_items(item_id, {"storage_location": cleaned}, user, note)
     return {"ok": True, "itemId": item_id, "storageLocation": cleaned}
 
 
