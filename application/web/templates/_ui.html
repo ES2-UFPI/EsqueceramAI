@@ -42,21 +42,26 @@
 {% if result.totalPages > 1 %}<div class="pager">
 {% for p in range(1, result.totalPages + 1) %}{% if p == result.page %}<span class="cur">{{ p }}</span>{% else %}<a href="?{{ qs(base, pagina=p) }}">{{ p }}</a>{% endif %}{% endfor %}</div>{% endif %}
 {% endmacro %}
-{% macro geo_picker(values, errors, summary='📍 Coordenadas geográficas (opcional — para busca por proximidade)') %}
-<details class="card pad stack-s" style="box-shadow:none" {{ 'open' if values.get('latitude') or values.get('longitude') }}>
-  <summary class="xs bold muted" style="cursor:pointer">{{ summary }}</summary>
-  <div class="grid g2 mt-s">
-    <label class="field"><span>Latitude</span><input class="input" name="latitude" value="{{ values.get('latitude','') }}" placeholder="-5.0563">{{ err(errors,'latitude') }}</label>
-    <label class="field"><span>Longitude</span><input class="input" name="longitude" value="{{ values.get('longitude','') }}" placeholder="-42.7894">{{ err(errors,'longitude') }}</label>
-  </div>
-  <div class="flex gap-s center wrap mt-s" data-geo-box>
-    <button type="button" class="btn btn-ghost btn-sm" data-geo-locate data-geo-lat-name="latitude" data-geo-lng-name="longitude">📍 Usar minha localização atual</button>
-    <button type="button" class="btn btn-ghost btn-sm" data-geo-map-toggle aria-expanded="false">🗺️ Selecionar no mapa</button>
-    <span class="xs muted" data-geo-status></span>
-  </div>
-  <div id="item-geo-map-box" hidden class="mt-s stack-s">
-    <div id="item-geo-map" style="height:280px;border-radius:10px;border:1px solid var(--border);background:#e5e7eb"></div>
-    <span class="xs muted">Clique no mapa para marcar o ponto exato.</span>
-  </div>
-</details>
+{% macro geo_picker(values, errors, summary='📍 Local da ocorrência e coordenadas geográficas *') %}
+<section class="card pad stack-s" style="box-shadow:none" data-location-group>
+  <p class="eyebrow">{{ summary }}</p>
+  <p class="xs muted">Informe o local de referência ou marque as coordenadas no mapa (pelo menos um é obrigatório; você pode preencher ambos).</p>
+  <label class="field"><span>Local da ocorrência</span><input class="input" name="location" {{ 'required' if not (values.get('latitude') and values.get('longitude')) }} minlength="3" maxlength="160" list="locs" value="{{ values.get('location','') }}" placeholder="Ex.: Biblioteca Central, Bloco CT">{{ err(errors,'location') }}<datalist id="locs">{% for l in D.CAMPUS_LOCATIONS %}<option value="{{ l }}">{% endfor %}</datalist></label>
+  <details class="stack-s mt-s" {{ 'open' if values.get('latitude') or values.get('longitude') }}>
+    <summary class="xs bold muted" style="cursor:pointer">🗺️ Coordenadas geográficas (mapa / GPS)</summary>
+    <div class="grid g2 mt-s">
+      <label class="field"><span>Latitude</span><input class="input" name="latitude" value="{{ values.get('latitude','') }}" placeholder="-5.0563">{{ err(errors,'latitude') }}</label>
+      <label class="field"><span>Longitude</span><input class="input" name="longitude" value="{{ values.get('longitude','') }}" placeholder="-42.7894">{{ err(errors,'longitude') }}</label>
+    </div>
+    <div class="flex gap-s center wrap mt-s" data-geo-box>
+      <button type="button" class="btn btn-ghost btn-sm" data-geo-locate data-geo-lat-name="latitude" data-geo-lng-name="longitude">📍 Usar minha localização atual</button>
+      <button type="button" class="btn btn-ghost btn-sm" data-geo-map-toggle aria-expanded="false">🗺️ Selecionar no mapa</button>
+      <span class="xs muted" data-geo-status></span>
+    </div>
+    <div id="item-geo-map-box" hidden class="mt-s stack-s">
+      <div id="item-geo-map" style="height:280px;border-radius:10px;border:1px solid var(--border);background:#e5e7eb"></div>
+      <span class="xs muted">Clique no mapa para marcar o ponto exato.</span>
+    </div>
+  </details>
+</section>
 {% endmacro %}

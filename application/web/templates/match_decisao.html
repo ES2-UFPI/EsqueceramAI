@@ -10,10 +10,12 @@
   {% if notify %}A notificação foi enviada por e-mail em {{ notify[0].sentAt|datetime }}.{% endif %}</p>
 
   <div class="grid g2 mt">
-    {% for side, label in [(m.lost, 'Seu relato'), (m.found, 'Item encontrado')] %}
-    <a href="/itens/{{ side.id }}" class="card pad" style="box-shadow:none">
-      <div class="flex gap">{{ thumb(side.imageSrc, h='64px') }}<div class="grow"><p class="eyebrow">{{ label }}</p>
-      <p class="bold sm">{{ side.title }}</p><p class="xs muted">{{ side.location }} · {{ side.occurredAt|date }}</p></div></div>
+    {% for side, label in [(m.lost, 'Item perdido'), (m.found, 'Item encontrado')] %}
+    <a href="/itens/{{ side.id }}" class="card pad stack-s" style="box-shadow:none">
+      {{ thumb(side.imageSrc, h='160px', icon='🔍' if loop.first else '📦') }}
+      <p class="eyebrow">{{ label }}</p>
+      <p class="bold sm">{{ side.title }}</p>
+      <p class="xs muted">{{ side.location }} · {{ side.occurredAt|date }}</p>
     </a>
     {% endfor %}
   </div>

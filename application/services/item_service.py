@@ -31,7 +31,7 @@ def parse_item_form(form) -> dict:
     f.text("color", max=40, optional=True)
     f.text("brand", max=60, optional=True)
     f.text("model", max=60, optional=True)
-    f.text("location", min=3, max=160, min_msg="Informe o local da ocorrência.")
+    f.text("location", min=3, max=160, min_msg="Informe o local da ocorrência.", optional=True)
     occurred = f.text("occurredAt", min=1, min_msg="Informe a data da ocorrência.")
     if occurred and not parse_iso(occurred):
         f.errors.setdefault("occurredAt", []).append("Data inválida.")
@@ -40,6 +40,9 @@ def parse_item_form(form) -> dict:
     f.number("longitude", lo=-180, hi=180)
     if (f.data.get("latitude") is None) != (f.data.get("longitude") is None):
         f.errors.setdefault("latitude", []).append("Informe latitude e longitude juntas.")
+    has_coords = f.data.get("latitude") is not None and f.data.get("longitude") is not None
+    if not (f.data.get("location") or "").strip() and not has_coords:
+        f.errors.setdefault("location", []).append("Informe o local da ocorrência ou marque as coordenadas no mapa.")
     data = f.finish()
     if data.get("type") != "FOUND":
         data["pointId"] = None
@@ -53,9 +56,10 @@ def _to_values(data: dict, user_id: int) -> dict:
         occurred = occurred.replace(tzinfo=timezone.utc)
     if occurred > datetime.now(timezone.utc) + timedelta(days=1):
         raise ApiError("A data da ocorrência não pode estar no futuro.", 422, {"occurredAt": ["Data no futuro."]})
+    location_val = (data.get("location") or "").strip() or f"{data['latitude']:.5f}, {data['longitude']:.5f}"
     return {"user_id": user_id, "type": data["type"], "category": data["category"], "title": data["title"],
             "description": data["description"], "color": data["color"] or None, "brand": data["brand"] or None,
-            "model": data["model"] or None, "attributes": data["attributes"], "location": data["location"],
+            "model": data["model"] or None, "attributes": data["attributes"], "location": location_val,
             "occurred_at": occurred, "point_id": data["pointId"], "latitude": data["latitude"],
             "longitude": data["longitude"]}
 
@@ -121,6 +125,11 @@ def update_item_from_form(user: dict, item_id: int, form, image=None):
     if image is not None and getattr(image, "filename", ""):
         store_item_image(item_id, image)
     add_item_event(item_id=item_id, actor_id=user["id"], status=current["status"], note="Dados do registro atualizados.")
+    shared = {k: values[k] for k in ("category", "color", "brand", "model", "attributes", "location",
+                                      "occurred_at", "latitude", "longitude") if k in values}
+    if "storage_location" in values:
+        shared["storage_location"] = values["storage_location"]
+    _sync_confirmed_items(item_id, shared, user, f"Dados sincronizados a partir do item vinculado \"{updated.title}\".")
     generate_matches_for_item(item_id)
     return updated
 
@@ -168,8 +177,23 @@ def change_item_status(user: dict, item_id: int, status: str, note: str | None =
                                "body": f"O registro \"{current['title']}\" foi arquivado por {user['name']}.",
                                "link": "/painel/itens"}])
     elif status == "OPEN":
+        _sync_confirmed_items(item_id, {"status": "OPEN"}, user,
+                              f"Registro reaberto automaticamente após reabertura de \"{current['title']}\".")
         generate_matches_for_item(item_id)
     return {"ok": True, "status": status}
+
+
+def _sync_confirmed_items(item_id: int, updates: dict, actor: dict, note: str) -> None:
+    if not updates:
+        return
+    related = [m for m in list_matches(status="CONFIRMED", limit=20)
+               if m["lost"]["id"] == item_id or m["found"]["id"] == item_id]
+    for m in related:
+        other = m["found"] if m["lost"]["id"] == item_id else m["lost"]
+        if other["status"] not in FINAL_STATUSES:
+            update_item(other["id"], updates)
+            add_item_event(item_id=other["id"], actor_id=actor["id"],
+                           status=updates.get("status", other["status"]), note=note)
 
 
 def _handle_confirmed_archive(item: dict, actor: dict):

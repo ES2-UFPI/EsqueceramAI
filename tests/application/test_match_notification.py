@@ -200,6 +200,19 @@ def test_returned_item_cannot_be_archived_and_confirmed_archive_syncs(app, make_
     assert "Marcar como devolvido" not in html
 
 
+def test_confirmed_match_shows_side_by_side_photos_and_syncs_edits(app, make_pair):
+    lost_id, found_id = _make_pair(make_pair)
+    match = matching_service.upsert_match(lost_item_id=lost_id, found_item_id=found_id, score=90, reasons=["Mesma cor"])
+    owner = persona_client(app, "carlos@ufpi.edu.br")
+    assert owner.patch(f"/api/matches/{match.id}", json={"action": "confirm"}).status_code == 200
+
+    detail = owner.get(f"/itens/{lost_id}").get_data(as_text=True)
+    assert "Item perdido" in detail and "Item encontrado" in detail
+
+    assert owner.patch(f"/api/items/{lost_id}", json={"status": "OPEN"}).status_code == 200
+    assert db.get(Item, found_id).status == "OPEN"
+
+
 def test_public_url_always_has_host(monkeypatch):
     from application.delivery.email_service import public_url
     monkeypatch.delenv("APP_BASE_URL", raising=False)
