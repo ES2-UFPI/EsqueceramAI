@@ -146,8 +146,8 @@ def change_item_status(user: dict, item_id: int, status: str, note: str | None =
         raise forbidden("Sem permissão para alterar o status.")
     if not is_owner and user["role"] == "OPERATOR_POST" and current["pointId"] is None:
         raise forbidden("Operadores gerenciam apenas itens entregues em pontos de coleta.")
-    if current["status"] == "DELIVERED" and status != "DELIVERED":
-        raise ApiError("Este item já foi entregue com termo de retirada e não pode mudar de status.", 409)
+    if current["status"] in FINAL_STATUSES and status != current["status"]:
+        raise ApiError("Este item já foi devolvido ou entregue e não pode mudar de status.", 409)
 
     set_item_status(item_id, status)
     if status == "DELIVERED" and current.get("pointId"):
@@ -161,12 +161,28 @@ def change_item_status(user: dict, item_id: int, status: str, note: str | None =
     if status in FINAL_STATUSES:
         _handle_recovery(current, user)
     elif status == "ARCHIVED":
+        _handle_confirmed_archive(current, user)
         create_notifications([{"userId": current["userId"], "type": "UPDATE", "title": "Registro arquivado",
                                "body": f"O registro \"{current['title']}\" foi arquivado por {user['name']}.",
                                "link": "/painel/itens"}])
     elif status == "OPEN":
         generate_matches_for_item(item_id)
     return {"ok": True, "status": status}
+
+
+def _handle_confirmed_archive(item: dict, actor: dict):
+    related = [m for m in list_matches(status="CONFIRMED", limit=20)
+               if m["lost"]["id"] == item["id"] or m["found"]["id"] == item["id"]]
+    for m in related:
+        other = m["found"] if m["lost"]["id"] == item["id"] else m["lost"]
+        if other["status"] in ("RESERVED", "OPEN"):
+            set_item_status(other["id"], "ARCHIVED")
+            add_item_event(item_id=other["id"], actor_id=actor["id"], status="ARCHIVED",
+                           note=f"Registro arquivado automaticamente após o arquivamento do item vinculado \"{item['title']}\".")
+            if other["ownerId"] != actor["id"]:
+                create_notifications([{"userId": other["ownerId"], "type": "UPDATE", "title": "Registro vinculado arquivado",
+                                       "body": f"O registro \"{other['title']}\" foi arquivado porque \"{item['title']}\" foi arquivado.",
+                                       "link": f"/itens/{other['id']}"}])
 
 
 def _handle_recovery(item: dict, actor: dict):

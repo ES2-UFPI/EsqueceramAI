@@ -22,10 +22,14 @@
 
   {% if m.status == 'PENDING' %}
     {% if can %}
+    {% if can_confirm %}
     <div class="alert sm mt">Isso é o seu item? Confirme para reservar o encontrado para você, ou descarte se for um falso positivo.</div>
+    {% else %}
+    <div class="alert sm mt">Aguardando a confirmação de quem perdeu o item. Você pode descartar caso tenha certeza de que não corresponde.</div>
+    {% endif %}
     <div class="flex gap-s mt">
-      {{ api_button('✓ É o meu item, confirmar', '/api/matches/%d'|format(m.id), 'PATCH', {'action': 'confirm'}, 'primary', success='Correspondência confirmada! O item foi reservado para retirada.', redirect='/painel/matches', small=False) }}
-      {{ api_button('Não é o meu item', '/api/matches/%d'|format(m.id), 'PATCH', {'action': 'reject'}, 'secondary', success='Sugestão descartada. Obrigado por ajudar!', redirect='/painel/matches', small=False) }}
+      {% if can_confirm %}{{ api_button('✓ É o meu item, confirmar', '/api/matches/%d'|format(m.id), 'PATCH', {'action': 'confirm'}, 'primary', success='Correspondência confirmada! O item foi reservado para retirada.', redirect='/painel/matches', small=False) }}{% endif %}
+      {{ api_button('Não é o meu item' if can_confirm else 'Descartar correspondência', '/api/matches/%d'|format(m.id), 'PATCH', {'action': 'reject'}, 'secondary', success='Sugestão descartada. Obrigado por ajudar!', redirect='/painel/matches', small=False) }}
     </div>
     {% elif needs_login %}
     <div class="alert sm mt">Entre na sua conta para confirmar que o item é seu ou descartar a sugestão.</div>

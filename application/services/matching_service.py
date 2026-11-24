@@ -332,9 +332,13 @@ def decide_match(user: dict, match_id: int, action: str, note: str | None = None
     if not match:
         raise not_found("Correspondência")
     lost, found = match["lost"], match["found"]
+    is_lost_owner = user["id"] == lost["ownerId"]
     is_owner = user["id"] in (lost["ownerId"], found["ownerId"])
-    if not is_owner and user["role"] not in ("ADMIN", "OPERATOR_POST"):
+    is_staff = user["role"] in ("ADMIN", "OPERATOR_POST")
+    if not is_owner and not is_staff:
         raise forbidden("Apenas os responsáveis pelo item ou a equipe podem decidir esta correspondência.")
+    if action != "reject" and not is_lost_owner and not is_staff:
+        raise forbidden("Apenas quem perdeu o item ou a equipe podem confirmar a correspondência.")
     if match["status"] != "PENDING":
         raise ApiError("Esta correspondência já foi decidida.", 409)
 

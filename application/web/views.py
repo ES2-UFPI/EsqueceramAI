@@ -218,7 +218,8 @@ def correspondencia(match_id):
         return render_not_found()
     is_owner = bool(viewer and viewer["id"] in (match["lost"]["ownerId"], match["found"]["ownerId"]))
     is_staff = bool(viewer and viewer["role"] in ("ADMIN", "OPERATOR_POST"))
-    return render_template("match_decisao.html", m=match, can=is_owner or is_staff,
+    can_confirm = bool(viewer and (viewer["id"] == match["lost"]["ownerId"] or is_staff))
+    return render_template("match_decisao.html", m=match, can=is_owner or is_staff, can_confirm=can_confirm,
                            needs_login=viewer is None and match["status"] == "PENDING")
 
 @bp.get("/painel")
