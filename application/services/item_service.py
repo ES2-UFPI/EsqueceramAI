@@ -1,4 +1,5 @@
 from datetime import datetime, timedelta, timezone
+from zoneinfo import ZoneInfo
 
 from application.auth import can_manage_item
 from application.domain import CATEGORIES, FINAL_STATUSES, RECORD_TYPES, STATUSES
@@ -53,7 +54,7 @@ def parse_item_form(form) -> dict:
 def _to_values(data: dict, user_id: int) -> dict:
     occurred = parse_iso(data["occurredAt"])
     if occurred.tzinfo is None:
-        occurred = occurred.replace(tzinfo=timezone.utc)
+        occurred = occurred.replace(tzinfo=ZoneInfo("America/Fortaleza"))
     if occurred > datetime.now(timezone.utc) + timedelta(days=1):
         raise ApiError("A data da ocorrência não pode estar no futuro.", 422, {"occurredAt": ["Data no futuro."]})
     location_val = (data.get("location") or "").strip() or f"{data['latitude']:.5f}, {data['longitude']:.5f}"

@@ -4,16 +4,9 @@
 <h1 class="display" style="font-size:2rem">Registrar entrega ao retirante</h1>
 <p class="sm muted">Confira o documento com foto, informe o CPF e envie o código de confirmação ao e-mail do retirante.</p>
 
-{% if not registration %}
-<section class="card pad mt" style="max-width:560px"><h2 class="display" style="font-size:1.2rem">Cadastre sua matrícula</h2>
-<p class="sm soft mt-s">A matrícula do atendente responsável é impressa no termo de entrega. Cadastre-a uma vez para liberar o checkout.</p>
-<form method="post" action="{{ url_for('delivery_web.matricula') }}" class="stack mt"><input type="hidden" name="next" value="{{ request.full_path.rstrip('?') }}">
-<label class="field"><span>Matrícula do atendente</span><input class="input" name="registrationNumber" placeholder="Ex.: ATD-2024-0117" required minlength="4" maxlength="20"></label>
-<button class="btn btn-primary">Salvar matrícula</button></form></section>
-{% else %}
 {% if error %}<div class="alert error mt">{{ error }}</div>{% endif %}
 <form method="post" enctype="multipart/form-data" class="card pad mt stack" style="max-width:760px" autocomplete="off">
-  <p class="xs muted">Atendente: <b>{{ user.name }}</b> · matrícula <b>{{ registration }}</b></p>
+  <p class="xs muted">Atendente responsável: <b>{{ user.name }}</b> ({{ user.email }} · {{ registration }})</p>
   <label class="field"><span>Item a ser entregue</span>
     <select class="select" name="itemId" required><option value="">Selecione…</option>
     {% for i in items %}<option value="{{ i.id }}" {{ 'selected' if values.get('itemId')|string == i.id|string }}>{{ i.id|code }} — {{ i.title }}{% if i.pointName %} ({{ i.pointName }}){% endif %}</option>{% endfor %}</select>
@@ -43,5 +36,4 @@
   <div class="flex gap wrap"><button class="btn btn-primary btn-lg">Enviar código ao retirante →</button><a class="btn btn-ghost btn-lg" href="{{ url_for('delivery_web.lista') }}">Cancelar</a></div>
 </form>
 <script src="{{ url_for('delivery_web.static', filename='delivery.js') }}"></script>
-{% endif %}
 {% endblock %}

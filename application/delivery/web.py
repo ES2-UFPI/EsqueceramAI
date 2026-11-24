@@ -39,7 +39,7 @@ def lista(user):
 @bp.route("/nova", methods=["GET", "POST"])
 @login_required("OPERATOR_POST")
 def nova(user):
-    registration = service.get_registration(user)
+    registration = service.ensure_registration(user)
     ctx = dict(registration=registration, items=service.deliverable_items(), error=None, errors={},
                values=request.form if request.method == "POST" else {"itemId": request.args.get("item", "")})
     if request.method == "POST":
