@@ -61,3 +61,11 @@ def test_item_hero_image_uses_object_fit_contain_to_avoid_cropping(client):
     css = client.get("/static/style.css").get_data(as_text=True)
     assert ".item-hero-thumb{height:auto!important" in css
     assert "object-fit:contain" in css
+
+
+def test_item_detail_renders_mailto_and_whatsapp_links_when_logged_in(app, make_item):
+    item_id = make_item()
+    authed = persona_client(app, "ana@ufpi.edu.br")
+    html = authed.get(f"/itens/{item_id}").get_data(as_text=True)
+    assert 'href="mailto:carlos@ufpi.edu.br"' in html
+    assert 'href="https://wa.me/5586988447710"' in html
