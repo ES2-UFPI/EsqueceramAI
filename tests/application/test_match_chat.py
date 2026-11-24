@@ -66,3 +66,26 @@ def test_chat_with_collection_point_restricts_to_finder_and_operators(app, make_
     msgs = carlos.get(f"/api/matches/{match.id}/messages").get_json()["messages"]
     assert len(msgs) == 3
     assert 'data-match-chat="' in operador.get(f"/correspondencias/{match.id}").get_data(as_text=True)
+
+
+def test_direct_delivery_receipt_available_to_both_parties_without_point(app, make_item):
+    lost_id = make_item(kind="LOST", with_point=False, owner="ana@ufpi.edu.br")
+    found_id = make_item(kind="FOUND", with_point=False, owner="carlos@ufpi.edu.br")
+    match = matching_service.upsert_match(lost_item_id=lost_id, found_item_id=found_id, score=91, reasons=["Mesmo modelo"])
+
+    ana = persona_client(app, "ana@ufpi.edu.br")
+    carlos = persona_client(app, "carlos@ufpi.edu.br")
+    operador = persona_client(app, "operador@ufpi.edu.br")
+
+    assert ana.patch(f"/api/matches/{match.id}", json={"action": "confirm"}).status_code == 200
+    assert ana.get(f"/api/matches/{match.id}/receipt").status_code == 409
+
+    assert carlos.patch(f"/api/items/{found_id}", json={"status": "RETURNED"}).status_code == 200
+
+    for party, item_page in ((ana, lost_id), (carlos, found_id)):
+        pdf = party.get(f"/api/matches/{match.id}/receipt")
+        assert pdf.status_code == 200 and pdf.data.startswith(b"%PDF")
+        assert f"/api/matches/{match.id}/receipt" in party.get(f"/itens/{item_page}").get_data(as_text=True)
+        assert f"/api/matches/{match.id}/receipt" in party.get(f"/correspondencias/{match.id}").get_data(as_text=True)
+
+    assert operador.get(f"/api/matches/{match.id}/receipt").status_code == 403

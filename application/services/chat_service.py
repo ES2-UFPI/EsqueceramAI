@@ -4,7 +4,9 @@ from sqlalchemy import select, update
 
 from application import domain as D
 from application.delivery import email_service
-from application.delivery.email_service import EmailError, public_url
+from application.delivery.email_service import EmailError, mask_email, public_url
+from application.delivery.receipt import ReceiptData, build_receipt_pdf
+from application.delivery.security import sha256_hex
 from application.errors import ApiError, forbidden, not_found
 from application.models import MatchChatPresence, MatchMessage, User, db, utcnow
 from application.repositories.engagement import create_notifications, find_match_by_id
@@ -173,3 +175,48 @@ def send_match_message(user: dict, match_id: int, raw: dict) -> dict:
                 pass
 
     return _serialize(row, user["name"], user["role"], user["id"])
+
+
+def can_direct_receipt(user: dict | None, match: dict) -> bool:
+    if not user or match["status"] != "CONFIRMED":
+        return False
+    if user["id"] not in (match["lost"]["ownerId"], match["found"]["ownerId"]):
+        return False
+    if match["lost"]["status"] not in D.FINAL_STATUSES and match["found"]["status"] not in D.FINAL_STATUSES:
+        return False
+    return not _found_has_point(match)
+
+
+def build_direct_match_receipt(user: dict, match_id: int) -> tuple[bytes, str]:
+    match = find_match_by_id(match_id)
+    if not match:
+        raise not_found("Correspondência")
+    if match["status"] != "CONFIRMED" or (
+        match["lost"]["status"] not in D.FINAL_STATUSES and match["found"]["status"] not in D.FINAL_STATUSES
+    ):
+        raise ApiError("O comprovante só fica disponível após confirmar a entrega.", 409)
+    if _found_has_point(match):
+        raise ApiError("Entregas em ponto de coleta usam o termo oficial do posto.", 409)
+    if user["id"] not in (match["lost"]["ownerId"], match["found"]["ownerId"]):
+        raise forbidden("Apenas quem perdeu e quem encontrou podem gerar este comprovante.")
+
+    lost_user = db.get(User, match["lost"]["ownerId"])
+    now = utcnow()
+    code = D.item_code(match["found"]["id"])
+    receipt = ReceiptData(
+        delivery_id=match_id,
+        created_at=now,
+        confirmed_at=now,
+        item_code=code,
+        item_title=match["found"]["title"],
+        point_name="Entrega direta entre as partes (sem posto de coleta)",
+        recipient_name=match["lost"]["ownerName"],
+        cpf_masked="Entrega direta (sem posto)",
+        cpf_hash=sha256_hex(f"direct:{match_id}:{match['lost']['id']}:{match['found']['id']}".encode()),
+        email_masked=mask_email(lost_user.email if lost_user else ""),
+        attendant_name=match["found"]["ownerName"],
+        attendant_registration="ENTREGA-DIRETA",
+        document_sha256=sha256_hex(f"match:{match_id}".encode()),
+    )
+    pdf, _ = build_receipt_pdf(receipt)
+    return pdf, f"comprovante-entrega-{code}.pdf"

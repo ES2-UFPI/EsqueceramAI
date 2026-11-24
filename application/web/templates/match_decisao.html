@@ -42,6 +42,7 @@
   {% else %}
     <div class="card mt" style="box-shadow:none">{{ empty('Correspondência já respondida', 'Já existe uma decisão para esta sugestão. Veja o histórico no painel de correspondências.') }}</div>
     {% if can_chat %}{{ match_chat(m.id, has_point) }}{% endif %}
+    {% if can_direct_receipt %}<a class="btn btn-primary btn-block mt-s" href="/api/matches/{{ m.id }}/receipt" target="_blank" rel="noopener">📄 Gerar comprovante de entrega (PDF)</a>{% endif %}
     <a class="btn btn-secondary btn-block mt-s" href="/painel/matches">Abrir painel de correspondências</a>
   {% endif %}
 </div>

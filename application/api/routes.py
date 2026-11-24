@@ -236,6 +236,14 @@ def match_messages_get(match_id):
 def match_messages_post(match_id):
     return jsonify(message=chat_service.send_match_message(api_user(), match_id, read_json())), 201
 
+@bp.get("/matches/<int:match_id>/receipt")
+@controller
+def match_direct_receipt(match_id):
+    pdf, filename = chat_service.build_direct_match_receipt(api_user(), match_id)
+    return Response(pdf, mimetype="application/pdf", headers={
+        "Content-Disposition": f'inline; filename="{filename}"',
+        "Cache-Control": "private, no-store"})
+
 # ---------------------------------------------------------- notificações
 @bp.get("/notifications")
 @controller

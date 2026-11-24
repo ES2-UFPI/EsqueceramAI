@@ -192,8 +192,10 @@ def item_detalhe(item_id):
     confirmed = any(m["status"] == "CONFIRMED" for m in detail["matches"])
     chat_match = next((m for m in detail["matches"] if chat_service.can_access_match_chat(viewer, m)), None)
     chat_has_point = bool(chat_match and chat_service._found_has_point(chat_match))
+    direct_receipt_match = next((m for m in detail["matches"] if chat_service.can_direct_receipt(viewer, m)), None)
     return render_template("item_detalhe.html", d=detail, item=detail["item"], pending=pending, confirmed=confirmed,
                            chat_match=chat_match, chat_has_point=chat_has_point,
+                           direct_receipt_match=direct_receipt_match,
                            is_staff=bool(viewer and viewer["role"] in ("ADMIN", "OPERATOR_POST")),
                            is_owner=bool(viewer and viewer["id"] == detail["item"]["userId"]),
                            challenge_question=claim_service.question_for(viewer, detail["item"]))
@@ -224,8 +226,9 @@ def correspondencia(match_id):
     can_confirm = bool(viewer and (viewer["id"] == match["lost"]["ownerId"] or is_staff))
     can_chat = chat_service.can_access_match_chat(viewer, match)
     has_point = chat_service._found_has_point(match)
+    can_direct_receipt = chat_service.can_direct_receipt(viewer, match)
     return render_template("match_decisao.html", m=match, can=is_owner or is_staff, can_confirm=can_confirm,
-                           can_chat=can_chat, has_point=has_point,
+                           can_chat=can_chat, has_point=has_point, can_direct_receipt=can_direct_receipt,
                            needs_login=viewer is None and match["status"] == "PENDING")
 
 @bp.get("/painel")
@@ -303,8 +306,9 @@ def painel_matches(user):
     scope_global = staff and request.args.get("escopo") == "global"
     matches = list_matches(user_id=None if scope_global else user["id"], status=status, limit=50)
     chat_ids = {m["id"] for m in matches if chat_service.can_access_match_chat(user, m)}
+    direct_receipt_ids = {m["id"] for m in matches if chat_service.can_direct_receipt(user, m)}
     return render_template("painel_matches.html", matches=matches, status=status, scope_global=scope_global, staff=staff,
-                           chat_ids=chat_ids, **shell_ctx(user), active="/painel/matches")
+                           chat_ids=chat_ids, direct_receipt_ids=direct_receipt_ids, **shell_ctx(user), active="/painel/matches")
 
 @bp.route("/painel/notificacoes", methods=["GET", "POST"])
 @login_required()
