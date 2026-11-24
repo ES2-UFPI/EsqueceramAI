@@ -164,11 +164,17 @@ def test_visitante_ve_o_item_mas_precisa_entrar_para_responder(app, make_pair):
 
 
 def test_outro_usuario_nao_pode_decidir(app, make_pair):
+    from application.auth import hash_password
+    from application.repositories.users import create_user, find_user_by_email
     from application.services.seed_service import DEMO_PASSWORD
+    with app.app_context():
+        if not find_user_by_email("terceiro@ufpi.edu.br"):
+            create_user(name="Terceiro Usuário", email="terceiro@ufpi.edu.br",
+                        password_hash=hash_password(DEMO_PASSWORD))
     lost_id, found_id = _make_pair(make_pair)
     match = matching_service.upsert_match(lost_item_id=lost_id, found_item_id=found_id, score=90, reasons=["Mesma cor"])
     client = app.test_client()
-    assert client.post("/api/auth/login", json={"email": "maria@ufpi.edu.br", "password": DEMO_PASSWORD}).status_code == 200
+    assert client.post("/api/auth/login", json={"email": "terceiro@ufpi.edu.br", "password": DEMO_PASSWORD}).status_code == 200
 
     assert client.patch(f"/api/matches/{match.id}", json={"action": "confirm"}).status_code == 403
     assert db.get(Match, match.id).status == "PENDING"

@@ -284,5 +284,4 @@ def list_demo_personas() -> list[dict]:
     if os.getenv("DEMO_LOGIN_DISABLED", "").lower() == "true":
         return []
     from application.domain import ROLE_LABEL
-    ensure_demo_accounts()
     return [{"key": u.email, "name": u.name, "label": ROLE_LABEL.get(u.role, u.role)} for u in list_demo_users()]

@@ -1,41 +1,47 @@
+from application.auth import hash_password
 from application.models import User, db
-from application.repositories.users import find_user_by_email
-from application.services.seed_service import ensure_demo_accounts
+from application.repositories.users import create_user, find_user_by_email
+from application.services.seed_service import DEMO_PASSWORD, ensure_demo_accounts
 
 
 def test_demo_flag_controls_quick_login_list(app, client):
+    with app.app_context():
+        if not find_user_by_email("nao_demo@ufpi.edu.br"):
+            create_user(name="Usuária Comum", email="nao_demo@ufpi.edu.br",
+                        password_hash=hash_password(DEMO_PASSWORD))
+
     html = client.get("/entrar").get_data(as_text=True)
     assert "Ana Beatriz Lima" in html
-    assert "Maria de Sousa" not in html
+    assert "Usuária Comum" not in html
 
     with app.app_context():
-        maria = find_user_by_email("maria@ufpi.edu.br")
-        assert maria is not None and maria.demo is False
-        maria.demo = True
+        u = find_user_by_email("nao_demo@ufpi.edu.br")
+        assert u is not None and u.demo is False
+        u.demo = True
         db.commit()
 
     try:
         html = client.get("/entrar").get_data(as_text=True)
-        assert "Maria de Sousa" in html
+        assert "Usuária Comum" in html
 
-        r_ok = client.post("/api/auth/demo", json={"persona": "maria@ufpi.edu.br"})
+        r_ok = client.post("/api/auth/demo", json={"persona": "nao_demo@ufpi.edu.br"})
         assert r_ok.status_code == 200
-        assert r_ok.json["user"]["email"] == "maria@ufpi.edu.br"
+        assert r_ok.json["user"]["email"] == "nao_demo@ufpi.edu.br"
 
         with app.app_context():
-            maria = find_user_by_email("maria@ufpi.edu.br")
-            maria.demo = False
+            u = find_user_by_email("nao_demo@ufpi.edu.br")
+            u.demo = False
             db.commit()
 
         html = client.get("/entrar").get_data(as_text=True)
-        assert "Maria de Sousa" not in html
-        r_denied = client.post("/api/auth/demo", json={"persona": "maria@ufpi.edu.br"})
+        assert "Usuária Comum" not in html
+        r_denied = client.post("/api/auth/demo", json={"persona": "nao_demo@ufpi.edu.br"})
         assert r_denied.status_code == 404
     finally:
         with app.app_context():
-            maria = find_user_by_email("maria@ufpi.edu.br")
-            if maria and maria.demo:
-                maria.demo = False
+            u = find_user_by_email("nao_demo@ufpi.edu.br")
+            if u and u.demo:
+                u.demo = False
                 db.commit()
 
 
