@@ -5,10 +5,12 @@
 {% if staff %}<span style="margin-left:auto"></span><a class="chip" href="?{{ qs(status=status, escopo=None if scope_global else 'global') }}">{{ 'Ver apenas as minhas' if scope_global else 'Ver todas (equipe)' }}</a>{% endif %}</div>
 {% if matches %}<ul class="stack mt">{% for m in matches %}
 {% set can = m.status == 'PENDING' and (staff or user.id == m.lost.ownerId or user.id == m.found.ownerId) %}
+{% set can_confirm = m.status == 'PENDING' and (staff or user.id == m.lost.ownerId) %}
 <li class="card pad"><div class="flex between center wrap gap"><div class="flex gap-s center">{{ score(m.score) }}{{ match_badge(m.status) }}</div><span class="xs muted">{{ m.createdAt|ago }}</span></div>
 <div class="grid g2 mt">
  {% for side, label in [(m.lost,'Perdido'),(m.found,'Encontrado')] %}<a href="/itens/{{ side.id }}" class="flex gap">{{ thumb(side.imageSrc, h='72px') }}<div class="grow"><p class="eyebrow">{{ label }}</p><p class="bold sm">{{ side.title }}</p><p class="xs muted">{{ side.location }} · {{ side.occurredAt|date }} · {{ side.ownerName }}</p></div></a>{% endfor %}</div>
 {% if m.reasons %}<ul class="reasons">{% for r in m.reasons %}<li>{{ r }}</li>{% endfor %}</ul>{% endif %}
-{% if can %}<div class="flex gap-s wrap mt">{{ api_button('✓ Confirmar', '/api/matches/%d'|format(m.id), 'PATCH', {'action':'confirm'}, 'primary', success='Correspondência confirmada! Os itens foram reservados.') }}{{ api_button('Descartar', '/api/matches/%d'|format(m.id), 'PATCH', {'action':'reject'}, success='Sugestão descartada.') }}<a class="btn btn-ghost btn-sm" href="/correspondencias/{{ m.id }}">Ver página do aviso</a></div>{% endif %}</li>{% endfor %}</ul>
+{% if can %}<div class="flex gap-s wrap mt">{% if can_confirm %}{{ api_button('✓ Confirmar', '/api/matches/%d'|format(m.id), 'PATCH', {'action':'confirm'}, 'primary', success='Correspondência confirmada! Os itens foram reservados.') }}{% endif %}{{ api_button('Descartar', '/api/matches/%d'|format(m.id), 'PATCH', {'action':'reject'}, success='Sugestão descartada.') }}<a class="btn btn-ghost btn-sm" href="/correspondencias/{{ m.id }}">Ver página do aviso</a></div>
+{% elif m.id in chat_ids or m.id in direct_receipt_ids %}<div class="flex gap-s wrap mt">{% if m.id in chat_ids %}<a class="btn btn-secondary btn-sm" href="/correspondencias/{{ m.id }}">💬 Abrir chat da entrega</a>{% endif %}{% if m.id in direct_receipt_ids %}<a class="btn btn-primary btn-sm" href="/api/matches/{{ m.id }}/receipt" target="_blank" rel="noopener">📄 Gerar comprovante de entrega (PDF)</a>{% endif %}</div>{% endif %}</li>{% endfor %}</ul>
 {% else %}<div class="card mt">{{ empty('Nada por aqui','Não há correspondências com este status.') }}</div>{% endif %}
 {% endblock %}

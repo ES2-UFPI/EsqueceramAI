@@ -3,6 +3,8 @@ import math
 import os
 import re
 import unicodedata
+import urllib.error
+import urllib.request
 
 from application.domain import CATEGORY_LABEL, FINAL_STATUSES
 from application.delivery.email_service import EmailError, send_match_notification
@@ -12,11 +14,14 @@ from application.repositories.engagement import (add_item_event, claim_match_not
                                          list_matches, match_notifications, update_match_status, upsert_match)
 from application.repositories.items import find_item_by_id, list_open_by_type, set_item_status
 from application.repositories.users import add_user_score, find_user_by_id
+from application.services import storage_service, vision_service
 
 log = logging.getLogger("esqueceram.matching")
 
 MATCH_THRESHOLD = 55
 NOTIFICATION_THRESHOLD = int(os.getenv("MATCH_NOTIFY_THRESHOLD", "75"))
+VISION_COMPARE_PREFILTER = 60
+VISION_COMPARE_MAX_CANDIDATES = 3
 
 STOPWORDS = {"de", "da", "do", "das", "dos", "com", "para", "por", "que", "uma", "um", "na", "no", "nas",
              "nos", "em", "e", "o", "a", "os", "as", "meu", "minha", "encontrado", "encontrada", "perdido",
@@ -61,33 +66,59 @@ def _text_tokens(item: dict) -> set[str]:
     return tokens(" ".join(str(item.get(k) or "") for k in ("title", "description", "color", "brand", "model")))
 
 
-def score_pair(lost: dict, found: dict) -> dict:
-    """Pontuador determinístico: cada motivo é legível para explicar a sugestão."""
-    if lost["category"] != found["category"]:
-        return {"score": 0, "reasons": []}
-    score = 26
-    reasons = [f"Mesma categoria: {CATEGORY_LABEL[lost['category']]}"]
+def _full_color(item: dict) -> str:
+    base = str(item.get("color") or "").strip()
+    custom = str((item.get("attributes") or {}).get("customColor") or "").strip()
+    if base and custom and custom.lower() not in base.lower():
+        return f"{base} ({custom})"
+    return custom or base
 
-    lc, fc = normalize(lost.get("color")), normalize(found.get("color"))
+
+def _score_metadata(lost: dict, found: dict) -> tuple[int, list[str]]:
+    """Pontua compatibilidade de cor (incluindo cor exata via IA), marca e modelo."""
+    score = 0
+    reasons: list[str] = []
+
+    lc_full, fc_full = _full_color(lost), _full_color(found)
+    lc, fc = normalize(lc_full), normalize(fc_full)
     if lc and fc:
-        if lc == fc:
-            score += 16; reasons.append(f"Cor compatível: {lost['color']}")
-        elif overlap_ratio(tokens(lost.get("color")), tokens(found.get("color"))) > 0:
-            score += 8; reasons.append(f"Tons próximos: {lost['color']} / {found['color']}")
+        if lc == fc or normalize(lost.get("color")) and normalize(lost.get("color")) == normalize(found.get("color")):
+            score += 16
+            reasons.append(f"Cor compatível: {lc_full}")
+        elif overlap_ratio(tokens(lc_full), tokens(fc_full)) > 0:
+            score += 8
+            reasons.append(f"Tons próximos: {lc_full} / {fc_full}")
+        else:
+            sim = vision_service.compare_colors_ai(lc_full, fc_full)
+            if sim is not None and sim >= 60:
+                score += max(6, _round(sim * 0.14))
+                reasons.append(f"Cores próximas segundo IA ({sim}%): {lc_full} / {fc_full}")
 
     lb, fb = normalize(lost.get("brand")), normalize(found.get("brand"))
     if lb and fb:
         if lb == fb:
-            score += 12; reasons.append(f"Marca em comum: {lost['brand']}")
+            score += 12
+            reasons.append(f"Marca em comum: {lost['brand']}")
         elif lb in fb or fb in lb:
-            score += 7; reasons.append("Marcas semelhantes")
+            score += 7
+            reasons.append("Marcas semelhantes")
 
     lm, fm = normalize(lost.get("model")), normalize(found.get("model"))
     if lm and fm:
         if lm == fm:
-            score += 12; reasons.append(f"Modelo em comum: {lost['model']}")
+            score += 12
+            reasons.append(f"Modelo em comum: {lost['model']}")
         elif overlap_ratio(tokens(lost.get("model")), tokens(found.get("model"))) > 0.4:
-            score += 6; reasons.append("Modelo parecido")
+            score += 6
+            reasons.append("Modelo parecido")
+
+    return score, reasons
+
+
+def _score_text_fields(lost: dict, found: dict) -> tuple[int, list[str]]:
+    """Pontua similaridade entre título, descrição e local."""
+    score = 0
+    reasons: list[str] = []
 
     title_overlap = overlap_ratio(tokens(lost["title"]), tokens(found["title"]))
     if title_overlap > 0:
@@ -109,18 +140,28 @@ def score_pair(lost: dict, found: dict) -> dict:
         if words:
             reasons.append(f"Mesmo local: {', '.join(words)}")
 
+    return score, reasons
+
+
+def _score_time_proximity(lost: dict, found: dict) -> tuple[int, list[str]]:
+    """Pontua proximidade temporal entre os registros."""
     diff_days = abs((lost["occurredAt"] - found["occurredAt"]).total_seconds()) / 86400
     if diff_days <= 1:
-        score += 14; reasons.append("Registros com menos de 1 dia de diferença")
-    elif diff_days <= 3:
-        score += 10; reasons.append("Registros com até 3 dias de diferença")
-    elif diff_days <= 7:
-        score += 6
-    elif diff_days <= 30:
-        score += 2
+        return 14, ["Registros com menos de 1 dia de diferença"]
+    if diff_days <= 3:
+        return 10, ["Registros com até 3 dias de diferença"]
+    if diff_days <= 7:
+        return 6, []
+    if diff_days <= 30:
+        return 2, []
+    return 0, []
 
+
+def _score_attributes(lost: dict, found: dict) -> tuple[int, list[str]]:
+    """Pontua atributos específicos coincidentes."""
     found_attr_values = [f"{k}:{v}" for k, v in (found.get("attributes") or {}).items()]
     found_desc = normalize(found["description"])
+    reasons: list[str] = []
     hits = 0
     for key, value in (lost.get("attributes") or {}).items():
         n = normalize(value)
@@ -130,25 +171,89 @@ def score_pair(lost: dict, found: dict) -> dict:
             hits += 1
             label = re.sub(r"([A-Z])", r" \1", key).lower()
             reasons.append(f"Atributo coincidente: {label}")
-    score += min(hits * 5, 10)
+    return min(hits * 5, 10), reasons
 
+
+def _score_visual_ai(lost: dict, found: dict) -> tuple[int, list[str]]:
+    """Pontua compatibilidade com base na análise visual por IA."""
     lv, fv = _visual_tokens(lost), _visual_tokens(found)
     if lv and fv:
         vis_overlap = overlap_ratio(lv, fv)
         if vis_overlap > 0:
-            score += _round(vis_overlap * 14)
             shared = sorted(lv & fv)[:4]
-            reasons.append(f"Análise visual por IA compatível: {', '.join(shared)}")
+            return _round(vis_overlap * 14), [f"Análise visual por IA compatível: {', '.join(shared)}"]
     elif lv or fv:
         vis_side = lv or fv
         text_side = _text_tokens(found if lv else lost)
         cross_overlap = overlap_ratio(vis_side, text_side)
         if cross_overlap > 0:
-            score += _round(cross_overlap * 10)
             shared = sorted(vis_side & text_side)[:4]
-            reasons.append(f"Foto analisada por IA compatível com a descrição: {', '.join(shared)}")
+            return _round(cross_overlap * 10), [f"Foto analisada por IA compatível com a descrição: {', '.join(shared)}"]
+    return 0, []
+
+
+def score_pair(lost: dict, found: dict) -> dict:
+    """Pontuador determinístico: cada motivo é legível para explicar a sugestão."""
+    if lost["category"] != found["category"]:
+        return {"score": 0, "reasons": []}
+
+    score = 26
+    reasons = [f"Mesma categoria: {CATEGORY_LABEL[lost['category']]}"]
+
+    for scorer in (_score_metadata, _score_text_fields, _score_time_proximity, _score_attributes, _score_visual_ai):
+        pts, sub_reasons = scorer(lost, found)
+        score += pts
+        reasons.extend(sub_reasons)
 
     return {"score": max(0, min(99, score)), "reasons": reasons[:5]}
+
+
+def _load_item_image_bytes(item_id: int) -> tuple[bytes, str] | None:
+    resolved = storage_service.resolve_item_image(item_id)
+    if not resolved:
+        return None
+    if resolved[0] == "bytes":
+        _, mime, data = resolved
+        return bytes(data), mime
+    if resolved[0] == "redirect":
+        _, url = resolved
+        try:
+            with urllib.request.urlopen(url, timeout=8) as resp:
+                mime = (resp.headers.get("Content-Type") or "image/jpeg").split(";")[0].strip()
+                data = resp.read(storage_service.MAX_BYTES + 1)
+                if data and len(data) <= storage_service.MAX_BYTES and mime in vision_service.SUPPORTED_MIMES:
+                    return data, mime
+        except (urllib.error.URLError, OSError, ValueError):
+            return None
+    return None
+
+
+def _apply_direct_vision_comparison(scored_pairs: list[tuple[dict, dict, dict]]) -> None:
+    """Compara diretamente as fotos dos melhores pares pré-filtrados usando Gemini Vision."""
+    if not vision_service.is_vision_enabled():
+        return
+    eligible = [pair for pair in scored_pairs if pair[2]["score"] > VISION_COMPARE_PREFILTER]
+    eligible.sort(key=lambda pair: pair[2]["score"], reverse=True)
+    cache: dict[int, tuple[bytes, str] | None] = {}
+
+    for lost, found, result in eligible[:VISION_COMPARE_MAX_CANDIDATES]:
+        if lost["id"] not in cache:
+            cache[lost["id"]] = _load_item_image_bytes(lost["id"])
+        if found["id"] not in cache:
+            cache[found["id"]] = _load_item_image_bytes(found["id"])
+        lost_img = cache[lost["id"]]
+        found_img = cache[found["id"]]
+        if not lost_img or not found_img:
+            continue
+        cmp = vision_service.compare_item_images(lost_img[0], lost_img[1], found_img[0], found_img[1])
+        if not cmp:
+            continue
+        blended = _round(result["score"] * 0.45 + cmp["similarity"] * 0.55)
+        if cmp["sameObject"] or cmp["similarity"] >= 60:
+            result["score"] = max(0, min(99, max(result["score"], blended)))
+        else:
+            result["score"] = max(0, min(99, blended))
+        result["reasons"] = [f"Comparação visual direta por IA ({cmp['similarity']}%): {cmp['reason']}", *result["reasons"]][:5]
 
 
 def generate_matches_for_item(item_id: int) -> int:
@@ -161,11 +266,16 @@ def generate_matches_for_item(item_id: int) -> int:
     if not candidates:
         return 0
     existing = {(m.lost_item_id, m.found_item_id) for m in find_match_pairs_for_item(item["id"])}
-    created = 0
+    scored_pairs = []
     for cand in candidates:
         lost = item if item["type"] == "LOST" else cand
         found = item if item["type"] == "FOUND" else cand
-        result = score_pair(lost, found)
+        scored_pairs.append((lost, found, score_pair(lost, found)))
+
+    _apply_direct_vision_comparison(scored_pairs)
+
+    created = 0
+    for lost, found, result in scored_pairs:
         if result["score"] < MATCH_THRESHOLD:
             continue
         match = upsert_match(lost_item_id=lost["id"], found_item_id=found["id"], score=result["score"], reasons=result["reasons"])
@@ -222,9 +332,13 @@ def decide_match(user: dict, match_id: int, action: str, note: str | None = None
     if not match:
         raise not_found("Correspondência")
     lost, found = match["lost"], match["found"]
+    is_lost_owner = user["id"] == lost["ownerId"]
     is_owner = user["id"] in (lost["ownerId"], found["ownerId"])
-    if not is_owner and user["role"] not in ("ADMIN", "OPERATOR_POST"):
+    is_staff = user["role"] in ("ADMIN", "OPERATOR_POST")
+    if not is_owner and not is_staff:
         raise forbidden("Apenas os responsáveis pelo item ou a equipe podem decidir esta correspondência.")
+    if action != "reject" and not is_lost_owner and not is_staff:
+        raise forbidden("Apenas quem perdeu o item ou a equipe podem confirmar a correspondência.")
     if match["status"] != "PENDING":
         raise ApiError("Esta correspondência já foi decidida.", 409)
 

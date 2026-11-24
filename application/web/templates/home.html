@@ -6,7 +6,9 @@
   <p class="soft mt" style="max-width:600px">Uma plataforma colaborativa de achados e perdidos que conecta pessoas na busca por objetos desaparecidos. Com o auxílio da inteligência artificial, o Esqueceram AI cruza informações de itens perdidos e encontrados, identifica possíveis correspondências e sugere conexões com explicações claras, notificações e pontos de encontro para facilitar a devolução dos objetos aos seus donos.</p>
   <form action="/itens" class="searchbox"><div class="flex gap wrap"><input class="input grow" name="q" placeholder="Carteira de estudante, fone JBL, mochila cinza…" aria-label="Buscar"><button class="btn btn-primary btn-lg">Buscar →</button></div>
   <div class="flex gap-s wrap center mt-s"><span class="xs muted bold">Atalhos:</span>{% for c in D.CATEGORIES %}<a class="chip" href="/itens?categoria={{ c }}">{{ D.CATEGORY_LABEL[c] }}</a>{% endfor %}<a class="chip" href="/itens?tipo=LOST">Perdidos</a><a class="chip" href="/itens?tipo=FOUND">Encontrados</a></div></form>
-  <p class="mt"><a class="chip" href="/entrar">✨ Testar sem cadastro: acesso rápido de demonstração em 1 clique →</a></p>
+  {% if user %}
+  <div class="flex gap-s wrap mt panel-actions"><a class="btn btn-secondary" href="/painel/itens/novo?tipo=FOUND">Achei um item</a><a class="btn btn-primary" href="/painel/itens/novo?tipo=LOST">Perdi um item</a><a class="btn btn-ghost" href="/painel">Ir para o painel →</a></div>
+  {% endif %}
 </section>
 <section class="grid g4 stats-grid">
   {{ stat('Itens perdidos ativos', data.lostActive) }}{{ stat('Itens encontrados ativos', data.foundActive) }}{{ stat('Devoluções concluídas', data.returned) }}{{ stat('Pontos de coleta', points|length) }}
@@ -19,5 +21,5 @@
 <section class="mt-l"><div class="flex between center wrap gap"><h2 class="display" style="font-size:1.8rem">Registros recentes</h2><a class="btn btn-secondary btn-sm" href="/itens">Ver todos</a></div>
 <div class="grid g3 mt">{% for i in data.recent %}{{ item_card(i) }}{% endfor %}</div></section>
 <section class="mt-l" id="pontos"><h2 class="display" style="font-size:1.8rem">Pontos de coleta</h2>
-<div class="grid g2 mt">{% for p in points %}<div class="card pad"><h3>📍 {{ p.name }}</h3><p class="xs muted">{{ p.building }}</p><p class="sm soft mt-s">{{ p.description }}</p><p class="xs mt-s">🕒 {{ p.openingHours }}{% if p.contact %} · ✉️ {{ p.contact }}{% endif %}</p></div>{% endfor %}</div></section>
+<div class="grid g2 mt">{% for p in points %}<div class="card pad"><h3>📍 {{ p.name }}</h3><p class="xs muted">{{ p.building }}</p><p class="sm soft mt-s">{{ p.description }}</p><p class="xs mt-s">🕒 {{ p.openingHours }}{% if p.contact %} · ✉️ {{ p.contact }}{% endif %}</p>{% if p.latitude is not none and p.longitude is not none %}<p class="xs mt-s"><a class="brand bold" href="https://www.openstreetmap.org/?mlat={{ p.latitude }}&amp;mlon={{ p.longitude }}#map=18/{{ p.latitude }}/{{ p.longitude }}" target="_blank" rel="noopener noreferrer">🗺️ Ver localização no mapa ↗</a></p>{% endif %}</div>{% endfor %}</div></section>
 {% endblock %}

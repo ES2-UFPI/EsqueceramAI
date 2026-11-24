@@ -79,19 +79,25 @@ def _read_secret(raw: dict) -> dict | None:
     answer = str(raw.get("secretAnswer") or "").strip()[:SECRET_ANSWER_MAX]
     if not (detail or question or answer):
         return None
-    if len(detail) < SECRET_DETAIL_MIN or len(question) < SECRET_QUESTION_MIN or len(answer) < SECRET_ANSWER_MIN:
+    if len(question) < SECRET_QUESTION_MIN or len(answer) < SECRET_ANSWER_MIN:
         raise _IncompleteSecret
-    return {"detail": detail, "question": question, "answer": answer}
+    if detail and len(detail) < SECRET_DETAIL_MIN:
+        raise _IncompleteSecret
+    return {"detail": detail or question, "question": question, "answer": answer}
 
 def validate_secret(user: dict, item: dict, form: dict) -> dict | None:
     """Valida o bloco confidencial *antes* de escrever qualquer coisa no banco de dados."""
     _require_owner(user, item)
+    # "Remover a pergunta-chave" tem prioridade: no formulário de edição a pergunta
+    # já chega preenchida, então validá-la antes faria a remoção falhar sempre.
+    if str(form.get("secretClear") or "").lower() in _TRUTHY_FORM_VALUES and not str(form.get("secretAnswer") or "").strip():
+        return None
     try:
         block = _read_secret(form)
     except _IncompleteSecret:
-        raise ApiError("Para usar a validação por pergunta, informe o detalhe, a pergunta "
-                       f"(mínimo {SECRET_QUESTION_MIN} caracteres) e a resposta.", 422,
-                       {"secretQuestion": ["Detalhe, pergunta e resposta são obrigatórios juntos."]})
+        raise ApiError("Para usar a validação por pergunta, informe a pergunta "
+                       f"(mínimo {SECRET_QUESTION_MIN} caracteres) e a resposta esperada.", 422,
+                       {"secretQuestion": ["Pergunta e resposta esperada são obrigatórias juntas."]})
     if block is not None and item["type"] != "FOUND":
         raise ApiError("Apenas itens encontrados podem ter detalhe oculto.", 422)
     if block is not None and is_seeded_item(item):

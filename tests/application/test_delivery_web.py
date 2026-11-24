@@ -110,7 +110,8 @@ def test_registration_gate_in_form(app, make_item):
     c = persona_client(app, "operador@ufpi.edu.br")
     db.query(m.AttendantProfile).delete(); db.commit()
     html = c.get("/painel/entregas/nova").get_data(as_text=True)
-    assert "Cadastre sua matrícula" in html and 'name="itemId"' not in html          # formulário bloqueado
+    assert "Atendente responsável:" in html and 'name="itemId"' in html
+    assert "Cadastre sua matrícula" not in html
     r = c.post("/painel/entregas/matricula", data={"registrationNumber": "x", "next": "/painel/entregas/nova"}, follow_redirects=True)
     assert "Use de 4 a 20 caracteres" in r.get_data(as_text=True)
     r = c.post("/painel/entregas/matricula", data={"registrationNumber": "mat-77", "next": "//evil.com"})

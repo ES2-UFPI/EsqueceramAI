@@ -1,3 +1,4 @@
+import os
 import threading
 from contextlib import contextmanager
 from datetime import datetime, timedelta, timezone
@@ -9,7 +10,7 @@ from application.models import User, db
 from application.repositories.engagement import add_item_event, create_notification, list_matches
 from application.repositories.items import count_items, create_item, find_item_by_id, set_item_status
 from application.repositories.points import count_points, create_point
-from application.repositories.users import add_user_score, create_user, find_user_by_email
+from application.repositories.users import add_user_score, create_user, find_user_by_email, list_demo_users
 from application.services.matching_service import decide_match, generate_matches_for_item
 
 DEMO_PASSWORD = "esqueceram123"
@@ -49,13 +50,17 @@ def _p(key, name, email, phone, role, score, label, description, persona=False):
 
 
 DEMO_PEOPLE = [
+    _p("arthur", "Arthur Rabelo", "rabeloarthur13@gmail.com", "(86) 99810-9632", "USER", 100, "Comunidade",
+       "Conta rápida de teste do Arthur.", True),
+    _p("caua", "Cauã Martins", "martincaua443@gmail.com", "(99) 98519-3499", "OPERATOR_POST", 100, "Operador de ponto",
+       "Conta rápida de teste do Cauã.", True),
     _p("ana", "Ana Beatriz Lima", "ana@ufpi.edu.br", "(86) 99911-2233", "USER", 145, "Comunidade",
        "Estudante com itens perdidos e correspondências pendentes.", True),
     _p("carlos", "Carlos Eduardo Rocha", "carlos@ufpi.edu.br", "(86) 98844-7710", "USER", 90, "Comunidade",
        "Estudante que registra itens encontrados.", True),
-    _p("maria", "Maria de Sousa", "maria@ufpi.edu.br", "(86) 99622-1188", "USER", 55, "Comunidade", "Estudante da comunidade."),
-    _p("joao", "João Pedro Alves", "joao@ufpi.edu.br", "(86) 99433-0021", "USER", 25, "Comunidade", "Estudante da comunidade."),
-    _p("lucas", "Lucas Ferreira", "lucas@ufpi.edu.br", "(86) 99277-4455", "USER", 70, "Comunidade", "Estudante da comunidade."),
+    # _p("maria", "Maria de Sousa", "maria@ufpi.edu.br", "(86) 99622-1188", "USER", 55, "Comunidade", "Estudante da comunidade."),
+    # _p("joao", "João Pedro Alves", "joao@ufpi.edu.br", "(86) 99433-0021", "USER", 25, "Comunidade", "Estudante da comunidade."),
+    # _p("lucas", "Lucas Ferreira", "lucas@ufpi.edu.br", "(86) 99277-4455", "USER", 70, "Comunidade", "Estudante da comunidade."),
     _p("renata", "Renata Nunes", "operador@ufpi.edu.br", "(86) 3215-5590", "OPERATOR_POST", 210, "Operador de ponto",
        "Equipe dos pontos de coleta e devoluções.", True),
     _p("marcos", "Marcos Vinícius", "admin@ufpi.edu.br", "(86) 3215-5500", "ADMIN", 320, "Administrador",
@@ -78,7 +83,8 @@ def ensure_demo_accounts() -> dict[str, int]:
             continue
         try:
             created = create_user(name=person["name"], email=person["email"], phone=person["phone"],
-                                  password_hash=hash_password(DEMO_PASSWORD), role=person["role"])
+                                  password_hash=hash_password(DEMO_PASSWORD), role=person["role"],
+                                  demo=person["persona"])
             ids[person["key"]] = created.id
             if person["score"]:
                 add_user_score(created.id, person["score"])
@@ -272,3 +278,10 @@ def ensure_seeded():
 def find_demo_persona(persona: str | None) -> dict:
     n = (persona or "").strip().lower()
     return next((p for p in DEMO_PERSONAS if p["key"] == n or p["email"] == n), DEMO_PERSONAS[0])
+
+
+def list_demo_personas() -> list[dict]:
+    if os.getenv("DEMO_LOGIN_DISABLED", "").lower() == "true":
+        return []
+    from application.domain import ROLE_LABEL
+    return [{"key": u.email, "name": u.name, "label": ROLE_LABEL.get(u.role, u.role)} for u in list_demo_users()]

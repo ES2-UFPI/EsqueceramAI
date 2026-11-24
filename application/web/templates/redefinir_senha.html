@@ -1,0 +1,16 @@
+{% extends "base.html" %}{% from "_ui.html" import field %}{% block title %}Redefinir senha · Esqueceram AI{% endblock %}
+{% block body %}<div class="authwrap"><div class="card authcard">
+<a href="/" class="brandmark"><img src="{{ url_for('static', filename='logo-esqueceram-ai.png') }}" alt="Esqueceram AI" class="brandlogo"></a><h1 class="display mt" style="font-size:1.8rem">Redefinir senha</h1>
+{% if error %}<div class="alert error mt">{{ error }}</div>{% endif %}
+{% if valid %}
+<p class="sm muted mt-s">Digite sua nova senha abaixo.</p>
+<form method="post" class="stack mt">
+  <input type="hidden" name="token" value="{{ token }}">
+  {{ field('Nova senha','newPassword',{},errors,'password','',True) }}
+  <button class="btn btn-primary btn-block btn-lg">Salvar nova senha</button>
+</form>
+{% else %}
+<div class="alert error mt">Link de redefinição inválido ou expirado. Solicite um novo link.</div>
+<a class="btn btn-secondary btn-block mt" href="/recuperar-senha">Solicitar novo link</a>
+{% endif %}
+<p class="xs mt"><a class="brand bold" href="/entrar">Voltar ao login</a></p></div></div>{% endblock %}

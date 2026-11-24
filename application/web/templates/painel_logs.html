@@ -1,0 +1,89 @@
+{% extends "app_base.html" %}{% from "_ui.html" import stat, empty %}{% block title %}Logs e auditoria · Esqueceram AI{% endblock %}
+{% block content %}
+<div class="flex between center wrap gap">
+  <div>
+    <p class="eyebrow">Administração</p>
+    <h1 class="display" style="font-size:2rem">Logs e auditoria do sistema</h1>
+    <p class="sm muted">Histórico consolidado de itens, entregas, notificações, autenticação, administração e pontos de coleta.</p>
+  </div>
+  <a class="btn btn-secondary btn-sm" href="/painel/admin">← Voltar à administração</a>
+</div>
+
+<div class="grid g4 stats-grid mt">
+  {{ stat('Registros exibidos', logs|length) }}
+  {{ stat('Eventos de itens', counts.ITEM) }}
+  {{ stat('Autenticação e admin', counts.AUTH + counts.ADMIN) }}
+  {{ stat('Entregas, pontos e match', counts.DELIVERY + counts.POINT + counts.NOTIFICATION) }}
+</div>
+
+<section class="card pad mt">
+  <form method="get" action="/painel/admin/logs" class="grid g3" style="align-items:end">
+    <label class="field">
+      <span>Tipo de log</span>
+      <select class="select" name="tipo">
+        <option value="">Todos os tipos</option>
+        {% for key, label in log_type_labels.items() %}
+        <option value="{{ key }}" {{ 'selected' if selected_type == key }}>{{ label }}</option>
+        {% endfor %}
+      </select>
+    </label>
+    <label class="field">
+      <span>Responsável / Ator</span>
+      <input class="input" name="ator" value="{{ actor }}" placeholder="Nome do usuário ou Sistema">
+    </label>
+    <label class="field">
+      <span>Buscar nos logs</span>
+      <input class="input" name="q" value="{{ q }}" placeholder="Item, e-mail, IP, erro ou detalhe...">
+    </label>
+    <label class="field">
+      <span>De</span>
+      <input class="input" type="date" name="de" value="{{ date_from }}">
+    </label>
+    <label class="field">
+      <span>Até</span>
+      <input class="input" type="date" name="ate" value="{{ date_to }}">
+    </label>
+    <div class="flex gap-s">
+      <button class="btn btn-primary btn-sm" type="submit">Filtrar</button>
+      <a class="btn btn-ghost btn-sm" href="/painel/admin/logs">Limpar</a>
+    </div>
+  </form>
+</section>
+
+<section class="card pad mt-l">
+  {% if logs %}
+  <div class="tablewrap">
+    <table class="t">
+      <thead>
+        <tr>
+          <th>Data/Hora</th>
+          <th>Tipo</th>
+          <th>Origem</th>
+          <th>Detalhe</th>
+          <th>Status</th>
+          <th>Responsável</th>
+          <th>IP</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for entry in logs %}
+        <tr>
+          <td class="xs muted" style="white-space:nowrap">{{ entry.createdAt|datetime }}</td>
+          <td><span class="badge">{{ entry.typeLabel }}</span></td>
+          <td class="sm"><b>{{ entry.title }}</b></td>
+          <td class="sm soft">{{ entry.detail }}</td>
+          <td><span class="badge">{{ entry.status }}</span></td>
+          <td class="sm">{{ entry.actor }}</td>
+          <td class="xs muted" style="white-space:nowrap">{{ entry.ipAddress or '—' }}</td>
+          <td><a class="btn btn-ghost btn-sm" href="{{ entry.link }}">Abrir</a></td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  {{ empty('Nenhum log encontrado', 'Ajuste os filtros ou aguarde novos eventos no sistema.') }}
+  {% endif %}
+</section>
+{% endblock %}

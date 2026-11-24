@@ -6,9 +6,9 @@
 {{ field('E-mail','email',values,errors,'email','voce@ufpi.edu.br',True) }}{{ field('Senha','password',values,errors,'password','',True) }}
 <button class="btn btn-primary btn-block btn-lg">Entrar</button></form>
 <p class="xs mt"><a class="brand bold" href="/recuperar-senha">Esqueci minha senha</a> · <a class="brand bold" href="/cadastrar">Criar conta</a></p>
-<hr style="border:0;border-top:1px solid var(--line);margin:20px 0">
+{% if personas %}<hr style="border:0;border-top:1px solid var(--line);margin:20px 0">
 <p class="eyebrow">Acesso rápido de demonstração</p>
 <form method="post" class="demo"><input type="hidden" name="next" value="{{ next }}">{% for p in personas %}
 <button class="btn btn-secondary" name="persona" value="{{ p.key }}" type="submit"><span>{{ p.label }}<small>{{ p.name }}</small></span></button>{% endfor %}</form>
-<p class="xs muted mt-s">Senha padrão das contas demo: <b>{{ DEMO_PASSWORD }}</b></p>
+<p class="xs muted mt-s">Senha padrão das contas demo: <b>{{ DEMO_PASSWORD }}</b></p>{% endif %}
 </div></div>{% endblock %}

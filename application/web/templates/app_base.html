@@ -2,7 +2,7 @@
 {% block body %}
 {% set nav = [('/painel','🏠','Visão geral',0),('/itens','🔍','Explorar itens',0),('/painel/itens','📦','Meus registros',0),('/painel/matches','✨','Correspondências',pending_count),('/painel/notificacoes','🔔','Notificações',unread_count),('/painel/pontos','📍','Pontos de coleta',0),('/painel/perfil','👤','Meu perfil',0)] %}
 {% if user.role in ('ADMIN','OPERATOR_POST') %}{% set nav = nav + [('/painel/operador','🛡️','Painel do ponto',0),('/painel/entregas','📝','Entregas',0),('/painel/descarte','🗃️','Descarte e doação',0)] %}{% endif %}
-{% if user.role == 'ADMIN' %}{% set nav = nav + [('/painel/admin','⚙️','Administração',0)] %}{% endif %}
+{% if user.role == 'ADMIN' %}{% set nav = nav + [('/painel/admin','⚙️','Administração',0),('/painel/admin/ia','🤖','Controle de IA',0),('/painel/admin/logs','📜','Logs e auditoria',0)] %}{% endif %}
 <div class="shell">
 <aside class="sidebar">
   <a href="/" class="brandmark" style="margin-bottom:20px"><img src="{{ url_for('static', filename='logo-esqueceram-ai.png') }}" alt="Esqueceram AI" class="brandlogo"></a>

@@ -1,4 +1,4 @@
-{% extends "base.html" %}{% from "_ui.html" import match_badge, score, thumb, api_button, empty %}{% block title %}Correspondência · Esqueceram AI{% endblock %}
+{% extends "base.html" %}{% from "_ui.html" import match_badge, score, thumb, api_button, empty, match_chat %}{% block title %}Correspondência · Esqueceram AI{% endblock %}
 {% block content %}
 {% set notify = m.notifications|selectattr('status', 'equalto', 'SENT')|list %}
 <div class="card pad" style="max-width:760px;margin:0 auto">
@@ -10,10 +10,12 @@
   {% if notify %}A notificação foi enviada por e-mail em {{ notify[0].sentAt|datetime }}.{% endif %}</p>
 
   <div class="grid g2 mt">
-    {% for side, label in [(m.lost, 'Seu relato'), (m.found, 'Item encontrado')] %}
-    <a href="/itens/{{ side.id }}" class="card pad" style="box-shadow:none">
-      <div class="flex gap">{{ thumb(side.imageSrc, h='64px') }}<div class="grow"><p class="eyebrow">{{ label }}</p>
-      <p class="bold sm">{{ side.title }}</p><p class="xs muted">{{ side.location }} · {{ side.occurredAt|date }}</p></div></div>
+    {% for side, label in [(m.lost, 'Item perdido'), (m.found, 'Item encontrado')] %}
+    <a href="/itens/{{ side.id }}" class="card pad stack-s" style="box-shadow:none">
+      {{ thumb(side.imageSrc, h='160px', icon='🔍' if loop.first else '📦') }}
+      <p class="eyebrow">{{ label }}</p>
+      <p class="bold sm">{{ side.title }}</p>
+      <p class="xs muted">{{ side.location }} · {{ side.occurredAt|date }}</p>
     </a>
     {% endfor %}
   </div>
@@ -22,10 +24,14 @@
 
   {% if m.status == 'PENDING' %}
     {% if can %}
+    {% if can_confirm %}
     <div class="alert sm mt">Isso é o seu item? Confirme para reservar o encontrado para você, ou descarte se for um falso positivo.</div>
+    {% else %}
+    <div class="alert sm mt">Aguardando a confirmação de quem perdeu o item. Você pode descartar caso tenha certeza de que não corresponde.</div>
+    {% endif %}
     <div class="flex gap-s mt">
-      {{ api_button('✓ É o meu item, confirmar', '/api/matches/%d'|format(m.id), 'PATCH', {'action': 'confirm'}, 'primary', success='Correspondência confirmada! O item foi reservado para retirada.', redirect='/painel/matches', small=False) }}
-      {{ api_button('Não é o meu item', '/api/matches/%d'|format(m.id), 'PATCH', {'action': 'reject'}, 'secondary', success='Sugestão descartada. Obrigado por ajudar!', redirect='/painel/matches', small=False) }}
+      {% if can_confirm %}{{ api_button('✓ É o meu item, confirmar', '/api/matches/%d'|format(m.id), 'PATCH', {'action': 'confirm'}, 'primary', success='Correspondência confirmada! O item foi reservado para retirada.', redirect='/painel/matches', small=False) }}{% endif %}
+      {{ api_button('Não é o meu item' if can_confirm else 'Descartar correspondência', '/api/matches/%d'|format(m.id), 'PATCH', {'action': 'reject'}, 'secondary', success='Sugestão descartada. Obrigado por ajudar!', redirect='/painel/matches', small=False) }}
     </div>
     {% elif needs_login %}
     <div class="alert sm mt">Entre na sua conta para confirmar que o item é seu ou descartar a sugestão.</div>
@@ -35,6 +41,8 @@
     {% endif %}
   {% else %}
     <div class="card mt" style="box-shadow:none">{{ empty('Correspondência já respondida', 'Já existe uma decisão para esta sugestão. Veja o histórico no painel de correspondências.') }}</div>
+    {% if can_chat %}{{ match_chat(m.id, has_point) }}{% endif %}
+    {% if can_direct_receipt %}<a class="btn btn-primary btn-block mt-s" href="/api/matches/{{ m.id }}/receipt" target="_blank" rel="noopener">📄 Gerar comprovante de entrega (PDF)</a>{% endif %}
     <a class="btn btn-secondary btn-block mt-s" href="/painel/matches">Abrir painel de correspondências</a>
   {% endif %}
 </div>

@@ -6,6 +6,7 @@ from sqlalchemy import (JSON, Boolean, DateTime, Enum, Float, ForeignKey, Index,
                         LargeBinary, String, Text, UniqueConstraint, create_engine, inspect, text)
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.engine import make_url
+from sqlalchemy.exc import IntegrityError, ProgrammingError
 from sqlalchemy.orm import DeclarativeBase, Mapped, Session, mapped_column, scoped_session, sessionmaker
 from sqlalchemy.types import TypeDecorator
 
@@ -57,6 +58,7 @@ class User(Base):
     avatar_url: Mapped[str | None] = mapped_column(Text, nullable=True)
     role: Mapped[str] = mapped_column(user_role, default="USER")
     score: Mapped[int] = mapped_column(Integer, default=0)
+    demo: Mapped[bool] = mapped_column(Boolean, default=False, server_default="0")
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
     created_at: Mapped[datetime] = mapped_column(UTCDateTime, default=utcnow)
     updated_at: Mapped[datetime] = mapped_column(UTCDateTime, default=utcnow)
@@ -144,6 +146,7 @@ class Notification(Base):
     title: Mapped[str] = mapped_column(Text)
     body: Mapped[str] = mapped_column(Text)
     link: Mapped[str | None] = mapped_column(Text, nullable=True)
+    ip_address: Mapped[str | None] = mapped_column(Text, nullable=True)
     is_read: Mapped[bool] = mapped_column(Boolean, default=False)
     created_at: Mapped[datetime] = mapped_column(UTCDateTime, default=utcnow)
 
@@ -158,6 +161,26 @@ class MatchNotification(Base):
     error: Mapped[str | None] = mapped_column(Text, nullable=True)
     created_at: Mapped[datetime] = mapped_column(UTCDateTime, default=utcnow)
     sent_at: Mapped[datetime | None] = mapped_column(UTCDateTime, nullable=True)
+
+
+class MatchMessage(Base):
+    __tablename__ = "match_messages"
+    __table_args__ = (Index("match_messages_match_idx", "match_id", "created_at"),)
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    match_id: Mapped[int] = mapped_column(ForeignKey("matches.id", ondelete="CASCADE"))
+    sender_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"))
+    body: Mapped[str] = mapped_column(Text)
+    read_at: Mapped[datetime | None] = mapped_column(UTCDateTime, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(UTCDateTime, default=utcnow)
+
+
+class MatchChatPresence(Base):
+    __tablename__ = "match_chat_presence"
+    __table_args__ = (UniqueConstraint("match_id", "user_id", name="match_chat_presence_unique"),)
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    match_id: Mapped[int] = mapped_column(ForeignKey("matches.id", ondelete="CASCADE"))
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"))
+    last_seen_at: Mapped[datetime] = mapped_column(UTCDateTime, default=utcnow)
 
 class ItemSecret(Base):
     __tablename__ = "item_secrets"
@@ -192,6 +215,16 @@ class ItemEvent(Base):
     actor_id: Mapped[int | None] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
     status: Mapped[str] = mapped_column(item_status)
     note: Mapped[str] = mapped_column(Text)
+    created_at: Mapped[datetime] = mapped_column(UTCDateTime, default=utcnow)
+
+
+class PasswordResetToken(Base):
+    __tablename__ = "password_reset_tokens"
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
+    token_hash: Mapped[str] = mapped_column(String(64), unique=True, index=True)
+    expires_at: Mapped[datetime] = mapped_column(UTCDateTime)
+    used_at: Mapped[datetime | None] = mapped_column(UTCDateTime, nullable=True)
     created_at: Mapped[datetime] = mapped_column(UTCDateTime, default=utcnow)
 
 # ------------------------------------------------------------------ engine/sessão
@@ -268,7 +301,8 @@ def _sync_missing_columns():
             for column in table.columns:
                 if column.name in colunas:
                     continue
-                ddl = (f"ALTER TABLE {table.name} ADD COLUMN {column.name} "
+                if_not_exists = "IF NOT EXISTS " if engine.dialect.name == "postgresql" else ""
+                ddl = (f"ALTER TABLE {table.name} ADD COLUMN {if_not_exists}{column.name} "
                        f"{column.type.compile(dialect=engine.dialect)}")
                 if column.server_default is not None:
                     default = column.server_default.arg
@@ -279,6 +313,10 @@ def _sync_missing_columns():
 
 
 def init_db():
-    Base.metadata.create_all(engine)
+    try:
+        Base.metadata.create_all(engine)
+    except (IntegrityError, ProgrammingError):
+        # Outro worker Gunicorn criou a tabela/sequence simultaneamente
+        pass
     _sync_missing_columns()
     _sync_item_status_enum()

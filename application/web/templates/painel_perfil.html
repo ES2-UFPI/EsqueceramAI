@@ -5,11 +5,11 @@
 <div class="grid g2 mt">
  <section class="card pad"><h2 class="display" style="font-size:1.2rem">Dados pessoais</h2>
   <form method="post" class="stack mt"><input type="hidden" name="_form" value="profile">
-  {% set pv = request.form if form == 'profile' else {'name': me.name, 'phone': me.phone or '', 'avatarUrl': me.avatarUrl or ''} %}
+  {% set pv = request.form if form == 'profile' else {'name': me.name, 'phone': me.phone or ''} %}
   {% set pe = errors if form == 'profile' else {} %}
   {{ field('Nome completo','name',pv,pe,'text','',True) }}
   <label class="field"><span>E-mail (não editável)</span><input class="input" value="{{ me.email }}" disabled></label>
-  {{ field('Telefone','phone',pv,pe,'tel','(86) 99999-0000') }}{{ field('URL da foto (opcional)','avatarUrl',pv,pe,'url','https://…') }}
+  {{ field('Telefone','phone',pv,pe,'tel','(86) 99999-0000') }}
   <button class="btn btn-primary">Salvar perfil</button></form></section>
  <div class="stack">
   <section class="card pad"><p class="eyebrow">Sua pontuação</p><b class="display" style="font-size:2.4rem">{{ me.score }}</b><p class="sm soft">Nível: <b>{{ level.label }}</b>{% if level.next %} · faltam {{ level.next - me.score }} pts para o próximo{% endif %}</p>

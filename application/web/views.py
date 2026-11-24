@@ -8,10 +8,11 @@ from application.errors import ApiError
 from application.repositories.engagement import (count_pending_matches, count_unread_notifications, list_matches,
                                          list_notifications, list_recent_events, mark_all_notifications_read)
 from application.repositories.items import items_at_points
-from application.repositories.points import create_point, list_points, list_recent_point_activity
-from application.services import (auth_service, claim_service, inventory_service, item_service, matching_service,
-                                  retention_service)
-from application.services.seed_service import DEMO_PASSWORD_HINT, DEMO_PERSONAS, ensure_seeded
+from application.repositories.points import (create_point, find_point_by_id, list_points,
+                                             list_recent_point_activity, update_point)
+from application.services import (ai_admin_service, audit_service, auth_service, chat_service, claim_service, inventory_service,
+                                  item_service, matching_service, retention_service)
+from application.services.seed_service import DEMO_PASSWORD_HINT, ensure_seeded, list_demo_personas
 from application.services.stats_service import get_admin_overview, get_dashboard, get_public_home
 from application.validation import Form
 
@@ -32,6 +33,11 @@ def _code(v): return D.item_code(v)
 def _initials(v): return D.initials(v)
 @bp.app_template_filter("firstname")
 def _firstname(v): return D.first_name(v)
+@bp.app_template_filter("wa")
+def _wa(v):
+    import re
+    digits = re.sub(r"\D", "", v or "")
+    return f"55{digits}" if len(digits) in (10, 11) else digits
 @bp.app_template_filter("humanize_key")
 def _humanize(k):
     import re
@@ -69,6 +75,17 @@ def render_not_found():
 def _form_error(exc: ApiError):
     return {"error": exc.message, "errors": exc.details or {}}
 
+@bp.get("/sw.js")
+def service_worker():
+    from pathlib import Path
+    sw_path = Path(__file__).resolve().parent / "static" / "sw.js"
+    return Response(
+        sw_path.read_text(encoding="utf-8"),
+        mimetype="application/javascript",
+        headers={"Service-Worker-Allowed": "/", "Cache-Control": "no-cache"},
+    )
+
+
 @bp.get("/")
 def home():
     ensure_seeded()
@@ -80,7 +97,7 @@ def entrar():
     nxt = safe_next(request.values.get("next"))
     if get_current_user() and request.method == "GET":
         return redirect(nxt)
-    ctx = {"next": nxt, "personas": DEMO_PERSONAS, "values": {}, "error": None, "errors": {}}
+    ctx = {"next": nxt, "personas": list_demo_personas(), "values": {}, "error": None, "errors": {}}
     if request.method == "POST":
         try:
             if request.form.get("persona"):
@@ -108,16 +125,36 @@ def recuperar():
     ctx = {"values": {}, "error": None, "errors": {}}
     if request.method == "POST":
         try:
-            auth_service.recover_password(request.form)
-            flash("Senha redefinida. Entre com a nova senha.", "ok")
+            auth_service.request_password_reset(request.form, base_url=request.url_root.rstrip("/"))
+            flash("Se o e-mail estiver cadastrado, enviamos um link para redefinir sua senha.", "ok")
             return redirect("/entrar")
         except ApiError as exc:
             ctx.update(_form_error(exc), values=request.form)
     return render_template("recuperar.html", **ctx)
 
+
+@bp.route("/redefinir-senha", methods=["GET", "POST"])
+def redefinir_senha():
+    token = (request.values.get("token") or "").strip()
+    valid = auth_service.validate_password_reset_token(token)
+    ctx = {"token": token, "valid": valid, "error": None, "errors": {}}
+    if request.method == "POST":
+        try:
+            auth_service.reset_password_with_token(request.form)
+            flash("Senha redefinida com sucesso. Entre com a nova senha.", "ok")
+            return redirect("/entrar")
+        except ApiError as exc:
+            ctx.update(_form_error(exc))
+            ctx["valid"] = auth_service.validate_password_reset_token(token)
+    return render_template("redefinir_senha.html", **ctx)
+
 @bp.post("/sair")
 def sair():
+    current = get_current_user()
     destroy_session(cookie_token())
+    if current:
+        audit_service.record_audit_log(user_id=current["id"], category="AUTH", title="Logout realizado",
+                                       body="Sessão encerrada pelo usuário.")
     resp = make_response(redirect("/"))
     resp.delete_cookie(SESSION_COOKIE, path="/")
     return resp
@@ -153,7 +190,12 @@ def item_detalhe(item_id):
         return render_not_found()
     pending = [m for m in detail["matches"] if m["status"] == "PENDING"]
     confirmed = any(m["status"] == "CONFIRMED" for m in detail["matches"])
+    chat_match = next((m for m in detail["matches"] if chat_service.can_access_match_chat(viewer, m)), None)
+    chat_has_point = bool(chat_match and chat_service._found_has_point(chat_match))
+    direct_receipt_match = next((m for m in detail["matches"] if chat_service.can_direct_receipt(viewer, m)), None)
     return render_template("item_detalhe.html", d=detail, item=detail["item"], pending=pending, confirmed=confirmed,
+                           chat_match=chat_match, chat_has_point=chat_has_point,
+                           direct_receipt_match=direct_receipt_match,
                            is_staff=bool(viewer and viewer["role"] in ("ADMIN", "OPERATOR_POST")),
                            is_owner=bool(viewer and viewer["id"] == detail["item"]["userId"]),
                            challenge_question=claim_service.question_for(viewer, detail["item"]))
@@ -181,7 +223,12 @@ def correspondencia(match_id):
         return render_not_found()
     is_owner = bool(viewer and viewer["id"] in (match["lost"]["ownerId"], match["found"]["ownerId"]))
     is_staff = bool(viewer and viewer["role"] in ("ADMIN", "OPERATOR_POST"))
-    return render_template("match_decisao.html", m=match, can=is_owner or is_staff,
+    can_confirm = bool(viewer and (viewer["id"] == match["lost"]["ownerId"] or is_staff))
+    can_chat = chat_service.can_access_match_chat(viewer, match)
+    has_point = chat_service._found_has_point(match)
+    can_direct_receipt = chat_service.can_direct_receipt(viewer, match)
+    return render_template("match_decisao.html", m=match, can=is_owner or is_staff, can_confirm=can_confirm,
+                           can_chat=can_chat, has_point=has_point, can_direct_receipt=can_direct_receipt,
                            needs_login=viewer is None and match["status"] == "PENDING")
 
 @bp.get("/painel")
@@ -210,7 +257,11 @@ def _item_form_context(user, values, error=None, errors=None, item=None):
 @bp.route("/painel/itens/novo", methods=["GET", "POST"])
 @login_required()
 def item_novo(user):
-    values = {"type": request.args.get("tipo", "LOST"), "category": "ELECTRONIC"}
+    values = {
+        "type": request.args.get("tipo", "LOST"),
+        "category": "ELECTRONIC",
+        "occurredAt": D.to_input_date(datetime.now(timezone.utc)),
+    }
     if request.method == "POST":
         try:
             result = item_service.create_item_from_form(user, request.form.to_dict(), request.files.get("image"))
@@ -254,8 +305,10 @@ def painel_matches(user):
     staff = user["role"] in ("ADMIN", "OPERATOR_POST")
     scope_global = staff and request.args.get("escopo") == "global"
     matches = list_matches(user_id=None if scope_global else user["id"], status=status, limit=50)
+    chat_ids = {m["id"] for m in matches if chat_service.can_access_match_chat(user, m)}
+    direct_receipt_ids = {m["id"] for m in matches if chat_service.can_direct_receipt(user, m)}
     return render_template("painel_matches.html", matches=matches, status=status, scope_global=scope_global, staff=staff,
-                           **shell_ctx(user), active="/painel/matches")
+                           chat_ids=chat_ids, direct_receipt_ids=direct_receipt_ids, **shell_ctx(user), active="/painel/matches")
 
 @bp.route("/painel/notificacoes", methods=["GET", "POST"])
 @login_required()
@@ -291,6 +344,19 @@ def painel_perfil(user):
 def painel_pontos(user):
     staff = user["role"] in ("ADMIN", "OPERATOR_POST")
     error, errors = None, {}
+    edit_raw = request.values.get("editar") or request.form.get("pointId") or ""
+    editing = find_point_by_id(int(edit_raw)) if (staff and edit_raw.isdigit()) else None
+    values = request.form
+    if request.method == "GET" and editing:
+        values = {
+            "name": editing.name,
+            "building": editing.building,
+            "description": editing.description or "",
+            "openingHours": editing.opening_hours or "",
+            "contact": editing.contact or "",
+            "latitude": "" if editing.latitude is None else str(editing.latitude),
+            "longitude": "" if editing.longitude is None else str(editing.longitude),
+        }
     if request.method == "POST":
         if not staff:
             return redirect("/painel?erro=permissao")
@@ -300,16 +366,29 @@ def painel_pontos(user):
         f.text("description", max=400, optional=True)
         f.text("openingHours", max=120, optional=True)
         f.text("contact", max=120, optional=True)
+        f.number("latitude", lo=-90, hi=90)
+        f.number("longitude", lo=-180, hi=180)
         try:
             d = f.finish()
-            create_point(name=d["name"], building=d["building"], description=d["description"] or None,
-                         openingHours=d["openingHours"] or None, contact=d["contact"] or None)
-            flash("Ponto de coleta criado.", "ok")
+            if editing:
+                update_point(editing.id, name=d["name"], building=d["building"],
+                             description=d["description"] or None, openingHours=d["openingHours"] or None,
+                             contact=d["contact"] or None, latitude=d["latitude"], longitude=d["longitude"])
+                audit_service.record_audit_log(user_id=user["id"], category="POINT", title="Ponto de coleta atualizado",
+                                               body=f"Ponto '{d['name']}' ({d['building']}) atualizado.", link="/painel/pontos")
+                flash("Ponto de coleta atualizado.", "ok")
+            else:
+                create_point(name=d["name"], building=d["building"], description=d["description"] or None,
+                             openingHours=d["openingHours"] or None, contact=d["contact"] or None,
+                             latitude=d["latitude"], longitude=d["longitude"])
+                audit_service.record_audit_log(user_id=user["id"], category="POINT", title="Ponto de coleta criado",
+                                               body=f"Ponto '{d['name']}' ({d['building']}) cadastrado.", link="/painel/pontos")
+                flash("Ponto de coleta criado.", "ok")
             return redirect("/painel/pontos")
         except ApiError as exc:
             error, errors = exc.message, exc.details
     return render_template("painel_pontos.html", points=list_points(not staff), staff=staff, error=error, errors=errors,
-                           values=request.form, **shell_ctx(user), active="/painel/pontos")
+                           values=values, editing=editing, **shell_ctx(user), active="/painel/pontos")
 
 @bp.get("/painel/operador")
 @login_required("OPERATOR_POST", "ADMIN")
@@ -400,3 +479,37 @@ def painel_descarte_csv(user):
 def painel_admin(user):
     return render_template("painel_admin.html", o=get_admin_overview(request.args.get("q") or None), q=request.args.get("q", ""),
                            me=user, **shell_ctx(user), active="/painel/admin")
+
+
+@bp.get("/painel/admin/logs")
+@login_required("ADMIN")
+def painel_admin_logs(user):
+    selected_type = request.args.get("tipo") if request.args.get("tipo") in audit_service.LOG_TYPES else ""
+    q = (request.args.get("q") or "").strip()[:120]
+    actor = (request.args.get("ator") or "").strip()[:80]
+    date_from = (request.args.get("de") or "").strip()[:10]
+    date_to = (request.args.get("ate") or "").strip()[:10]
+    logs = audit_service.list_system_logs(
+        log_type=selected_type or None,
+        q=q or None,
+        actor=actor or None,
+        date_from=date_from or None,
+        date_to=date_to or None,
+    )
+    counts = {key: sum(1 for entry in logs if entry["type"] == key) for key in audit_service.LOG_TYPES}
+    return render_template("painel_logs.html", logs=logs, counts=counts, selected_type=selected_type, q=q,
+                           actor=actor, date_from=date_from, date_to=date_to,
+                           log_type_labels=audit_service.LOG_TYPE_LABEL,
+                           **shell_ctx(user), active="/painel/admin/logs")
+
+
+@bp.route("/painel/admin/ia", methods=["GET", "POST"])
+@login_required("ADMIN")
+def painel_admin_ia(user):
+    if request.method == "POST":
+        enabled = request.form.get("enabled") == "1"
+        ai_admin_service.set_ai_enabled_by_admin(user["id"], enabled)
+        flash("IA ativada." if enabled else "IA desativada pelo administrador.", "ok")
+        return redirect("/painel/admin/ia")
+    return render_template("painel_ia.html", d=ai_admin_service.get_ai_dashboard(),
+                           **shell_ctx(user), active="/painel/admin/ia")
