@@ -88,6 +88,15 @@ def _attach_distance(items: list[dict], geo: dict) -> None:
         if it["latitude"] is not None and it["longitude"] is not None:
             it["distanceKm"] = round(haversine_km(geo["lat"], geo["lng"], it["latitude"], it["longitude"]), 3)
 
+def _page_result(items: list[dict], total: int, page: int, page_size: int) -> dict:
+    return {"items": items, "total": total, "page": page, "pageSize": page_size,
+            "totalPages": max(math.ceil(total / page_size), 1)}
+
+
+def _needs_python_filtering(place: str, geo: dict | None, sort: str | None) -> bool:
+    return bool(place or (geo and (geo.get("radiusKm") is not None or sort == "proximity")))
+
+
 def _list_in_python(where, order, geo, place, sort, page, page_size) -> dict:
     items = [map_item(r) for r in db.execute(_base().where(*where).order_by(*order))]
     if place:
@@ -100,8 +109,7 @@ def _list_in_python(where, order, geo, place, sort, page, page_size) -> dict:
             items.sort(key=lambda it: (it["distanceKm"] is None, it["distanceKm"] or 0))
     total = len(items)
     start = (page - 1) * page_size
-    return {"items": items[start:start + page_size], "total": total, "page": page, "pageSize": page_size,
-            "totalPages": max(math.ceil(total / page_size), 1)}
+    return _page_result(items[start:start + page_size], total, page, page_size)
 
 def list_items(f: dict) -> dict:
     page_size = min(f.get("pageSize") or 9, 50)
@@ -118,15 +126,14 @@ def list_items(f: dict) -> dict:
         term = f"%{q}%"
         order.append(case((Item.title.ilike(term), 0), (Item.description.ilike(term), 1), else_=2).asc())
     order += [Item.occurred_at.desc(), Item.id.desc()]
-    if place or (geo and (geo.get("radiusKm") is not None or f.get("sort") == "proximity")):
+    if _needs_python_filtering(place, geo, f.get("sort")):
         return _list_in_python(where, order, geo, place, f.get("sort"), page, page_size)
     rows = db.execute(_base().where(*where).order_by(*order).limit(page_size).offset((page - 1) * page_size))
     total = db.scalar(select(func.count()).select_from(Item).where(*where)) or 0
     items = [map_item(r) for r in rows]
     if geo:
         _attach_distance(items, geo)
-    return {"items": items, "total": total, "page": page, "pageSize": page_size,
-            "totalPages": max(math.ceil(total / page_size), 1)}
+    return _page_result(items, total, page, page_size)
 
 def find_item_by_id(item_id: int):
     row = db.execute(_base().where(Item.id == item_id).limit(1)).first()
