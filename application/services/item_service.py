@@ -41,6 +41,8 @@ def parse_item_form(form) -> dict:
     if (f.data.get("latitude") is None) != (f.data.get("longitude") is None):
         f.errors.setdefault("latitude", []).append("Informe latitude e longitude juntas.")
     data = f.finish()
+    if data.get("type") != "FOUND":
+        data["pointId"] = None
     data["attributes"] = attributes
     return data
 

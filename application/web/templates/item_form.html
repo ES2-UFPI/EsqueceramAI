@@ -45,10 +45,11 @@
   <div class="grid g3">
     <label class="field"><span>Local da ocorrência *</span><input class="input" name="location" required minlength="2" list="locs" value="{{ values.get('location','') }}">{{ err(errors,'location') }}<datalist id="locs">{% for l in D.CAMPUS_LOCATIONS %}<option value="{{ l }}">{% endfor %}</datalist></label>
     <label class="field"><span>Data da ocorrência *</span><input class="input" type="date" name="occurredAt" required value="{{ values.get('occurredAt','') }}">{{ err(errors,'occurredAt') }}</label>
-    <label class="field"><span>Ponto de coleta (opcional)</span><select class="select" name="pointId"><option value="">Nenhum</option>{% for p in points %}<option value="{{ p.id }}" {{ 'selected' if values.get('pointId')|string == p.id|string }}>{{ p.name }}</option>{% endfor %}</select>{{ err(errors,'pointId') }}</label>
+    <label class="field" data-found-only {{ 'hidden' if values.get('type') != 'FOUND' }}><span>Ponto de coleta (opcional)</span><select class="select" name="pointId"><option value="">Nenhum</option>{% for p in points %}<option value="{{ p.id }}" {{ 'selected' if values.get('pointId')|string == p.id|string }}>{{ p.name }}</option>{% endfor %}</select>{{ err(errors,'pointId') }}</label>
   </div>
+  <div class="alert sm" data-found-only {{ 'hidden' if values.get('type') != 'FOUND' }}>📍 <b>Vai entregar em um posto de coleta?</b> Selecione o posto acima e leve o item encontrado até o balcão no horário de funcionamento para registro e guarda pela equipe. Caso contrário, deixe em "Nenhum" para combinar diretamente com o dono.</div>
   {% if user and user.role in ('OPERATOR_POST', 'ADMIN') %}
-  <label class="field"><span>Localização física interna no posto (exclusivo para atendentes)</span><input class="input" name="storageLocation" maxlength="80" value="{{ values.get('storageLocation','') }}" placeholder="Ex.: Prateleira B2 · Gaveta 3 · Caixa 1">{{ err(errors,'storageLocation') }}</label>
+  <label class="field" data-found-only {{ 'hidden' if values.get('type') != 'FOUND' }}><span>Localização física interna no posto (exclusivo para atendentes)</span><input class="input" name="storageLocation" maxlength="80" value="{{ values.get('storageLocation','') }}" placeholder="Ex.: Prateleira B2 · Gaveta 3 · Caixa 1">{{ err(errors,'storageLocation') }}</label>
   {% endif %}
   {{ geo_picker(values, errors) }}
   <fieldset class="card pad stack" style="box-shadow:none" data-secret-box {{ 'hidden' if values.get('type') != 'FOUND' }}>
