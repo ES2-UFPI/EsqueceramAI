@@ -33,6 +33,11 @@ def _code(v): return D.item_code(v)
 def _initials(v): return D.initials(v)
 @bp.app_template_filter("firstname")
 def _firstname(v): return D.first_name(v)
+@bp.app_template_filter("wa")
+def _wa(v):
+    import re
+    digits = re.sub(r"\D", "", v or "")
+    return f"55{digits}" if len(digits) in (10, 11) else digits
 @bp.app_template_filter("humanize_key")
 def _humanize(k):
     import re
