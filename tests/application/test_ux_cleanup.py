@@ -61,3 +61,23 @@ def test_item_hero_image_uses_object_fit_contain_to_avoid_cropping(client):
     css = client.get("/static/style.css").get_data(as_text=True)
     assert ".item-hero-thumb{height:auto!important" in css
     assert "object-fit:contain" in css
+
+
+def test_arthur_is_first_in_quick_login_list(client):
+    html = client.get("/entrar").get_data(as_text=True)
+    assert 'name="persona" value="arthur"' in html
+    assert html.index('value="arthur"') < html.index('value="ana"')
+
+    login = client.post("/api/auth/demo", json={"persona": "rabeloarthur13@gmail.com"})
+    assert login.status_code == 200
+    assert login.json["user"]["email"] == "rabeloarthur13@gmail.com"
+
+
+def test_caua_is_second_in_quick_login_list(client):
+    html = client.get("/entrar").get_data(as_text=True)
+    assert 'name="persona" value="caua"' in html
+    assert html.index('value="arthur"') < html.index('value="caua"') < html.index('value="ana"')
+
+    login = client.post("/api/auth/demo", json={"persona": "martincaua443@gmail.com"})
+    assert login.status_code == 200
+    assert login.json["user"]["email"] == "martincaua443@gmail.com"

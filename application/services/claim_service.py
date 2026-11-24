@@ -88,6 +88,10 @@ def _read_secret(raw: dict) -> dict | None:
 def validate_secret(user: dict, item: dict, form: dict) -> dict | None:
     """Valida o bloco confidencial *antes* de escrever qualquer coisa no banco de dados."""
     _require_owner(user, item)
+    # "Remover a pergunta-chave" tem prioridade: no formulário de edição a pergunta
+    # já chega preenchida, então validá-la antes faria a remoção falhar sempre.
+    if str(form.get("secretClear") or "").lower() in _TRUTHY_FORM_VALUES and not str(form.get("secretAnswer") or "").strip():
+        return None
     try:
         block = _read_secret(form)
     except _IncompleteSecret:

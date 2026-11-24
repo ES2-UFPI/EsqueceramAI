@@ -35,15 +35,27 @@ def run(scenario):
     return tuple(int(x) for x in out.stdout.split()[-3:])
 
 
+DEMO_USERS = 6  # contas em DEMO_PEOPLE (maria/joao/lucas ficam comentadas no seed)
+
+
 def test_demo_login_on_empty_database_populates_items_and_points():
     users, items, points = run("demo_first")
-    assert users == 7 and items == 18 and points == 4
+    assert users == DEMO_USERS and items == 11 and points == 4
 
 
 def test_home_first_unchanged():
-    assert run("home_first") == (7, 18, 4)
+    assert run("home_first") == (DEMO_USERS, 11, 4)
 
 
 def test_real_data_is_never_polluted_with_demo_items():
     users, items, points = run("real_user_first")
-    assert users == 8 and items == 0 and points == 0         # usuário real: só as contas demo são garantidas
+    assert users == DEMO_USERS + 1 and items == 0 and points == 0   # usuário real: só as contas demo são garantidas
+
+
+def test_demo_roles_are_valid():
+    """Um papel fora de domain.ROLES impediria o SQLAlchemy de ler o usuário (enum inválido)."""
+    from application import domain
+    from application.services.seed_service import DEMO_PEOPLE
+
+    invalid = {p["role"] for p in DEMO_PEOPLE} - set(domain.ROLES)
+    assert not invalid, f"papéis inválidos no seed: {invalid}"

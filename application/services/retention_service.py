@@ -16,10 +16,14 @@ audit = logging.getLogger("esqueceram.audit")  # trilha de auditoria: mudanças 
 def retention_days() -> int:
     return parse_retention_days(os.getenv("STORAGE_RETENTION_DAYS"))
 
+def _resolve_days(days: int | None) -> int:
+    return parse_retention_days(days) if days is not None else retention_days()
+
+
 def find_overdue_items(now: datetime | None = None, days: int | None = None,
                        statuses: tuple[str, ...] = STORED_STATUSES) -> list[dict]:
     now = now or datetime.now(timezone.utc)
-    days = parse_retention_days(days) if days is not None else retention_days()
+    days = _resolve_days(days)
     cutoff = now - timedelta(days=days)
     items = list_stored_entered_before(cutoff, statuses)
     for it in items:
@@ -31,32 +35,35 @@ def _audit_note(item: dict, days: int) -> str:
     return (f"Status alterado automaticamente de \"{STATUS_LABEL[item['status']]}\" para \"{STATUS_LABEL[DISPOSAL_STATUS]}\": "
             f"item armazenado há {item['daysStored']} dias no ponto \"{item['pointName']}\" (prazo de guarda: {days} dias).")
 
+def _expire_one(it: dict, days: int) -> str:
+    try:
+        with atomic():
+            changed = transition_item_status(it["id"], it["status"], DISPOSAL_STATUS)
+            if changed:
+                add_item_event(item_id=it["id"], actor_id=None, status=DISPOSAL_STATUS, note=_audit_note(it, days))
+    except Exception:
+        log.exception("Falha ao atualizar automaticamente o status do item %s.", it["code"])
+        return "failed"
+    if not changed:
+        log.info("Item %s mudou de status durante a rotina; nada foi alterado.", it["code"])
+        return "skipped"
+    audit.info("AUDIT item_status_changed item=%s id=%d from=%s to=%s actor=system reason=storage_retention_expired "
+               "days_stored=%d retention_days=%d entered_at=%s",
+               it["code"], it["id"], it["status"], DISPOSAL_STATUS, it["daysStored"], days,
+               it["enteredAt"].isoformat())
+    return "updated"
+
+
 def expire_overdue_items(items: list[dict], days: int) -> dict:
     outcome = {"updated": [], "skipped": [], "failed": []}
     for it in items:
-        try:
-            with atomic():
-                changed = transition_item_status(it["id"], it["status"], DISPOSAL_STATUS)
-                if changed:
-                    add_item_event(item_id=it["id"], actor_id=None, status=DISPOSAL_STATUS, note=_audit_note(it, days))
-        except Exception:
-            log.exception("Falha ao atualizar automaticamente o status do item %s.", it["code"])
-            outcome["failed"].append(it["id"])
-            continue
-        if not changed:
-            log.info("Item %s mudou de status durante a rotina; nada foi alterado.", it["code"])
-            outcome["skipped"].append(it["id"])
-            continue
-        audit.info("AUDIT item_status_changed item=%s id=%d from=%s to=%s actor=system reason=storage_retention_expired "
-                   "days_stored=%d retention_days=%d entered_at=%s",
-                   it["code"], it["id"], it["status"], DISPOSAL_STATUS, it["daysStored"], days,
-                   it["enteredAt"].isoformat())
-        outcome["updated"].append(it["id"])
+        outcome[_expire_one(it, days)].append(it["id"])
     return outcome
+
 
 def run_daily_check(now: datetime | None = None, days: int | None = None, apply: bool = False) -> dict:
     now = now or datetime.now(timezone.utc)
-    days = parse_retention_days(days) if days is not None else retention_days()
+    days = _resolve_days(days)
     items = find_overdue_items(now=now, days=days)
     for it in items:
         log.info("Item vencido: %s \"%s\" no ponto \"%s\" há %d dias (entrada em %s)",
@@ -78,6 +85,14 @@ def day_options() -> list[int]:
     days = retention_days()
     return [d for d in EXTRA_DAY_OPTIONS if d > days]
 
+def _apply_sort(items: list[dict], sort: str | None) -> list[dict]:
+    if sort == "recentes":
+        return items[::-1]
+    if sort == "titulo":
+        return sorted(items, key=lambda i: (fold_text(i["title"]), i["id"]))
+    return items
+
+
 def _filter(items: list[dict], f: dict, now: datetime) -> list[dict]:
     if f.get("minDays"):
         limit = now - timedelta(days=f["minDays"])
@@ -89,11 +104,7 @@ def _filter(items: list[dict], f: dict, now: datetime) -> list[dict]:
     if term := fold_text(f.get("q")):
         fields = ("code", "title", "location", "brand", "color", "pointName")
         items = [i for i in items if term in fold_text(" ".join(str(i[k] or "") for k in fields))]
-    if f.get("sort") == "recentes":
-        items = items[::-1]
-    elif f.get("sort") == "titulo":
-        items = sorted(items, key=lambda i: (fold_text(i["title"]), i["id"]))
-    return items
+    return _apply_sort(items, f.get("sort"))
 
 def filter_disposal_candidates(filters: dict | None = None, now: datetime | None = None) -> list[dict]:
     now = now or datetime.now(timezone.utc)
