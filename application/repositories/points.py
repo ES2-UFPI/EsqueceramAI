@@ -1,32 +1,66 @@
 from sqlalchemy import func, select
 
-from application.models import CollectionPoint as P, Item, db
+from application.models import CollectionPoint, Item, db
 
 
-def _map(p, n, aw):
-    return {"id": p.id, "name": p.name, "building": p.building, "description": p.description,
-            "openingHours": p.opening_hours, "contact": p.contact, "latitude": p.latitude,
-            "longitude": p.longitude, "isActive": p.is_active, "itemCount": n, "awaitingCount": aw}
+def point_json(point: CollectionPoint) -> dict:
+    return {
+        "id": point.id,
+        "name": point.name,
+        "building": point.building,
+        "description": point.description,
+        "openingHours": point.opening_hours,
+        "contact": point.contact,
+        "latitude": point.latitude,
+        "longitude": point.longitude,
+        "isActive": point.is_active,
+        "createdAt": point.created_at,
+    }
 
 
-def list_points(only_active=False) -> list[dict]:
-    total = select(func.count()).select_from(Item).where(Item.point_id == P.id).correlate(P).scalar_subquery()
-    waiting = (select(func.count()).select_from(Item)
-               .where(Item.point_id == P.id, Item.status.in_(["OPEN", "RESERVED"])).correlate(P).scalar_subquery())
-    stmt = select(P, total, waiting).order_by(P.name)
+def _serialize_point_with_counts(point: CollectionPoint, item_count: int, awaiting_count: int) -> dict:
+    data = point_json(point)
+    data.pop("createdAt", None)
+    data["itemCount"] = item_count
+    data["awaitingCount"] = awaiting_count
+    return data
+
+
+def list_points(only_active: bool = False) -> list[dict]:
+    total_subquery = (
+        select(func.count())
+        .select_from(Item)
+        .where(Item.point_id == CollectionPoint.id)
+        .correlate(CollectionPoint)
+        .scalar_subquery()
+    )
+    waiting_subquery = (
+        select(func.count())
+        .select_from(Item)
+        .where(Item.point_id == CollectionPoint.id, Item.status.in_(["OPEN", "RESERVED"]))
+        .correlate(CollectionPoint)
+        .scalar_subquery()
+    )
+    stmt = select(CollectionPoint, total_subquery, waiting_subquery).order_by(CollectionPoint.name)
     if only_active:
-        stmt = stmt.where(P.is_active.is_(True))
-    return [_map(*row) for row in db.execute(stmt)]
+        stmt = stmt.where(CollectionPoint.is_active.is_(True))
+    return [_serialize_point_with_counts(*row) for row in db.execute(stmt)]
 
 
 def find_point_by_id(point_id: int):
-    return db.get(P, point_id)
+    return db.get(CollectionPoint, point_id)
 
 
-def create_point(**v):
-    row = P(name=v["name"], building=v["building"], description=v.get("description"),
-            opening_hours=v.get("openingHours"), contact=v.get("contact"),
-            latitude=v.get("latitude"), longitude=v.get("longitude"))
+def create_point(**values):
+    row = CollectionPoint(
+        name=values["name"],
+        building=values["building"],
+        description=values.get("description"),
+        opening_hours=values.get("openingHours"),
+        contact=values.get("contact"),
+        latitude=values.get("latitude"),
+        longitude=values.get("longitude"),
+    )
     db.add(row)
     db.commit()
     return row
@@ -35,8 +69,8 @@ def create_point(**v):
 _UNSET = object()
 
 
-def update_point(point_id: int, **v):
-    row = db.get(P, point_id)
+def update_point(point_id: int, **values):
+    row = db.get(CollectionPoint, point_id)
     if not row:
         return None
     for key, attr in (
@@ -49,26 +83,33 @@ def update_point(point_id: int, **v):
         ("latitude", "latitude"),
         ("longitude", "longitude"),
     ):
-        val = v.get(key, _UNSET)
+        val = values.get(key, _UNSET)
         if val is not _UNSET and (key not in ("name", "building", "isActive") or val is not None):
             setattr(row, attr, val)
     db.commit()
     return row
 
 
-def point_json(p) -> dict:
-    return {"id": p.id, "name": p.name, "building": p.building, "description": p.description,
-            "openingHours": p.opening_hours, "contact": p.contact, "latitude": p.latitude,
-            "longitude": p.longitude, "isActive": p.is_active, "createdAt": p.created_at}
-
-
 def count_points() -> int:
-    return db.scalar(select(func.count()).select_from(P)) or 0
+    return db.scalar(select(func.count()).select_from(CollectionPoint)) or 0
 
 
-def list_recent_point_activity(limit=6) -> list[dict]:
-    stmt = (select(Item.id, Item.title, Item.status, Item.updated_at, P.name, P.id)
-            .join(P, P.id == Item.point_id).where(Item.type == "FOUND", Item.status != "ARCHIVED")
-            .order_by(Item.updated_at.desc()).limit(limit))
-    return [{"itemId": i, "title": t, "status": s, "updatedAt": u, "pointName": pn, "pointId": pi}
-            for i, t, s, u, pn, pi in db.execute(stmt)]
+def list_recent_point_activity(limit: int = 6) -> list[dict]:
+    stmt = (
+        select(Item.id, Item.title, Item.status, Item.updated_at, CollectionPoint.name, CollectionPoint.id)
+        .join(CollectionPoint, CollectionPoint.id == Item.point_id)
+        .where(Item.type == "FOUND", Item.status != "ARCHIVED")
+        .order_by(Item.updated_at.desc())
+        .limit(limit)
+    )
+    return [
+        {
+            "itemId": item_id,
+            "title": title,
+            "status": status,
+            "updatedAt": updated_at,
+            "pointName": point_name,
+            "pointId": point_id,
+        }
+        for item_id, title, status, updated_at, point_name, point_id in db.execute(stmt)
+    ]
