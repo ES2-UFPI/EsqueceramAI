@@ -281,7 +281,8 @@ def _sync_missing_columns():
             for column in table.columns:
                 if column.name in colunas:
                     continue
-                ddl = (f"ALTER TABLE {table.name} ADD COLUMN {column.name} "
+                if_not_exists = "IF NOT EXISTS " if engine.dialect.name == "postgresql" else ""
+                ddl = (f"ALTER TABLE {table.name} ADD COLUMN {if_not_exists}{column.name} "
                        f"{column.type.compile(dialect=engine.dialect)}")
                 if column.server_default is not None:
                     default = column.server_default.arg
